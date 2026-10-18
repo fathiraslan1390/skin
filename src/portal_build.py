@@ -32,6 +32,14 @@ sub("async function list(){let all=[];", "async function list(){if(root.SakanPla
 sub("async function put(p){let v=clone(p);", "async function put(p){if(root.SakanPlanRemote)return root.SakanPlanRemote.put(clone(p));let v=clone(p);")
 sub("async function remove(id){memory.delete(id);", "async function remove(id){if(root.SakanPlanRemote)return root.SakanPlanRemote.remove(id);memory.delete(id);")
 
+# 2هـ) المخطط التجريبي (غرفة طلال) مايظهرش في مكتبة المخططات
+sub("$('projectList').innerHTML=[P.builtin,...plans].map(", "$('projectList').innerHTML=plans.map(")
+sub("</article>`).join('');const all=new Map([P.builtin,...plans]", "</article>`).join('')||'<p class=\"sk-muted\">لا توجد مخططات بعد. ارفع مخططًا جديدًا.</p>';const all=new Map([P.builtin,...plans]")
+
+# 2و) الاختيارات بتتحفظ في المشروع (portal.js)، مش في المخطط: المخطط مشترك بين كل المشاريع اللي عليه
+sub("function save(){if(!PlanProjects.current.builtin){let p=PlanProjects.current;p.selections={...S};p.client=$('clientName').value;p.notes=$('clientNotes').value;PlanProjects.put(p).then(ok=>{if(!ok)toast('تعذّر الحفظ على الجهاز. نزّل ملف المشروع للاحتفاظ به.');});return}",
+    "function save(){if(!PlanProjects.current.builtin)return;")
+
 # 2ج) البوكس ممكن يبقى مايل (angle بالدرجات حوالين نصه) عشان الحيطان المايلة: في الخريطة وفي الـ360°
 sub("function polygon(b,p){let {x,y,w,h}=b;",
     "function polygon(b,p){let q=polygon0(b,p),a=(b.angle||0)*Math.PI/180;if(!a)return q;let cx=b.x+b.w/2,cy=b.y+b.h/2,c=Math.cos(a),s=Math.sin(a);"

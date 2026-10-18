@@ -141,6 +141,7 @@
     $("skLogin").addEventListener("cancel", (e) => e.preventDefault());
 
     document.body.prepend($("skTopnav"));
+    document.querySelector("main").insertAdjacentHTML("afterbegin", '<section class="sk-no-project-card" id="skNoProject"></section>');
     document.body.prepend($("skScrim"));
     document.querySelectorAll("[data-tab]").forEach((b) => (b.onclick = () => {
       const id = b.dataset.tab, wasOpen = $(id).open;
@@ -233,6 +234,7 @@
     document.body.classList.toggle("sk-readonly", !!user && user.role === "client" && !can("edit"));
     document.body.classList.toggle("sk-can-log", can("viewLog"));
     document.body.classList.toggle("sk-has-project", !!project);
+    syncEmpty();
     $("skTopnav").hidden = !user;
     if (!user) { $("skProjectLabel").textContent = ""; updateWorkbar(); return; }
     $("skUserName").textContent = user.name;
@@ -240,10 +242,25 @@
     $("skUserRole").className = "sk-role sk-badge-" + user.role;
     $("skProjectLabel").textContent = project
       ? `مشروع: ${project.name} · المالك: ${project.ownerName}`
-      : (isEng() ? "مفيش مشروع مفتوح. افتح مشروع من «العملاء» أو «مشاريع المالك»." : "المهندس لسه ماضافلكش مشاريع.");
+      : (isEng() ? "لا يوجد مشروع مفتوح. افتح مشروعًا من «العملاء» أو «مشاريع المالك»." : "لم يضف المهندس أي مشاريع لك بعد.");
     if (project) document.title = "سكن جروب | " + project.name;
     updateWorkbar();
   }
+
+  /* لما مفيش مشروع مفتوح، بدل المخطط التجريبي بتظهر رسالة فاضية بالخطوة الجاية */
+  function syncEmpty() {
+    const empty = !project && (!P.current || P.current.builtin);
+    document.body.classList.toggle("sk-no-project", empty);
+    const el = $("skNoProject");
+    if (!el || !empty) return;
+    if (!user) { el.innerHTML = ""; return; }
+    el.innerHTML = isEng()
+      ? `<b>لا يوجد مشروع مفتوح</b><p>افتح مشروعًا من «العملاء»، أو أضف عميلًا ومشروعًا جديدًا.</p>
+         <div class="sk-actions"><button class="sk-btn sk-btn-dark" data-empty="clients">العملاء</button>${can("manageProjects") ? '<button class="sk-btn" data-empty="plans">المخططات</button>' : ""}</div>`
+      : `<b>لا توجد مشاريع بعد</b><p>سيظهر مشروعك هنا بمجرد أن يضيفه المهندس المسؤول.</p>`;
+    el.querySelectorAll("[data-empty]").forEach((b) => (b.onclick = () => (b.dataset.empty === "plans" ? openPlans() : $("skTabProjects").click())));
+  }
+  window.addEventListener("indesign:project", () => setTimeout(syncEmpty, 0));
 
   /* ---------------- مسودة / اعتماد نهائي ---------------- */
   const approved = () => !!project && !!project.work && project.work.status === "approved";
@@ -260,12 +277,12 @@
     const st = $("skWorkStatus");
     st.className = "sk-status " + (approved() ? "approved" : dirty ? "dirty" : "draft");
     const req = project.editRequest, pending = approved() && !!req && req.status === "pending";
-    st.textContent = approved() ? "تم الاعتماد - في التصنيع ✓" : dirty ? "تعديلات مش محفوظة" : "مسودة";
+    st.textContent = approved() ? "تم الاعتماد - في التصنيع ✓" : dirty ? "تعديلات غير محفوظة" : "مسودة";
     $("skWorkInfo").textContent = pending
-      ? (isAdmin() ? `${req.by.name} طالب السماح بالتعديل${req.reason ? ": " + req.reason : ""}` : "طلب التعديل مستني موافقة مدير النظام")
+      ? (isAdmin() ? `${req.by.name} يطلب السماح بالتعديل${req.reason ? ": " + req.reason : ""}` : "طلب التعديل بانتظار موافقة مدير النظام")
       : approved()
       ? `اعتمده ${w.approvedBy ? w.approvedBy.name : ""} · ${fmtDate(w.approvedAt)}${req && req.status === "rejected" && user.role === "client" ? " · مدير النظام رفض طلب التعديل" : ""}`
-      : w.updatedAt ? `آخر حفظ ${fmtDate(w.updatedAt)} · ${w.updatedBy ? w.updatedBy.name : ""}` : "لسه ماتحفظش";
+      : w.updatedAt ? `آخر حفظ ${fmtDate(w.updatedAt)} · ${w.updatedBy ? w.updatedBy.name : ""}` : "لم يُحفظ بعد";
     // بعد الاعتماد: مدير النظام بس اللي يفتح التعديل، والمالك يطلب منه
     $("skRequestEdit").hidden = !approved() || user.role !== "client" || pending;
     $("skAllowEdit").hidden = $("skRejectEdit").hidden = !pending || !isAdmin();
@@ -290,8 +307,8 @@
     say("skLoginError", "");
     let u;
     try { u = await API.login($("skLoginUser").value.trim(), $("skLoginPass").value); }
-    catch (err) { return say("skLoginError", err.message || "تعذّر الاتصال. جرّب تاني.", true); }
-    if (!u) return say("skLoginError", "اسم المستخدم أو كلمة المرور غلط.", true);
+    catch (err) { return say("skLoginError", err.message || "تعذّر الاتصال. حاول مرة أخرى.", true); }
+    if (!u) return say("skLoginError", "اسم المستخدم أو كلمة المرور غير صحيحة.", true);
     user = u;
     close("skLogin");
     await enter(null, true);
@@ -334,10 +351,10 @@
     try { return P.validate(plan); } catch (e) { return plan; }
   }
 
-  // قبل ما نسيب المشروع: لو فيه تعديلات مش محفوظة نسأل
+  // قبل ما نسيب المشروع: لو فيه تعديلات غير محفوظة نسأل
   async function leaveProject() {
     if (!project || !dirty) return true;
-    if (confirm("فيه تعديلات في الاختيارات لسه ماتحفظتش. تحفظها قبل ما تكمل؟")) return saveWork();
+    if (confirm("توجد تعديلات في الاختيارات لم تُحفظ بعد. هل تريد حفظها قبل المتابعة؟")) return saveWork();
     dirty = false;
     return true;
   }
@@ -347,10 +364,12 @@
     if (!(await leaveProject())) return;
     const p = await API.getProject(id);
     // المالك مايفتحش غير مشاريعه (والسيرفر لازم يتأكد من ده كمان)
-    if (!p || (user.role === "client" && p.ownerId !== user.ownerId) || !mineProject(p)) { notice("المشروع ده مش موجود."); return; }
+    if (!p || (user.role === "client" && p.ownerId !== user.ownerId) || !mineProject(p)) { notice("هذا المشروع غير موجود."); return; }
     const plan = await findPlan(p.planId);
     if (!plan) {
-      alert("مخطط المشروع مش موجود على الجهاز ده. لحد ما السيرفر يتربط، المشروع بيشتغل على نفس الجهاز اللي المهندس عمله عليه.");
+      // المخطط اتحذف: المهندس يختار للمشروع مخطط جديد
+      if (can("manageProjects")) { if (confirm(`مخطط مشروع «${p.name}» محذوف. هل تريد اختيار مخطط جديد له الآن؟`)) openProjectForm(p); }
+      else alert("مخطط هذا المشروع غير متاح حاليًا. تواصل مع المهندس المسؤول.");
       return;
     }
     project = p;          // لازم قبل activate عشان حدث indesign:project مايفصلش المشروع
@@ -383,7 +402,7 @@
   function describeChanges(a, b) {
     const ids = [...new Set([...Object.keys(a), ...Object.keys(b)])].sort();
     return ids.filter((id) => a[id] !== b[id]).map((id) =>
-      !a[id] ? `${id}: اختار ${typeLabel(b[id])}` :
+      !a[id] ? `${id}: اختر ${typeLabel(b[id])}` :
       !b[id] ? `${id}: مسح ${typeLabel(a[id])}` :
       `${id}: من ${typeLabel(a[id])} إلى ${typeLabel(b[id])}`);
   }
@@ -411,13 +430,13 @@
     saved = { selections: sel, notes };
     dirty = false;
     updateWorkbar();
-    notice("اتحفظت الاختيارات كمسودة.");
+    notice("تم حفظ الاختيارات كمسودة.");
     return true;
   }
 
   async function approveWork() {
     if (!project) return;
-    if (!confirm("تم الاعتماد - ابدأ التصنيع؟ بعد كده الاختيارات مش هتتعدل غير لو مدير النظام سمح بالتعديل.")) return;
+    if (!confirm("تم الاعتماد - ابدأ التصنيع؟ بعد ذلك لن يمكن تعديل الاختيارات إلا إذا سمح مدير النظام بالتعديل.")) return;
     if (dirty && !(await saveWork())) return;
     try {
       project = await API.approveWork(project.id, by());
@@ -426,20 +445,20 @@
     } catch (e) { alert(e.message); return; }
     await log("تم الاعتماد - ابدأ التصنيع", `${count(saved.selections)} من ${APP.boxes().length} اختيارات`);
     updateWorkbar();
-    notice("اتعتمدت الاختيارات.");
+    notice("تم اعتماد الاختيارات.");
   }
 
   async function requestEdit() {
-    const reason = prompt("إيه التعديل اللي محتاجه؟ الطلب هيروح لمدير النظام.");
+    const reason = prompt("ما التعديل الذي تحتاجه؟ سيُرسل الطلب إلى مدير النظام.");
     if (reason === null) return;
     try { project = await API.requestEdit(project.id, reason, by()); } catch (e) { alert(e.message); return; }
     await log("طلب السماح بالتعديل", reason.trim());
     updateWorkbar();
-    notice("اتبعت الطلب لمدير النظام.");
+    notice("تم إرسال الطلب إلى مدير النظام.");
   }
 
   async function resolveEdit(allow) {
-    if (!confirm(allow ? "تسمح للمالك يعدّل الاختيارات؟ هترجع مسودة." : "ترفض طلب التعديل؟")) return;
+    if (!confirm(allow ? "هل تسمح للمالك بتعديل الاختيارات؟ ستعود إلى مسودة." : "هل تريد رفض طلب التعديل؟")) return;
     try { project = await API.resolveEdit(project.id, allow, by()); } catch (e) { alert(e.message); return; }
     await log(allow ? "السماح بالتعديل" : "رفض طلب التعديل", project.editRequest.by.name);
     updateWorkbar();
@@ -448,9 +467,9 @@
 
   async function reopenWork() {
     if (!project) return;
-    if (!confirm("ترجّع الاختيارات مسودة عشان تتعدل؟ هيتسجل في السجل إنها اتفتحت تاني.")) return;
+    if (!confirm("هل تريد إعادة الاختيارات إلى مسودة لتعديلها؟ سيُسجَّل في السجل أنها فُتحت مرة أخرى.")) return;
     try { project = await API.reopenWork(project.id, by()); } catch (e) { alert(e.message); return; }
-    await log("رجوع لمسودة للتعديل");
+    await log("إعادة إلى مسودة للتعديل");
     updateWorkbar();
   }
 
@@ -464,13 +483,13 @@
   function projectFacts(p) {
     const last = p.work && p.work.updatedAt
       ? `آخر تعديل ${fmtDate(p.work.updatedAt)} · ${esc(p.work.updatedBy.name)} (${ROLE[p.work.updatedBy.role]})`
-      : "لسه محدش عدّل";
+      : "لم يعدّل أحد بعد";
     const rep = (p.reports || []).slice(-1)[0];
     return `<span class="sk-muted">المخطط: ${esc(p.planTitle || "—")} · ${count(p.work && p.work.selections)} اختيارات</span>
       ${isEng() ? `<span class="sk-muted">${engineerLine(p)}</span>` : ""}
       <span class="sk-muted">${last}</span>
       <span class="sk-chips">${slotChips(p)}</span>
-      ${rep ? `<span class="sk-sent">اتبعت تقرير «${SLOTS[rep.slot] || "الاختيارات الحالية"}» ${fmtDate(rep.sentAt)}</span>` : ""}`;
+      ${rep ? `<span class="sk-sent">تم إرسال تقرير «${SLOTS[rep.slot] || "الاختيارات الحالية"}» ${fmtDate(rep.sentAt)}</span>` : ""}`;
   }
   function wireProjectButtons(root, byId) {
     root.querySelectorAll("[data-open]").forEach((b) => (b.onclick = () => openProject(b.dataset.open)));
@@ -479,7 +498,7 @@
     root.querySelectorAll("[data-log]").forEach((b) => (b.onclick = () => openLog(b.dataset.log)));
     root.querySelectorAll("[data-del]").forEach((b) => (b.onclick = async () => {
       const p = byId.get(b.dataset.del);
-      if (!confirm(`حذف مشروع «${p.name}»؟ المقترحات والاختيارات بتاعته هتتمسح.`)) return;
+      if (!confirm(`حذف مشروع «${p.name}»؟ ستُحذف مقترحاته واختياراته.`)) return;
       await API.deleteProject(p.id);
       await log("حذف مشروع", `${p.name} · المالك ${p.ownerName}`, p);
       if (project && project.id === p.id) { project = null; dirty = false; }
@@ -503,7 +522,7 @@
       const all = await API.listProjects();
       const owners = (await API.listOwners()).filter((o) => mineOwner(o, all));
       if (!owners.some((o) => o.id === ownerView)) ownerView = project ? project.ownerId : (owners[0] ? owners[0].id : "");
-      $("skOwnerPick").innerHTML = owners.map((o) => `<option value="${o.id}">${esc(o.name)} (${esc(o.username)})</option>`).join("") || `<option value="">لسه مفيش ملّاك</option>`;
+      $("skOwnerPick").innerHTML = owners.map((o) => `<option value="${o.id}">${esc(o.name)} (${esc(o.username)})</option>`).join("") || `<option value="">لا يوجد ملّاك بعد</option>`;
       $("skOwnerPick").value = ownerView;
       ownerId = ownerView;
       const o = owners.find((x) => x.id === ownerId);
@@ -513,7 +532,7 @@
     const list = ownerId ? (await API.listProjects(ownerId)).filter(mineProject) : [];
     const el = $("skOwnerList");
     if (!list.length) {
-      el.innerHTML = `<div class="sk-empty"><b>مفيش مشاريع لسه</b><p>${isEng() ? "ضيف مشروع للعميل ده من تبويب «العملاء»." : "المهندس لسه ماضافلكش مشاريع."}</p></div>`;
+      el.innerHTML = `<div class="sk-empty"><b>لا توجد مشاريع بعد</b><p>${isEng() ? "أضف مشروعًا لهذا العميل من تبويب «العملاء»." : "لم يضف المهندس أي مشاريع لك بعد."}</p></div>`;
       return;
     }
     el.innerHTML = list.map((p) => `<article class="sk-room ${project && project.id === p.id ? "current" : ""}">
@@ -552,7 +571,7 @@
     $("skSearch").hidden = !!clientView;
     $("skSearchCount").hidden = true;
     if (!owners.length) {
-      el.innerHTML = `<div class="sk-empty"><b>لسه مفيش عملاء</b><p>${can("manageOwners") ? "ابدأ بـ «عميل جديد» واعمله اسم مستخدم وكلمة مرور، وبعدين ضيفله مشروع أو أكتر." : "اطلب من مدير النظام يضيف حسابات العملاء."}</p></div>`;
+      el.innerHTML = `<div class="sk-empty"><b>لا يوجد عملاء بعد</b><p>${can("manageOwners") ? "ابدأ بـ «عميل جديد» وأنشئ له اسم مستخدم وكلمة مرور، ثم أضف له مشروعًا أو أكثر." : "اطلب من مدير النظام إضافة حسابات العملاء."}</p></div>`;
       return;
     }
     const canOwners = can("manageOwners"), canProjects = can("manageProjects"), canDel = can("deleteItems"), canLog = can("viewLog");
@@ -567,7 +586,7 @@
       }).filter((r) => !q || hit(r.o.name, r.o.username, r.o.engineerName) || r.matched.length);
       $("skSearchCount").hidden = !q;
       $("skSearchCount").textContent = `${rows.length} عملاء`;
-      if (!rows.length) { el.innerHTML = `<div class="sk-empty"><b>مفيش نتايج</b><p>جرّب اسم تاني للعميل أو المشروع.</p></div>`; return; }
+      if (!rows.length) { el.innerHTML = `<div class="sk-empty"><b>لا توجد نتائج</b><p>جرّب اسمًا آخر للعميل أو المشروع.</p></div>`; return; }
       el.innerHTML = `<ol class="sk-client-list">${rows.map(({ o, projects, matched }) => `
         <li><button class="sk-client" data-client="${o.id}">
           <span class="sk-client-avatar">${esc(String(o.name).replace(/^(أ|م|د|ا)\.\s*/, "").charAt(0))}</span>
@@ -588,7 +607,7 @@
         <header>
           <div><b>${esc(o.name)}</b> <span class="sk-muted">اسم المستخدم: <span dir="ltr">${esc(o.username)}</span> · ${mine.length} مشاريع · المهندس المسؤول: ${o.engineerName ? esc(o.engineerName) : "أي مهندس"}</span></div>
           <div class="sk-actions">
-            ${canProjects ? `<button class="sk-btn sk-btn-dark" data-add-for="${o.id}">+ مشروع للعميل ده</button>` : ""}
+            ${canProjects ? `<button class="sk-btn sk-btn-dark" data-add-for="${o.id}">+ مشروع لهذا العميل</button>` : ""}
             ${canOwners ? `<button class="sk-btn" data-owner-edit="${o.id}">تعديل الحساب</button>` : ""}
             ${canDel ? `<button class="sk-btn sk-danger" data-owner-del="${o.id}">حذف الحساب</button>` : ""}
           </div>
@@ -602,7 +621,7 @@
             ${canLog ? `<button class="sk-btn" data-log="${p.id}">السجل</button>` : ""}
             ${canDel ? `<button class="sk-btn sk-danger" data-del="${p.id}">حذف</button>` : ""}
           </div>
-        </article>`).join("") || `<p class="sk-muted sk-owner-empty">مفيش مشاريع للعميل ده.</p>`}
+        </article>`).join("") || `<p class="sk-muted sk-owner-empty">لا توجد مشاريع لهذا العميل.</p>`}
       </section>`;
     $("skClientsBack").onclick = () => { clientView = ""; renderProjects(); };
     const ownersById = new Map(owners.map((o) => [o.id, o]));
@@ -611,7 +630,7 @@
     el.querySelectorAll("[data-owner-edit]").forEach((b) => (b.onclick = () => openOwnerForm(ownersById.get(b.dataset.ownerEdit))));
     el.querySelectorAll("[data-owner-del]").forEach((b) => (b.onclick = async () => {
       const o = ownersById.get(b.dataset.ownerDel);
-      if (!confirm(`حذف حساب «${o.name}»؟ المالك مش هيقدر يدخل تاني، و${o.projects} مشاريع بتاعته هيتمسحوا.`)) return;
+      if (!confirm(`حذف حساب «${o.name}»؟ لن يتمكن المالك من الدخول مرة أخرى، وستُحذف مشاريعه (${o.projects}).`)) return;
       await API.deleteOwner(o.id);
       await log("حذف مالك", `${o.name} · ${o.username}`, null);
       if (project && project.ownerId === o.id) project = null;
@@ -630,7 +649,7 @@
     $("skOUser").value = o ? o.username : "";
     $("skOPass").value = "";
     $("skOPass").required = !o;
-    $("skOPassHint").textContent = o ? "سيبها فاضية لو مش هتغيّرها." : "";
+    $("skOPassHint").textContent = o ? "اتركها فارغة إذا لم تكن ستغيّرها." : "";
     const perms = o ? o.perms : { edit: true, final: true, send: true };
     document.querySelectorAll("[data-operm]").forEach((c) => (c.checked = !!perms[c.dataset.operm]));
     say("skOwnerFormError", "");
@@ -664,8 +683,8 @@
   }
 
   $("skCopyCreds").onclick = async () => {
-    try { await navigator.clipboard.writeText($("skCredsText").textContent); $("skCopyCreds").textContent = "اتنسخ ✓"; }
-    catch (e) { $("skCopyCreds").textContent = "انسخها يدوي"; }
+    try { await navigator.clipboard.writeText($("skCredsText").textContent); $("skCopyCreds").textContent = "تم النسخ ✓"; }
+    catch (e) { $("skCopyCreds").textContent = "انسخها يدويًا"; }
     setTimeout(() => ($("skCopyCreds").textContent = "نسخ"), 2000);
   };
 
@@ -679,10 +698,11 @@
     $("skFName").value = (p && p.name) || "";
     $("skFOwner").innerHTML = owners.map((o) => `<option value="${o.id}">${esc(o.name)} (${esc(o.username)})</option>`).join("");
     $("skFOwner").value = (p && p.ownerId) || ownerView || owners[0].id;
-    if (isAdmin()) { $("skFEngineer").innerHTML = await engineerOptions("زي المهندس المسؤول عن المالك"); $("skFEngineer").value = (p && p.engineer) || ""; }
-    const plans = [P.builtin, ...(await P.list())];
-    $("skFPlan").innerHTML = plans.map((q) => `<option value="${esc(q.id)}">${esc(q.title)}${q.builtin ? " (المخطط التجريبي)" : ""}</option>`).join("");
-    $("skFPlan").value = (p && p.planId) || (plans[1] ? plans[1].id : P.builtin.id);
+    if (isAdmin()) { $("skFEngineer").innerHTML = await engineerOptions("نفس المهندس المسؤول عن المالك"); $("skFEngineer").value = (p && p.engineer) || ""; }
+    const plans = await P.list();
+    $("skFPlan").innerHTML = `<option value="">${plans.length ? "اختر مخطط المشروع" : "لا توجد مخططات بعد، ارفع مخططًا أولًا"}</option>` +
+      plans.map((q) => `<option value="${esc(q.id)}">${esc(q.title)}</option>`).join("");
+    $("skFPlan").value = (p && plans.some((q) => q.id === p.planId) && p.planId) || (plans.length === 1 ? plans[0].id : "");
     say("skFormError", "");
     closeAll();
     open("skProjectForm");
@@ -738,7 +758,7 @@
         <td><b>${esc(r.name)}</b><br><span class="sk-role sk-badge-${r.role}">${ROLE[r.role] || ""}</span> <span class="sk-muted" dir="ltr">${esc(r.username)}</span></td>
         <td>${esc(r.projectName || "—")}</td>
         <td><b>${esc(r.action)}</b>${r.details ? `<br><span class="sk-muted">${esc(r.details)}</span>` : ""}</td>
-      </tr>`).join("") : `<tr><td colspan="4" class="sk-muted">مفيش تعديلات متسجلة.</td></tr>`;
+      </tr>`).join("") : `<tr><td colspan="4" class="sk-muted">لا توجد تعديلات مسجلة.</td></tr>`;
   }
 
   /* ---------------- المستخدمين والصلاحيات (لمدير النظام) ---------------- */
@@ -765,19 +785,19 @@
         <div><b>${esc(o.name)}</b> <span class="sk-role sk-badge-client">${ROLE.client}</span> <span class="sk-muted" dir="ltr">${esc(o.username)}</span> <span class="sk-muted">· ${o.projects} مشاريع · المهندس المسؤول: ${o.engineerName ? esc(o.engineerName) : "أي مهندس"}</span>
           <div class="sk-chips">${permChips(o.perms, CLIENT_PERMS)}</div></div>
         <div class="sk-actions"><button class="sk-btn" data-client-edit="${o.id}">تعديل</button><button class="sk-btn sk-danger" data-client-del="${o.id}">حذف</button></div>
-      </article>`).join("") || `<p class="sk-muted">لسه مفيش ملّاك.</p>`;
+      </article>`).join("") || `<p class="sk-muted">لا يوجد ملّاك بعد.</p>`;
     const staffBy = new Map(staff.map((e) => [e.username, e])), ownersBy = new Map(owners.map((o) => [o.id, o]));
     $("skUsers").querySelectorAll("[data-staff-edit]").forEach((b) => (b.onclick = () => openStaffForm(staffBy.get(b.dataset.staffEdit))));
     $("skUsers").querySelectorAll("[data-staff-del]").forEach((b) => (b.onclick = async () => {
       const e = staffBy.get(b.dataset.staffDel);
-      if (!confirm(`حذف حساب «${e.name}»؟ مش هيقدر يدخل تاني.`)) return;
+      if (!confirm(`حذف حساب «${e.name}»؟ لن يتمكن من الدخول مرة أخرى.`)) return;
       try { await API.deleteStaff(e.username); await log("حذف حساب", `${e.name} · ${e.username}`, null); renderUsers(); }
       catch (err) { say("skUsersMsg", err.message, true); }
     }));
     $("skUsers").querySelectorAll("[data-client-edit]").forEach((b) => (b.onclick = () => openOwnerForm(ownersBy.get(b.dataset.clientEdit))));
     $("skUsers").querySelectorAll("[data-client-del]").forEach((b) => (b.onclick = async () => {
       const o = ownersBy.get(b.dataset.clientDel);
-      if (!confirm(`حذف حساب «${o.name}»؟ المالك مش هيقدر يدخل تاني، و${o.projects} مشاريع بتاعته هيتمسحوا.`)) return;
+      if (!confirm(`حذف حساب «${o.name}»؟ لن يتمكن المالك من الدخول مرة أخرى، وستُحذف مشاريعه (${o.projects}).`)) return;
       await API.deleteOwner(o.id);
       await log("حذف مالك", `${o.name} · ${o.username}`, null);
       if (project && project.ownerId === o.id) { project = null; updateChrome(); }
@@ -794,7 +814,7 @@
     $("skSUser").value = e ? e.username : "";
     $("skSPass").value = "";
     $("skSPass").required = !e;
-    $("skSPassHint").textContent = e ? "سيبها فاضية لو مش هتغيّرها." : "";
+    $("skSPassHint").textContent = e ? "اتركها فارغة إذا لم تكن ستغيّرها." : "";
     $("skSRole").value = e ? e.role : "engineer";
     const perms = (e && e.perms) || { manageOwners: true, manageProjects: true, deleteItems: false, viewLog: true };
     document.querySelectorAll("[data-sperm]").forEach((c) => (c.checked = !!perms[c.dataset.sperm]));
@@ -831,14 +851,14 @@
       await API.changePassword(user.username, $("skNewPass").value);
       await log("تغيير كلمة المرور", "", null);
       $("skPassForm").reset();
-      say("skSettingsMsg", "اتغيرت كلمة المرور.");
+      say("skSettingsMsg", "تم تغيير كلمة المرور.");
     } catch (err) { say("skSettingsMsg", err.message, true); }
   });
 
   /* ---------------- المقترحات ---------------- */
   function needProject() {
     if (project) return true;
-    notice("افتح مشروع الأول من «مشاريع المالك».");
+    notice("افتح مشروعًا أولًا من «مشاريع المالك».");
     openOwner();
     return false;
   }
@@ -860,7 +880,7 @@
       const pr = project.proposals && project.proposals[k];
       return `<article class="sk-prop ${k === "final" ? "final" : ""} ${pr ? "saved" : ""}">
         <div><b>${SLOTS[k]}</b>
-          <span class="sk-muted">${pr ? `${count(pr.selections)} من ${total} اختيارات · ${fmtDate(pr.savedAt)} · ${esc(pr.savedBy.name)} (${ROLE[pr.savedBy.role]})` : "لسه ماتحفظش"}</span></div>
+          <span class="sk-muted">${pr ? `${count(pr.selections)} من ${total} اختيارات · ${fmtDate(pr.savedAt)} · ${esc(pr.savedBy.name)} (${ROLE[pr.savedBy.role]})` : "لم يُحفظ بعد"}</span></div>
         <div class="sk-actions">
           ${canSave(k) ? `<button class="sk-btn ${k === "final" ? "sk-btn-dark" : ""}" data-save="${k}">احفظ الاختيارات الحالية هنا</button>` : ""}
           ${pr && canSave(k) ? `<button class="sk-btn" data-load="${k}">استرجاع</button>` : ""}
@@ -875,28 +895,28 @@
 
   async function saveProposal(slot) {
     const sel = APP.getSelections();
-    if (!count(sel)) return say("skPropMsg", "اختار تقسيمة لبوكس واحد على الأقل قبل ما تحفظ المقترح.", true);
+    if (!count(sel)) return say("skPropMsg", "اختر تقسيمة لبوكس واحد على الأقل قبل حفظ المقترح.", true);
     const old = project.proposals && project.proposals[slot];
-    if (old && !confirm(`«${SLOTS[slot]}» محفوظ قبل كده. تستبدله بالاختيارات الحالية؟`)) return;
-    if (slot === "final" && !old && !confirm("هتحفظ الاختيارات الحالية كمقترح نهائي. متأكد؟")) return;
+    if (old && !confirm(`«${SLOTS[slot]}» محفوظ من قبل. هل تريد استبداله بالاختيارات الحالية؟`)) return;
+    if (slot === "final" && !old && !confirm("سيتم حفظ الاختيارات الحالية كمقترح نهائي. هل أنت متأكد؟")) return;
     try {
       project = await API.saveProposal(project.id, slot, { selections: sel, notes: $("clientNotes").value, by: by() });
       await log("حفظ " + SLOTS[slot], `${count(sel)} من ${APP.boxes().length} اختيارات`);
-      say("skPropMsg", `اتحفظ «${SLOTS[slot]}».`);
+      say("skPropMsg", `تم حفظ «${SLOTS[slot]}».`);
       renderProposals();
     } catch (err) { say("skPropMsg", err.message, true); }
   }
 
   async function restoreProposal(slot) {
     const pr = project.proposals[slot];
-    if (approved()) return say("skPropMsg", "الاختيارات معتمدة ومقفولة. اطلب من مدير النظام السماح بالتعديل.", true);
-    if (!confirm(`ترجّع اختيارات «${SLOTS[slot]}»؟ الاختيارات الحالية هتتغير (لو عايز تحتفظ بيها احفظها في مقترح الأول).`)) return;
+    if (approved()) return say("skPropMsg", "الاختيارات معتمدة ومقفلة. اطلب من مدير النظام السماح بالتعديل.", true);
+    if (!confirm(`هل تريد استرجاع اختيارات «${SLOTS[slot]}»؟ ستتغير الاختيارات الحالية (إذا أردت الاحتفاظ بها فاحفظها في مقترح أولًا).`)) return;
     muted = true;
     APP.setState(pr.selections, null, pr.notes);
     muted = false;
     checkDirty();
     await log("استرجاع " + SLOTS[slot], `${count(pr.selections)} اختيارات`);
-    say("skPropMsg", `رجعت اختيارات «${SLOTS[slot]}». اضغط «حفظ مسودة» عشان تتحفظ.`);
+    say("skPropMsg", `تم استرجاع اختيارات «${SLOTS[slot]}». اضغط «حفظ مسودة» لحفظها.`);
   }
 
   /* ---------------- تقرير PDF ---------------- */
@@ -996,7 +1016,7 @@
     try {
       project = await API.sendReport(project.id, { slot: reportSlot, number: reportNumber(reportSlot), by: by() });
       await log("إرسال تقرير للمهندس", label);
-      say("skReportMsg", `اتبعت تقرير «${label}» للمهندس. لو عايز تبعته بنفسك كمان، اضغط «حفظ PDF» وابعت الملف.`);
+      say("skReportMsg", `تم إرسال تقرير «${label}» إلى المهندس. إذا أردت إرساله بنفسك أيضًا، اضغط «حفظ PDF» وأرسل الملف.`);
     } catch (err) { say("skReportMsg", err.message, true); }
   };
 
@@ -1017,23 +1037,25 @@
       return `<article class="sk-plan">
         <img src="${q.image}" alt="">
         <div><b>${esc(q.title)}</b>
-          <span class="sk-muted">${q.boxes.filter((b) => b.kind !== "fixed").length} بوكسات · ${q.scale ? "المقياس مضبوط" : "من غير مقياس"}</span>
-          <span class="sk-muted">${used.length ? "مستخدم في: " + used.map((p) => esc(p.name)).join("، ") : "مش مستخدم في أي مشروع"}</span></div>
+          <span class="sk-muted">${q.boxes.filter((b) => b.kind !== "fixed").length} بوكسات · ${q.scale ? "المقياس مضبوط" : "بدون مقياس"}</span>
+          <span class="sk-muted">${used.length ? "مستخدم في: " + used.map((p) => esc(p.name)).join("، ") : "غير مستخدم في أي مشروع"}</span></div>
         <div class="sk-actions">
           ${can("manageProjects") ? `<button class="sk-btn" data-plan-edit="${esc(q.id)}">تعديل البوكسات والمقياس</button>` : ""}
           ${can("deleteItems") ? `<button class="sk-btn sk-danger" data-plan-del="${esc(q.id)}">حذف</button>` : ""}
         </div>
       </article>`;
-    }).join("") : `<div class="sk-empty"><b>لسه مفيش مخططات مرفوعة</b><p>ارفع صورة أو PDF للمخطط، وحدد عليه البوكسات.</p></div>`;
+    }).join("") : `<div class="sk-empty"><b>لا توجد مخططات مرفوعة بعد</b><p>ارفع صورة أو PDF للمخطط، وحدد عليه البوكسات.</p></div>`;
     const byId = new Map(plans.map((q) => [q.id, q]));
     $("skPlanList").querySelectorAll("[data-plan-edit]").forEach((b) => (b.onclick = () => { closeAll(); UI.openEditor(P.validate(byId.get(b.dataset.planEdit))); }));
     $("skPlanList").querySelectorAll("[data-plan-del]").forEach((b) => (b.onclick = async () => {
       const q = byId.get(b.dataset.planDel), used = projects.filter((p) => p.planId === q.id);
-      if (used.length) return alert(`المخطط ده مستخدم في ${used.length} مشاريع. غيّر مخطط المشاريع دي الأول من «تعديل».`);
-      if (!confirm(`حذف مخطط «${q.title}»؟`)) return;
+      if (!confirm(used.length
+        ? `المخطط «${q.title}» مستخدم في: ${used.map((p) => p.name).join("، ")}.\nعند حذفه ستبقى هذه المشاريع بدون مخطط إلى أن تختار لها مخططًا جديدًا من «تعديل». هل تريد الحذف؟`
+        : `حذف مخطط «${q.title}»؟`)) return;
       await P.remove(q.id);
       await log("حذف مخطط", q.title, null);
-      if (P.current.id === q.id) APP.loadProject(P.builtin);
+      if (P.current.id === q.id) { if (project && project.planId === q.id) { project = null; dirty = false; updateChrome(); } APP.loadProject(P.builtin); }
+      syncEmpty();
       renderPlans();
     }));
   }
@@ -1066,7 +1088,7 @@
         <div><b>${esc(f.name)}</b><span class="sk-muted">${fmtSize(f.size)} · ${fmtDate(f.addedAt)} · ${esc(f.addedBy.name)}</span></div>
         <div class="sk-actions"><button class="sk-btn" data-file-open="${f.id}">فتح</button><button class="sk-btn" data-file-get="${f.id}">تنزيل</button>
           ${canFiles() && can("deleteItems") ? `<button class="sk-btn sk-danger" data-file-del="${f.id}">حذف</button>` : ""}</div>
-      </article>`).join("") : `<div class="sk-empty"><p>مفيش ${FILE_CATS[fileCat]} في المشروع ده.</p></div>`;
+      </article>`).join("") : `<div class="sk-empty"><p>لا توجد ${FILE_CATS[fileCat]} في هذا المشروع.</p></div>`;
     const byId = new Map(list.map((f) => [f.id, f]));
     const blobUrl = async (id) => URL.createObjectURL(await API.getFile(id));
     $("skFileList").querySelectorAll("[data-file-open]").forEach((b) => (b.onclick = async () => { const u = await blobUrl(b.dataset.fileOpen); window.open(u, "_blank"); setTimeout(() => URL.revokeObjectURL(u), 60000); }));
@@ -1092,7 +1114,7 @@
         await API.addFile(project.id, f, fileCat, by());
         await log("إضافة ملف", `${FILE_CATS[fileCat]} · ${f.name}`);
       }
-      say("skFilesMsg", list.length > 1 ? `اتضاف ${list.length} ملفات.` : "اتضاف الملف.");
+      say("skFilesMsg", list.length > 1 ? `تمت إضافة ${list.length} ملفات.` : "تمت إضافة الملف.");
     } catch (err) { say("skFilesMsg", err.message, true); }
     renderFiles();
   };
@@ -1112,7 +1134,7 @@
     $("skCommentList").innerHTML = list.length ? list.map((c) => `<article class="sk-comment ${c.by.username === user.username ? "mine" : ""} ${c.by.role === "client" ? "from-client" : ""}">
         <header><b>${esc(c.by.name)}</b> <span class="sk-role sk-badge-${c.by.role}">${ROLE[c.by.role]}</span> <span class="sk-muted">${fmtDate(c.at)}</span></header>
         <p>${esc(c.text)}</p>
-      </article>`).join("") : `<div class="sk-empty"><p>${user.role === "client" ? "اكتب أي سؤال أو طلب للمهندس هنا، وهيوصله إشعار." : "مفيش تعليقات لسه."}</p></div>`;
+      </article>`).join("") : `<div class="sk-empty"><p>${user.role === "client" ? "اكتب هنا أي سؤال أو طلب للمهندس، وسيصله إشعار." : "لا توجد تعليقات بعد."}</p></div>`;
     $("skCommentList").scrollTop = $("skCommentList").scrollHeight;
     await API.markSeen(user.username, project.id);
     refreshNotifications();
@@ -1130,7 +1152,7 @@
   });
 
   /* ---------------- الإشعارات ---------------- */
-  const NOTIFY = { comment: "تعليق جديد", report: "تقرير مبعوت", approved: "تم الاعتماد - ابدأ التصنيع", editRequest: "طلب السماح بالتعديل", editAllowed: "مدير النظام سمح بالتعديل", editRejected: "مدير النظام رفض طلب التعديل" };
+  const NOTIFY = { comment: "تعليق جديد", report: "تقرير مُرسل", approved: "تم الاعتماد - ابدأ التصنيع", editRequest: "طلب السماح بالتعديل", editAllowed: "مدير النظام سمح بالتعديل", editRejected: "مدير النظام رفض طلب التعديل" };
   let notifications = [];
   async function refreshNotifications() {
     if (!user) return;
@@ -1151,7 +1173,7 @@
         <b>${NOTIFY[n.kind]} · ${esc(n.projectName)}</b>
         <span>${esc(n.by.name)} (${ROLE[n.by.role]})${n.kind === "comment" || n.kind === "editRequest" ? (n.text ? ": " + esc(n.text.length > 120 ? n.text.slice(0, 120) + "…" : n.text) : "") : n.kind === "report" ? ": " + (SLOTS[n.text] || "الاختيارات الحالية") : ""}</span>
         <span class="sk-muted">${fmtDate(n.at)}</span>
-      </button>`).join("") : `<div class="sk-empty"><p>مفيش جديد.</p></div>`;
+      </button>`).join("") : `<div class="sk-empty"><p>لا جديد.</p></div>`;
     $("skNotifyList").querySelectorAll("[data-n]").forEach((b) => (b.onclick = async () => {
       const n = notifications[Number(b.dataset.n)];
       await API.markSeen(user.username, n.projectId);

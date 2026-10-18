@@ -36,12 +36,12 @@
         body: JSON.stringify({ token, op, args: args || {} }),
       });
     } catch (e) {
-      throw Error("تعذّر الاتصال بالسيرفر. اتأكد من الإنترنت وجرّب تاني.");
+      throw Error("تعذّر الاتصال بالسيرفر. تأكد من الاتصال بالإنترنت وحاول مرة أخرى.");
     }
     const body = await res.json().catch(() => null);
     if (!res.ok) {
-      const msg = (body && body.message) || "حصلت مشكلة على السيرفر.";
-      if (msg === "SESSION") { setToken(null); throw Error("الجلسة انتهت. ادخل تاني."); }
+      const msg = (body && body.message) || "حدثت مشكلة في السيرفر.";
+      if (msg === "SESSION") { setToken(null); throw Error("انتهت الجلسة. سجّل الدخول مرة أخرى."); }
       throw Error(msg);
     }
     return body;

@@ -103,7 +103,7 @@ window.SakanPortalAPI = (function () {
   function store(db) {
     if (db.log.length > MAX_LOG) db.log = db.log.slice(-MAX_LOG);
     try { localStorage.setItem(KEY, JSON.stringify(db)); }
-    catch (e) { throw Error("مساحة التخزين على الجهاز اتملت. امسح مشاريع قديمة وجرّب تاني."); }
+    catch (e) { throw Error("امتلأت مساحة التخزين على الجهاز. احذف مشاريع قديمة وحاول مرة أخرى."); }
   }
 
   async function hash(username, password) {
@@ -190,11 +190,11 @@ window.SakanPortalAPI = (function () {
       const db = load();
       const name = String(data.name || "").trim(), username = String(data.username || "").trim();
       if (!name) throw Error("اكتب اسم المالك.");
-      if (!USERNAME.test(username)) throw Error("اسم المستخدم من 3 لـ 30 حرف إنجليزي أو رقم (مسموح . _ -).");
+      if (!USERNAME.test(username)) throw Error("يتكون اسم المستخدم من 3 إلى 30 حرفًا إنجليزيًا أو رقمًا (مسموح . _ -).");
       let o = data.id ? db.owners.find((x) => x.id === data.id) : null;
-      if (usernameTaken(db, username, o && o.id)) throw Error("اسم المستخدم ده مستخدم قبل كده. اختار اسم تاني.");
-      if ((!o || data.password) && (!data.password || data.password.length < 4)) throw Error("كلمة المرور 4 حروف أو أرقام على الأقل.");
-      if (o && !same(o.username, username) && !data.password) throw Error("لما تغيّر اسم المستخدم اكتب كلمة مرور جديدة كمان.");
+      if (usernameTaken(db, username, o && o.id)) throw Error("اسم المستخدم هذا مستخدم من قبل. اختر اسمًا آخر.");
+      if ((!o || data.password) && (!data.password || data.password.length < 4)) throw Error("يجب ألا تقل كلمة المرور عن 4 حروف أو أرقام.");
+      if (o && !same(o.username, username) && !data.password) throw Error("عند تغيير اسم المستخدم اكتب كلمة مرور جديدة أيضًا.");
       if (!o) { o = { id: uid("own"), createdAt: now(), createdBy: by, perms: perms(CLIENT_PERMS) }; db.owners.push(o); }
       Object.assign(o, { name, username, updatedAt: now() });
       if (data.perms) o.perms = perms(CLIENT_PERMS, data.perms);
@@ -232,8 +232,8 @@ window.SakanPortalAPI = (function () {
       const db = load();
       const name = String(data.name || "").trim();
       if (!name) throw Error("اكتب اسم المشروع.");
-      if (!db.owners.some((o) => o.id === data.ownerId)) throw Error("اختار مالك المشروع.");
-      if (!data.planId) throw Error("اختار مخطط المشروع.");
+      if (!db.owners.some((o) => o.id === data.ownerId)) throw Error("اختر مالك المشروع.");
+      if (!data.planId) throw Error("اختر مخطط المشروع.");
       let p = data.id ? db.projects.find((x) => x.id === data.id) : null;
       if (!p) {
         p = { id: uid("prj"), createdAt: now(), createdBy: by, work: { selections: {}, notes: "" }, proposals: {}, reports: [] };
@@ -260,7 +260,7 @@ window.SakanPortalAPI = (function () {
       const db = load();
       const p = db.projects.find((x) => x.id === id);
       if (!p) return null;
-      if (p.work && p.work.status === "approved") throw Error("الاختيارات معتمدة ومقفولة. اطلب من مدير النظام السماح بالتعديل.");
+      if (p.work && p.work.status === "approved") throw Error("الاختيارات معتمدة ومقفلة. اطلب من مدير النظام السماح بالتعديل.");
       p.work = { selections: work.selections || {}, notes: work.notes || "", status: "draft", updatedAt: now(), updatedBy: work.by };
       p.updatedAt = p.work.updatedAt;
       store(db);
@@ -271,7 +271,7 @@ window.SakanPortalAPI = (function () {
     async approveWork(id, by) {
       const db = load();
       const p = db.projects.find((x) => x.id === id);
-      if (!p) throw Error("المشروع مش موجود.");
+      if (!p) throw Error("المشروع غير موجود.");
       p.work = Object.assign({ selections: {}, notes: "" }, p.work, { status: "approved", approvedAt: now(), approvedBy: by });
       p.updatedAt = now();
       store(db);
@@ -283,9 +283,9 @@ window.SakanPortalAPI = (function () {
     async requestEdit(id, reason, by) {
       const db = load();
       const p = db.projects.find((x) => x.id === id);
-      if (!p) throw Error("المشروع مش موجود.");
-      if (!p.work || p.work.status !== "approved") throw Error("الاختيارات لسه مسودة، تقدر تعدّل عادي.");
-      if (p.editRequest && p.editRequest.status === "pending") throw Error("فيه طلب تعديل مستني الموافقة.");
+      if (!p) throw Error("المشروع غير موجود.");
+      if (!p.work || p.work.status !== "approved") throw Error("الاختيارات ما زالت مسودة، ويمكنك تعديلها.");
+      if (p.editRequest && p.editRequest.status === "pending") throw Error("يوجد طلب تعديل بانتظار الموافقة.");
       p.editRequest = { status: "pending", reason: String(reason || "").trim().slice(0, 500), at: now(), by };
       p.updatedAt = now();
       store(db);
@@ -296,7 +296,7 @@ window.SakanPortalAPI = (function () {
     async resolveEdit(id, allow, by) {
       const db = load();
       const p = db.projects.find((x) => x.id === id);
-      if (!p || !p.editRequest || p.editRequest.status !== "pending") throw Error("مفيش طلب تعديل.");
+      if (!p || !p.editRequest || p.editRequest.status !== "pending") throw Error("لا يوجد طلب تعديل.");
       Object.assign(p.editRequest, { status: allow ? "allowed" : "rejected", resolvedAt: now(), resolvedBy: by });
       if (allow) p.work = Object.assign({ selections: {}, notes: "" }, p.work, { status: "draft", reopenedAt: now(), reopenedBy: by });
       p.updatedAt = now();
@@ -308,7 +308,7 @@ window.SakanPortalAPI = (function () {
     async reopenWork(id, by) {
       const db = load();
       const p = db.projects.find((x) => x.id === id);
-      if (!p) throw Error("المشروع مش موجود.");
+      if (!p) throw Error("المشروع غير موجود.");
       p.work = Object.assign({ selections: {}, notes: "" }, p.work, { status: "draft", reopenedAt: now(), reopenedBy: by });
       p.updatedAt = now();
       store(db);
@@ -318,10 +318,10 @@ window.SakanPortalAPI = (function () {
     /* POST /projects/:id/comments — تعليقات المشروع (المالك يكتب، والمدير أو المهندس يرد) */
     async addComment(id, text, by) {
       text = String(text || "").trim().slice(0, 2000);
-      if (!text) throw Error("اكتب التعليق الأول.");
+      if (!text) throw Error("اكتب التعليق أولًا.");
       const db = load();
       const p = db.projects.find((x) => x.id === id);
-      if (!p) throw Error("المشروع مش موجود.");
+      if (!p) throw Error("المشروع غير موجود.");
       p.comments = p.comments || [];
       p.comments.push({ id: uid("cmt"), text, at: now(), by });
       p.updatedAt = now();
@@ -367,7 +367,7 @@ window.SakanPortalAPI = (function () {
     async saveProposal(id, slot, data) {
       const db = load();
       const p = db.projects.find((x) => x.id === id);
-      if (!p) throw Error("المشروع مش موجود.");
+      if (!p) throw Error("المشروع غير موجود.");
       p.proposals = p.proposals || {};
       p.proposals[slot] = { selections: data.selections || {}, notes: data.notes || "", savedAt: now(), savedBy: data.by };
       p.updatedAt = now();
@@ -375,12 +375,12 @@ window.SakanPortalAPI = (function () {
       return publicProject(p, db);
     },
 
-    /* POST /projects/:id/reports — العميل بيبعت التقرير للمهندس.
+    /* POST /projects/:id/reports — العميل بيرسل التقرير إلى المهندس.
        على السيرفر: يحفظ الـ PDF أو يبعته إيميل/واتساب للمهندس. */
     async sendReport(id, data) {
       const db = load();
       const p = db.projects.find((x) => x.id === id);
-      if (!p) throw Error("المشروع مش موجود.");
+      if (!p) throw Error("المشروع غير موجود.");
       p.reports = p.reports || [];
       p.reports.push({ slot: data.slot, number: data.number, sentAt: now(), sentBy: data.by });
       store(db);
@@ -423,12 +423,12 @@ window.SakanPortalAPI = (function () {
       const username = String(data.username || "").trim(), name = String(data.name || "").trim();
       const e = data.original ? db.engineers.find((x) => same(x.username, data.original)) : null;
       if (!name) throw Error("اكتب الاسم.");
-      if (!USERNAME.test(username)) throw Error("اسم المستخدم من 3 لـ 30 حرف إنجليزي أو رقم (مسموح . _ -).");
-      if (db.owners.some((o) => same(o.username, username)) || db.engineers.some((x) => x !== e && same(x.username, username))) throw Error("اسم المستخدم ده مستخدم قبل كده. اختار اسم تاني.");
-      if ((!e || data.password) && (!data.password || data.password.length < 4)) throw Error("كلمة المرور 4 حروف أو أرقام على الأقل.");
-      if (e && !same(e.username, username) && !data.password) throw Error("لما تغيّر اسم المستخدم اكتب كلمة مرور جديدة كمان.");
+      if (!USERNAME.test(username)) throw Error("يتكون اسم المستخدم من 3 إلى 30 حرفًا إنجليزيًا أو رقمًا (مسموح . _ -).");
+      if (db.owners.some((o) => same(o.username, username)) || db.engineers.some((x) => x !== e && same(x.username, username))) throw Error("اسم المستخدم هذا مستخدم من قبل. اختر اسمًا آخر.");
+      if ((!e || data.password) && (!data.password || data.password.length < 4)) throw Error("يجب ألا تقل كلمة المرور عن 4 حروف أو أرقام.");
+      if (e && !same(e.username, username) && !data.password) throw Error("عند تغيير اسم المستخدم اكتب كلمة مرور جديدة أيضًا.");
       const role = data.role === "admin" ? "admin" : "engineer";
-      if (e && e.role === "admin" && role !== "admin" && db.engineers.filter((x) => x.role === "admin").length === 1) throw Error("لازم يفضل فيه مدير نظام واحد على الأقل.");
+      if (e && e.role === "admin" && role !== "admin" && db.engineers.filter((x) => x.role === "admin").length === 1) throw Error("يجب أن يبقى مدير نظام واحد على الأقل.");
       const row = e || { createdAt: now() };
       Object.assign(row, { name, username, role, perms: role === "admin" ? undefined : perms(ENGINEER_PERMS, data.perms || row.perms) });
       if (data.password) row.passwordHash = await hash(username, data.password);
@@ -441,17 +441,17 @@ window.SakanPortalAPI = (function () {
       const db = load();
       const e = db.engineers.find((x) => same(x.username, username));
       if (!e) return;
-      if (e.role === "admin" && db.engineers.filter((x) => x.role === "admin").length === 1) throw Error("لازم يفضل فيه مدير نظام واحد على الأقل.");
+      if (e.role === "admin" && db.engineers.filter((x) => x.role === "admin").length === 1) throw Error("يجب أن يبقى مدير نظام واحد على الأقل.");
       db.engineers = db.engineers.filter((x) => x !== e);
       store(db);
     },
 
     /* PUT /staff/:username/password — كل واحد يغيّر كلمة المرور بتاعته */
     async changePassword(username, password) {
-      if (!password || password.length < 4) throw Error("كلمة المرور 4 حروف أو أرقام على الأقل.");
+      if (!password || password.length < 4) throw Error("يجب ألا تقل كلمة المرور عن 4 حروف أو أرقام.");
       const db = load();
       const e = db.engineers.find((x) => same(x.username, username)) || db.owners.find((x) => same(x.username, username));
-      if (!e) throw Error("الحساب مش موجود.");
+      if (!e) throw Error("الحساب غير موجود.");
       e.passwordHash = await hash(e.username, password);
       store(db);
     },

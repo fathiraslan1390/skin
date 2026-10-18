@@ -1,8 +1,8 @@
 /* أدوات رسم البوكسات في محرر المخطط (SakanPlanTools)
  * طرق الرسم التلاتة، والمهندس بيختار منهم وقت الرسم:
  * - «سحب»: يسحب مستطيل مرة واحدة، ويحرّك البوكس أو يكبّره من أركانه، والبوكس بيلزق في اللي جنبه.
- * - «بالمقاسات»: يحدد الحيطة بخط، ويكتب عروض الخزاين بالسنتي، فتترص لوحدها بالمقاس الحقيقي.
- * - «تلقائي»: البرنامج يدور على مستطيلات الخزاين في الصورة، أو يرسم تقريبي والبرنامج يظبطه على خطوط المخطط.
+ * - «بالمقاسات»: يحدد الحائط بخط، ويكتب عروض الخزائن بالسنتي، فتترص لوحدها بالمقاس الحقيقي.
+ * - «تلقائي»: البرنامج يدور على مستطيلات الخزائن في الصورة، أو يرسم تقريبي والبرنامج يظبطه على خطوط المخطط.
  * وفي كل الطرق: تكرار البوكس (Ctrl+D)، تحريك بالأسهم، حذف بـ Delete، وتكبير بـ Ctrl + عجلة الماوس.
  * بيعتمد على INDESIGN_PROJECTS_UI.editor اللي portal_build.py بيضيفه للمحرر.
  */
@@ -11,15 +11,15 @@
   const UI = window.INDESIGN_PROJECTS_UI, ED = UI && UI.editor, P = window.PlanProjects;
   if (!ED || !P) return;
   const $ = (id) => document.getElementById(id);
-  const MODES = { drag: "سحب", points: "بالنقط", wall: "بالمقاسات", auto: "تلقائي" };
+  const MODES = { drag: "سحب", points: "بالنقاط", wall: "بالمقاسات", auto: "تلقائي" };
   let mode = "drag";
   try { mode = localStorage.getItem("sakan:drawMode") || "drag"; } catch (e) {}
   if (!MODES[mode]) mode = "drag";
 
   let drag = null, suppressClick = false;
-  let wall = { a: null, b: null };   // خط الحيطة في وضع «بالمقاسات»
+  let wall = { a: null, b: null };   // خط الحائط في وضع «بالمقاسات»
   let candidates = [];                // مستطيلات لقاها الوضع «التلقائي»
-  let poly = [];                      // نقط حدود الخزانة في وضع «بالنقط»
+  let poly = [];                      // نقاط حدود الخزانة في وضع «بالنقاط»
   let pixels = null;                  // كاش صورة المخطط للتحليل
 
   const draft = () => UI.getDraft();
@@ -134,7 +134,7 @@
     s.appendChild(g);
   }
 
-  /* ---------------- السحب: رسم / تحريك / تكبير / خط الحيطة / رسم تقريبي ---------------- */
+  /* ---------------- السحب: رسم / تحريك / تكبير / خط الحائط / رسم تقريبي ---------------- */
   function onDown(e) {
     suppressClick = false; // لو click قديم ماوصلش، مايبلعش الضغطة الجديدة
     if (!ready() || e.button !== 0 || ED.tool === "scale" || ED.first) return;
@@ -155,7 +155,7 @@
       const b = box(boxEl.dataset.editorBox);
       drag = { kind: "move", b, o: { x: b.x, y: b.y, w: b.w, h: b.h }, start: q, select: true };
     } else if (mode === "wall" && wall.b) {
-      return; // الحيطة متحددة: اللمس في مكان فاضي مايحرّكهاش، والتظبيط بمسك النقطة نفسها
+      return; // الحائط متحددة: اللمس في مكان فاضي مايحرّكهاش، والتظبيط بمسك النقطة نفسها
     } else if (mode === "points") {
       drag = { kind: "points", start: q };
     } else if (e.pointerType === "touch" && mode !== "wall") {
@@ -252,7 +252,7 @@
     if (d.kind === "wall") {
       const q = toSvg(e);
       if (d.moved) { wall = { a: d.start, b: magnet(d.start, q, e) }; suppressClick = true; wallReady(); }
-      else { // ضغطتين: نقطة 1 (أول الحيطة) ونقطة 2 (آخرها)
+      else { // ضغطتين: نقطة 1 (أول الحائط) ونقطة 2 (آخرها)
         if (!wall.a) wall = { a: q, b: null }; else if (!wall.b) { wall.b = magnet(wall.a, q, e); wallReady(); }
         suppressClick = true; paintWall(); renderPanel();
       }
@@ -275,8 +275,8 @@
     }
   }
 
-  /* ---------------- «بالمقاسات»: خط الحيطة وعروض الخزاين ---------------- */
-  // خط الحيطة بأي زاوية. لو قريب جدًا من الأفقي أو الرأسي (أقل من درجة ونص) بيتعدل لوحده، إلا لو Alt مضغوط
+  /* ---------------- «بالمقاسات»: خط الحائط وعروض الخزائن ---------------- */
+  // خط الحائط بأي زاوية. لو قريب جدًا من الأفقي أو الرأسي (أقل من درجة ونص) بيتعدل لوحده، إلا لو Alt مضغوط
   function magnet(a, q, e) {
     if (e && e.altKey) return q;
     const ang = Math.atan2(q[1] - a[1], q[0] - a[0]), near = Math.round(ang / (Math.PI / 2)) * (Math.PI / 2);
@@ -287,7 +287,7 @@
   const wallUnits = () => wall.b ? Math.hypot(wall.b[0] - wall.a[0], wall.b[1] - wall.a[1]) : 0;
   const wallDir = () => { const L = wallUnits() || 1; return [(wall.b[0] - wall.a[0]) / L, (wall.b[1] - wall.a[1]) / L]; };
   const wallAngle = () => { const [x, y] = wallDir(); let d = Math.round((-Math.atan2(y, x) * 180) / Math.PI); d = ((d % 180) + 180) % 180; return d > 90 ? d - 180 : d; };
-  // ناحية الخزاين: الناحية الأولى دايمًا تحت الخط أو يمينه، والتانية عكسها
+  // ناحية الخزائن: الناحية الأولى دايمًا تحت الخط أو يمينه، والتانية عكسها
   function wallNormal() {
     const [tx, ty] = wallDir();
     let n = [-ty, tx];
@@ -315,12 +315,12 @@
     return b;
   }
   function wallLayout() {
-    if (!wall.b) return { err: "ارسم خط الحيطة الأول." };
+    if (!wall.b) return { err: "ارسم خط الحائط أولًا." };
     const len = num($("skWallLen").value), depth = num($("skWallDepth").value) || 60, widths = widthsOf($("skWallWidths").value);
-    if (!(len >= 20)) return { err: "اكتب طول الحيطة بالسنتي." };
-    if (!widths.length) return { err: "اكتب عروض الخزاين بالسنتي، مثلًا: 90، 60، 120." };
+    if (!(len >= 20)) return { err: "اكتب طول الحائط بالسنتيمتر." };
+    if (!widths.length) return { err: "اكتب عروض الخزائن بالسنتي، مثلًا: 90، 60، 120." };
     const total = widths.reduce((a, b) => a + b, 0);
-    if (total > len + 0.5) return { err: `مجموع العروض ${total} سم أكبر من طول الحيطة ${len} سم.` };
+    if (total > len + 0.5) return { err: `مجموع العروض ${total} سم أكبر من طول الحائط ${len} سم.` };
     const u = wallUnits() / len, t = wallDir(), n = wallNormal(), d = depth * u;
     const out = []; let at = 0;
     for (const wcm of widths) {
@@ -329,7 +329,7 @@
       at += w;
     }
     const outside = (b) => P.polygon(Object.assign({ kind: "straight" }, b), draft()).some(([x, y]) => x < -0.5 || y < -0.5 || x > 1000.5 || y > H() + 0.5);
-    if (out.some(outside)) return { err: "البوكسات بتطلع برا المخطط. جرّب الناحية التانية أو راجع الطول.", out };
+    if (out.some(outside)) return { err: "البوكسات تخرج عن حدود المخطط. جرّب الجهة الأخرى أو راجع الطول.", out };
     return { out, len, u, depth };
   }
   function paintWall() {
@@ -366,8 +366,8 @@
     say("");
   }
 
-  /* ---------------- «بالنقط»: حدود الخزانة نقطة نقطة ---------------- */
-  // 4 نقط = خزانة مستقيمة، 5 نقط = كورنر مشطوف، 6 نقط = كورنر حرف L. الشكل ممكن يبقى مايل
+  /* ---------------- «بالنقاط»: حدود الخزانة نقطة نقطة ---------------- */
+  // 4 نقاط = خزانة مستقيمة، 5 نقاط = كورنر مشطوف، 6 نقاط = كورنر حرف L. الشكل ممكن يبقى مايل
   function paintPoly() {
     const s = svgEl(); if (!s) return;
     s.querySelectorAll(".sk-poly").forEach((el) => el.remove());
@@ -400,7 +400,7 @@
   }
   function fitPoly(raw) {
     const pts = cleanPoly(raw), n = pts.length;
-    if (n < 4 || n > 6) return { err: `اتحطت ${n} نقط. الخزانة المستقيمة 4 نقط، والكورنر المشطوف 5، والكورنر حرف L ست نقط.` };
+    if (n < 4 || n > 6) return { err: `تم وضع ${n} نقاط. الخزانة المستقيمة 4 نقاط، والكورنر المشطوف 5، والكورنر حرف L ست نقاط.` };
     // ميل الشكل من أطول ضلع فيه، وأقل من درجة ونص بيتعدل مستقيم
     let long = 0, ang = 0;
     pts.forEach((p, i) => { const q = pts[(i + 1) % n], L = Math.hypot(q[0] - p[0], q[1] - p[1]); if (L > long) { long = L; ang = Math.atan2(q[1] - p[1], q[0] - p[0]); } });
@@ -410,7 +410,7 @@
     const loc = pts.map((p) => rotate([p[0] - c0[0], p[1] - c0[1]], -ang));
     const x0 = Math.min(...loc.map((p) => p[0])), x1 = Math.max(...loc.map((p) => p[0])), y0 = Math.min(...loc.map((p) => p[1])), y1 = Math.max(...loc.map((p) => p[1]));
     const w = x1 - x0, h = y1 - y0;
-    if (w < 4 || h < 4) return { err: "الشكل صغير قوي." };
+    if (w < 4 || h < 4) return { err: "الشكل صغير جدًا." };
     const [cx, cy] = rotate([(x0 + x1) / 2, (y0 + y1) / 2], ang), center = [c0[0] + cx, c0[1] + cy];
     const box = { x: center[0] - w / 2, y: center[1] - h / 2, w, h };
     if (ang) box.angle = Math.round((ang * 180 / Math.PI) * 100) / 100;
@@ -419,7 +419,7 @@
     const tol = Math.min(w, h) * 0.12, has = (X, Y) => loc.some((p) => Math.hypot(p[0] - X, p[1] - Y) <= tol);
     const corners = { nw: [x0, y0], ne: [x1, y0], se: [x1, y1], sw: [x0, y1] }, opposite = { nw: "se", ne: "sw", se: "nw", sw: "ne" };
     const missing = Object.keys(corners).filter((k) => !has(...corners[k]));
-    if (missing.length !== 1) return { err: "مش قادر أعرف شكل الزاوية. حط النقط على أركان الخزانة بالترتيب حواليها." };
+    if (missing.length !== 1) return { err: "تعذّر تحديد شكل الزاوية. ضع النقاط على أركان الخزانة بالترتيب حولها." };
     const face = opposite[missing[0]], mx = face === "ne" || face === "se", mz = face === "sw" || face === "se";
     const uv = loc.map((p) => [mx ? x1 - p[0] : p[0] - x0, mz ? y1 - p[1] : p[1] - y0]);
     // عمق الضلعين: النقطة اللي على الحافة البعيدة وجوه الشكل
@@ -438,7 +438,7 @@
     if (f.box.kind === "straight" && !["south", "north", "east", "west"].includes(nb.face)) nb.face = "south";
     if (!f.box.angle) delete nb.angle;
     addBoxes([nb]);
-    say(f.noScale && f.box.kind !== "straight" ? "اتضافت. اضبط المقياس عشان عمق الزاوية يطلع مظبوط." : "");
+    say(f.noScale && f.box.kind !== "straight" ? "تمت الإضافة. اضبط المقياس ليكون عمق الزاوية صحيحًا." : "");
   }
 
   /* ---------------- «تلقائي»: تحليل صورة المخطط ---------------- */
@@ -484,7 +484,7 @@
   }
   // بيدوّر على المساحات المقفولة اللي شكلها مستطيل وحجمها قريب من حجم خزانة
   async function detect() {
-    say("بدوّر على الخزاين في المخطط…");
+    say("جارٍ البحث عن الخزائن في المخطط…");
     const px = await getPixels(), { W } = px, Hh = px.H;
     const wall = new Uint8Array(W * Hh);
     for (let y = 0; y < Hh; y++) for (let x = 0; x < W; x++) {
@@ -516,7 +516,7 @@
     const overlaps = (a, b) => { const ix = Math.max(0, Math.min(a.x + a.w, b.x + b.w) - Math.max(a.x, b.x)), iy = Math.max(0, Math.min(a.y + a.h, b.y + b.h) - Math.max(a.y, b.y)); return ix * iy / Math.min(a.w * a.h, b.w * b.h) > 0.5; };
     candidates = found.filter((c) => !draft().boxes.some((b) => overlaps(b, c)));
     paintCandidates(); renderPanel();
-    say(candidates.length ? "" : "مالقيتش مستطيلات واضحة. جرّب «ارسم تقريبي» على كل خزانة.");
+    say(candidates.length ? "" : "لم يُعثر على مستطيلات واضحة. جرّب الرسم التقريبي حول كل خزانة.");
   }
   function paintCandidates() {
     const s = svgEl(); if (!s) return;
@@ -547,30 +547,30 @@
     document.querySelector(".editor-sidebar").insertAdjacentHTML("afterbegin",
       `<section class="sk-draw-panel" id="skDrawPanel">
         <div data-for="drag"><b>رسم بالسحب</b>
-          <p>اسحب على المخطط من ركن الخزانة للركن المقابل. اسحب البوكس عشان تحرّكه، ومن المربعات الصغيرة عشان تكبّره. البوكس بيلزق لوحده في حواف البوكسات اللي جنبه.</p></div>
-        <div data-for="points"><b>رسم بالنقط</b>
-          <p>اضغط على أركان الخزانة واحد ورا التاني حواليها. 4 نقط للخزانة المستقيمة، 5 للكورنر المشطوف، 6 للكورنر حرف L. اقفل الشكل بالضغط على نقطة 1 أو «تم». تقدر تمسك أي نقطة وتحرّكها قبل ما تخلّص.</p>
+          <p>اسحب على المخطط من ركن الخزانة إلى الركن المقابل. اسحب البوكس لتحريكه، ومن المربعات الصغيرة لتكبيره. يلتصق البوكس تلقائيًا بحواف البوكسات المجاورة.</p></div>
+        <div data-for="points"><b>رسم بالنقاط</b>
+          <p>اضغط على أركان الخزانة واحدًا تلو الآخر حولها. 4 نقاط للخزانة المستقيمة، 5 للكورنر المشطوف، 6 للكورنر حرف L. أغلق الشكل بالضغط على نقطة 1 أو «تم». يمكنك سحب أي نقطة وتحريكها قبل الانتهاء.</p>
           <p class="sk-wall-info" id="skPolyInfo" hidden></p>
           <div class="sk-auto-actions">
             <button type="button" class="primary" id="skPolyDone">تم</button>
-            <button type="button" class="secondary" id="skPolyUndo">شيل آخر نقطة</button>
+            <button type="button" class="secondary" id="skPolyUndo">احذف آخر نقطة</button>
             <button type="button" class="text-button" id="skPolyClear">ابدأ من الأول</button>
           </div></div>
         <div data-for="wall"><b>رسم بالمقاسات</b>
-          <p id="skWallHint">اضغط أول الحيطة وآخرها (أو اسحب عليها) على الخط اللي الخزاين هتتركب عليه.</p>
+          <p id="skWallHint">اضغط على بداية الحائط ونهايته (أو اسحب عليه) على الخط الذي ستُركّب عليه الخزائن.</p>
           <p class="sk-wall-info" id="skWallInfo" dir="auto" hidden></p>
           <div id="skWallForm">
-            <label>طول الحيطة (سم)<input id="skWallLen" inputmode="decimal" dir="ltr"></label>
-            <label>عروض الخزاين بالترتيب (سم)<input id="skWallWidths" dir="ltr" placeholder="90, 60, 120"></label>
+            <label>طول الحائط (سم)<input id="skWallLen" inputmode="decimal" dir="ltr"></label>
+            <label>عروض الخزائن بالترتيب (سم)<input id="skWallWidths" dir="ltr" placeholder="90, 60, 120"></label>
             <label>العمق (سم)<input id="skWallDepth" inputmode="decimal" dir="ltr" value="60"></label>
-            <div class="sk-wall-side"><span>الخزاين ناحية:</span><button type="button" id="skWallSide" data-side="1"></button></div>
+            <div class="sk-wall-side"><span>جهة الخزائن:</span><button type="button" id="skWallSide" data-side="1"></button></div>
             <button type="button" class="primary" id="skWallApply">رص البوكسات</button>
-            <button type="button" class="text-button" id="skWallReset">ارسم الحيطة من جديد</button>
+            <button type="button" class="text-button" id="skWallReset">ارسم الحائط من جديد</button>
           </div></div>
         <div data-for="auto"><b>رسم تلقائي</b>
-          <p>«دوّر على الخزاين» بيعلّم المستطيلات اللي شكلها خزانة، واضغط على أي واحد منهم عشان يتضاف. أو ارسم تقريبي حوالين الخزانة، والبرنامج يظبط البوكس على خطوط المخطط.</p>
+          <p>«ابحث عن الخزائن» يحدد المستطيلات التي تشبه الخزائن، واضغط على أيٍّ منها لإضافته. أو ارسم تقريبيًا حول الخزانة، وسيضبط البرنامج البوكس على خطوط المخطط.</p>
           <div class="sk-auto-actions">
-            <button type="button" class="primary" id="skDetect">دوّر على الخزاين</button>
+            <button type="button" class="primary" id="skDetect">ابحث عن الخزائن</button>
             <button type="button" class="secondary" id="skAddAll" hidden>إضافة الكل</button>
           </div></div>
         <p class="sk-draw-msg" id="skDrawMsg" role="status" hidden></p>
@@ -593,7 +593,7 @@
     $("skWallWidths").onkeydown = (e) => { if (e.key === "Enter") applyWall(); };
     $("skWallApply").onclick = applyWall;
     $("skWallReset").onclick = () => { wall = { a: null, b: null }; paintWall(); renderPanel(); };
-    $("skDetect").onclick = () => detect().catch(() => say("مقدرتش أحلل الصورة دي."));
+    $("skDetect").onclick = () => detect().catch(() => say("تعذّر تحليل هذه الصورة."));
     $("skAddAll").onclick = () => { const all = candidates.splice(0); addBoxes(all.map((c) => newBox(c.x, c.y, c.w, c.h))); renderPanel(); };
     $("skDupBox").onclick = duplicate;
     $("skPolyDone").onclick = finishPoly;
@@ -634,26 +634,26 @@
     document.querySelectorAll("[data-draw-mode]").forEach((b) => b.setAttribute("aria-checked", b.dataset.drawMode === mode));
     document.querySelectorAll("#skDrawPanel [data-for]").forEach((el) => (el.hidden = el.dataset.for !== mode));
     $("skWallForm").hidden = !wall.b;
-    $("skWallHint").textContent = wall.b ? "امسك نقطة 1 أو 2 وحرّكها عشان تظبط الحيطة، واكتب المقاسات." : wall.a ? "اضغط آخر الحيطة (نقطة 2)." : "اضغط أول الحيطة وآخرها (أو اسحب عليها) على الخط اللي الخزاين هتتركب عليه.";
+    $("skWallHint").textContent = wall.b ? "اسحب النقطة 1 أو 2 لضبط الحائط، واكتب المقاسات." : wall.a ? "اضغط على نهاية الحائط (نقطة 2)." : "اضغط على بداية الحائط ونهايته (أو اسحب عليه) على الخط الذي ستُركّب عليه الخزائن.";
     $("skWallInfo").hidden = !wall.b;
     if (wall.b) {
       const sc = draft().scale, cm = sc && sc.metersPerUnit ? Math.round(wallUnits() * sc.metersPerUnit * 100) : null;
       $("skWallInfo").textContent = (cm ? `الطول على المقياس: ${cm} سم · ` : "") + `الميل: ${wallAngle()}°`;
       const [nx, ny] = wallNormal(), i = ((Math.round(Math.atan2(ny, nx) / (Math.PI / 4)) % 8) + 8) % 8;
-      $("skWallSide").textContent = "→↘↓↙←↖↑↗"[i] + " تبديل الناحية";
+      $("skWallSide").textContent = "→↘↓↙←↖↑↗"[i] + " تبديل الجهة";
     }
     const kinds = { 4: "خزانة مستقيمة", 5: "كورنر مشطوف", 6: "كورنر حرف L" };
     $("skPolyInfo").hidden = !poly.length;
-    $("skPolyInfo").textContent = `${poly.length} نقط` + (kinds[poly.length] ? ` · ${kinds[poly.length]}` : "");
+    $("skPolyInfo").textContent = `${poly.length} نقاط` + (kinds[poly.length] ? ` · ${kinds[poly.length]}` : "");
     $("skPolyDone").disabled = poly.length < 4; $("skPolyUndo").disabled = !poly.length; $("skPolyClear").hidden = !poly.length;
     $("skAddAll").hidden = !candidates.length;
     $("skAddAll").textContent = `إضافة الكل (${candidates.length})`;
   }
   function helpText() {
     if (!draft().image || ED.busy || ED.tool === "scale" || ED.first) return;
-    const t = mode === "points" ? "اضغط على أركان الخزانة بالترتيب، واقفل الشكل على نقطة 1."
-      : mode === "wall" ? "حدد الحيطة، واكتب عروض الخزاين بالسنتي."
-      : mode === "auto" ? "دوّر على الخزاين، أو ارسم تقريبي حوالين كل خزانة."
+    const t = mode === "points" ? "اضغط على أركان الخزانة بالترتيب، وأغلق الشكل عند نقطة 1."
+      : mode === "wall" ? "حدد الحيطة، واكتب عروض الخزائن بالسنتيمتر."
+      : mode === "auto" ? "ابحث عن الخزائن، أو ارسم تقريبيًا حول كل خزانة."
       : "اسحب لرسم بوكس. اسحب البوكس لتحريكه، ومن أركانه لتكبيره.";
     $("editorHelp").textContent = t;
   }
@@ -670,7 +670,7 @@
   function duplicate() {
     const b = draft().boxes.find((q) => q.id === ED.selected); if (!b) return;
     const free = (x, y) => x >= 0 && y >= 0 && x + b.w <= 1000.1 && y + b.h <= H() + 0.1 && !draft().boxes.some((q) => x < q.x + q.w - 0.5 && x + b.w > q.x + 0.5 && y < q.y + q.h - 0.5 && y + b.h > q.y + 0.5);
-    if (b.angle) { // البوكس المايل: النسخة بتتحط جنبه على نفس الحيطة
+    if (b.angle) { // البوكس المايل: النسخة بتتحط جنبه على نفس الحائط
       const [ux, uy] = rotate([b.w, 0], rad(b)), c = { ...b, x: b.x + ux, y: b.y + uy };
       if (c.x + c.w / 2 > 1000 || c.y + c.h / 2 > H() || c.x + c.w / 2 < 0 || c.y + c.h / 2 < 0) Object.assign(c, { x: b.x - ux, y: b.y - uy });
       keepInside(c); addBoxes([c]); return;

@@ -181,7 +181,7 @@ begin
     v := lower(trim(coalesce(args->>'username','')));
     select * into r from sakan_login_fail where ukey = v;
     if found and r.until is not null and r.until > now() then
-      perform sakan_err('محاولات دخول غلط كتير. استنى 10 دقايق وجرّب تاني.');
+      perform sakan_err('محاولات دخول خاطئة كثيرة. انتظر 10 دقائق وحاول مرة أخرى.');
     end if;
     select * into s from sakan_staff where ukey = v;
     if found then ok := sakan_check(coalesce(args->>'password',''), s.pass); v2 := 'staff';
@@ -212,20 +212,20 @@ begin
 
   -- ---------- الملّاك ----------
   if op = 'listOwners' then
-    if me->>'role' = 'client' then perform sakan_err('مش مسموح.'); end if;
+    if me->>'role' = 'client' then perform sakan_err('غير مسموح.'); end if;
     return coalesce((select jsonb_agg(sakan_public_owner(x) order by x.doc->>'name') from sakan_owners x), '[]'::jsonb);
   end if;
 
   if op = 'saveOwner' then
-    if not sakan_can(me, 'manageOwners') then perform sakan_err('مش مسموحلك تعدّل الملّاك.'); end if;
+    if not sakan_can(me, 'manageOwners') then perform sakan_err('غير مسموح لك بتعديل الملّاك.'); end if;
     d := args->'data';
     v := trim(coalesce(d->>'name','')); v2 := trim(coalesce(d->>'username',''));
     if v = '' then perform sakan_err('اكتب اسم المالك.'); end if;
-    if v2 !~ uname_re then perform sakan_err('اسم المستخدم من 3 لـ 30 حرف إنجليزي أو رقم (مسموح . _ -).'); end if;
+    if v2 !~ uname_re then perform sakan_err('يتكون اسم المستخدم من 3 إلى 30 حرفًا إنجليزيًا أو رقمًا (مسموح . _ -).'); end if;
     if coalesce(d->>'id','') <> '' then select * into o from sakan_owners where id = d->>'id'; end if;
-    if sakan_username_taken(v2, o.id) then perform sakan_err('اسم المستخدم ده مستخدم قبل كده. اختار اسم تاني.'); end if;
-    if (o.id is null or coalesce(d->>'password','') <> '') and length(coalesce(d->>'password','')) < 4 then perform sakan_err('كلمة المرور 4 حروف أو أرقام على الأقل.'); end if;
-    if o.id is not null and o.ukey <> lower(v2) and coalesce(d->>'password','') = '' then perform sakan_err('لما تغيّر اسم المستخدم اكتب كلمة مرور جديدة كمان.'); end if;
+    if sakan_username_taken(v2, o.id) then perform sakan_err('اسم المستخدم هذا مستخدم من قبل. اختر اسمًا آخر.'); end if;
+    if (o.id is null or coalesce(d->>'password','') <> '') and length(coalesce(d->>'password','')) < 4 then perform sakan_err('يجب ألا تقل كلمة المرور عن 4 حروف أو أرقام.'); end if;
+    if o.id is not null and o.ukey <> lower(v2) and coalesce(d->>'password','') = '' then perform sakan_err('عند تغيير اسم المستخدم اكتب كلمة مرور جديدة أيضًا.'); end if;
     if o.id is null then
       o.id := sakan_uid('own');
       o.doc := jsonb_build_object('id', o.id, 'createdAt', sakan_now(), 'createdBy', sakan_by(me), 'perms', sakan_client_perms());
@@ -243,7 +243,7 @@ begin
   end if;
 
   if op = 'deleteOwner' then
-    if not (sakan_can(me, 'manageOwners') and sakan_can(me, 'deleteItems')) then perform sakan_err('مش مسموحلك تمسح.'); end if;
+    if not (sakan_can(me, 'manageOwners') and sakan_can(me, 'deleteItems')) then perform sakan_err('غير مسموح لك بالحذف.'); end if;
     select * into o from sakan_owners where id = args->>'id';
     if found then
       delete from sakan_chunks where kind = 'file' and ref in (select f.id from sakan_files f join sakan_projects x on x.id = f.project_id where x.owner_id = o.id);
@@ -264,22 +264,22 @@ begin
     select * into p from sakan_projects where id = coalesce(args->>'id', args->>'projectId');
     if not found or not sakan_sees(me, p) then
       if op = 'getProject' then return null; end if;
-      perform sakan_err('المشروع مش موجود.');
+      perform sakan_err('المشروع غير موجود.');
     end if;
   end if;
 
   if op = 'getProject' then return sakan_public_project(p); end if;
 
   if op = 'saveProject' then
-    if not sakan_can(me, 'manageProjects') then perform sakan_err('مش مسموحلك تعدّل المشاريع.'); end if;
+    if not sakan_can(me, 'manageProjects') then perform sakan_err('غير مسموح لك بتعديل المشاريع.'); end if;
     d := args->'data';
     v := trim(coalesce(d->>'name',''));
     if v = '' then perform sakan_err('اكتب اسم المشروع.'); end if;
-    if not exists (select 1 from sakan_owners where id = d->>'ownerId') then perform sakan_err('اختار مالك المشروع.'); end if;
-    if coalesce(d->>'planId','') = '' then perform sakan_err('اختار مخطط المشروع.'); end if;
+    if not exists (select 1 from sakan_owners where id = d->>'ownerId') then perform sakan_err('اختر مالك المشروع.'); end if;
+    if coalesce(d->>'planId','') = '' then perform sakan_err('اختر مخطط المشروع.'); end if;
     if coalesce(d->>'id','') <> '' then
       select * into p from sakan_projects where id = d->>'id';
-      if found and not sakan_sees(me, p) then perform sakan_err('المشروع مش موجود.'); end if;
+      if found and not sakan_sees(me, p) then perform sakan_err('المشروع غير موجود.'); end if;
     end if;
     if p.id is null then
       p.id := sakan_uid('prj');
@@ -293,37 +293,37 @@ begin
   end if;
 
   if op = 'deleteProject' then
-    if not (sakan_can(me, 'manageProjects') and sakan_can(me, 'deleteItems')) then perform sakan_err('مش مسموحلك تمسح.'); end if;
+    if not (sakan_can(me, 'manageProjects') and sakan_can(me, 'deleteItems')) then perform sakan_err('غير مسموح لك بالحذف.'); end if;
     delete from sakan_chunks where kind = 'file' and ref in (select id from sakan_files where project_id = p.id);
     delete from sakan_projects where id = p.id;
     return null;
   end if;
 
   if op = 'saveWork' then
-    if me->>'role' = 'client' and not sakan_can(me, 'edit') then perform sakan_err('مش مسموحلك تعدّل الاختيارات.'); end if;
-    if p.doc->'work'->>'status' = 'approved' then perform sakan_err('الاختيارات معتمدة ومقفولة. اطلب من مدير النظام السماح بالتعديل.'); end if;
+    if me->>'role' = 'client' and not sakan_can(me, 'edit') then perform sakan_err('غير مسموح لك بتعديل الاختيارات.'); end if;
+    if p.doc->'work'->>'status' = 'approved' then perform sakan_err('الاختيارات معتمدة ومقفلة. اطلب من مدير النظام السماح بالتعديل.'); end if;
     d := args->'work';
     v := sakan_now();
     p.doc := p.doc || jsonb_build_object('work', jsonb_build_object('selections', coalesce(d->'selections','{}'::jsonb), 'notes', coalesce(d->>'notes',''), 'status', 'draft', 'updatedAt', v, 'updatedBy', sakan_by(me)), 'updatedAt', v);
   elsif op = 'approveWork' then
-    if me->>'role' = 'client' and not sakan_can(me, 'final') then perform sakan_err('مش مسموحلك تعتمد.'); end if;
+    if me->>'role' = 'client' and not sakan_can(me, 'final') then perform sakan_err('غير مسموح لك بالاعتماد.'); end if;
     p.doc := p.doc || jsonb_build_object('work', '{"selections":{},"notes":""}'::jsonb || coalesce(p.doc->'work','{}'::jsonb) || jsonb_build_object('status','approved','approvedAt',sakan_now(),'approvedBy',sakan_by(me)), 'updatedAt', sakan_now());
   elsif op = 'requestEdit' then
-    if coalesce(p.doc->'work'->>'status','') <> 'approved' then perform sakan_err('الاختيارات لسه مسودة، تقدر تعدّل عادي.'); end if;
-    if p.doc->'editRequest'->>'status' = 'pending' then perform sakan_err('فيه طلب تعديل مستني الموافقة.'); end if;
+    if coalesce(p.doc->'work'->>'status','') <> 'approved' then perform sakan_err('الاختيارات ما زالت مسودة، ويمكنك تعديلها.'); end if;
+    if p.doc->'editRequest'->>'status' = 'pending' then perform sakan_err('يوجد طلب تعديل بانتظار الموافقة.'); end if;
     p.doc := p.doc || jsonb_build_object('editRequest', jsonb_build_object('status','pending','reason',left(trim(coalesce(args->>'reason','')),500),'at',sakan_now(),'by',sakan_by(me)), 'updatedAt', sakan_now());
   elsif op = 'resolveEdit' then
-    if me->>'role' <> 'admin' then perform sakan_err('ده لمدير النظام بس.'); end if;
-    if coalesce(p.doc->'editRequest'->>'status','') <> 'pending' then perform sakan_err('مفيش طلب تعديل.'); end if;
+    if me->>'role' <> 'admin' then perform sakan_err('هذا متاح لمدير النظام فقط.'); end if;
+    if coalesce(p.doc->'editRequest'->>'status','') <> 'pending' then perform sakan_err('لا يوجد طلب تعديل.'); end if;
     ok := coalesce((args->>'allow')::boolean, false);
     p.doc := p.doc || jsonb_build_object('editRequest', (p.doc->'editRequest') || jsonb_build_object('status', case when ok then 'allowed' else 'rejected' end, 'resolvedAt', sakan_now(), 'resolvedBy', sakan_by(me)), 'updatedAt', sakan_now());
     if ok then p.doc := p.doc || jsonb_build_object('work', '{"selections":{},"notes":""}'::jsonb || coalesce(p.doc->'work','{}'::jsonb) || jsonb_build_object('status','draft','reopenedAt',sakan_now(),'reopenedBy',sakan_by(me))); end if;
   elsif op = 'reopenWork' then
-    if me->>'role' <> 'admin' then perform sakan_err('ده لمدير النظام بس.'); end if;
+    if me->>'role' <> 'admin' then perform sakan_err('هذا متاح لمدير النظام فقط.'); end if;
     p.doc := p.doc || jsonb_build_object('work', '{"selections":{},"notes":""}'::jsonb || coalesce(p.doc->'work','{}'::jsonb) || jsonb_build_object('status','draft','reopenedAt',sakan_now(),'reopenedBy',sakan_by(me)), 'updatedAt', sakan_now());
   elsif op = 'addComment' then
     v := left(trim(coalesce(args->>'text','')), 2000);
-    if v = '' then perform sakan_err('اكتب التعليق الأول.'); end if;
+    if v = '' then perform sakan_err('اكتب التعليق أولًا.'); end if;
     p.doc := p.doc || jsonb_build_object('comments', coalesce(p.doc->'comments','[]'::jsonb) || jsonb_build_array(jsonb_build_object('id', sakan_uid('cmt'), 'text', v, 'at', sakan_now(), 'by', sakan_by(me))), 'updatedAt', sakan_now());
     insert into sakan_seen values (lower(me->>'username'), p.id, sakan_now()) on conflict (ukey, project_id) do update set at = excluded.at;
   elsif op = 'markSeen' then
@@ -332,11 +332,11 @@ begin
   elsif op = 'saveProposal' then
     v := args->>'slot';
     if v not in ('p1','p2','final') then perform sakan_err('مقترح غير معروف.'); end if;
-    if me->>'role' = 'client' and (not sakan_can(me, 'edit') or (v = 'final' and not sakan_can(me, 'final'))) then perform sakan_err('مش مسموحلك تحفظ المقترح ده.'); end if;
+    if me->>'role' = 'client' and (not sakan_can(me, 'edit') or (v = 'final' and not sakan_can(me, 'final'))) then perform sakan_err('غير مسموح لك بحفظ هذا المقترح.'); end if;
     d := args->'data';
     p.doc := p.doc || jsonb_build_object('proposals', coalesce(p.doc->'proposals','{}'::jsonb) || jsonb_build_object(v, jsonb_build_object('selections', coalesce(d->'selections','{}'::jsonb), 'notes', coalesce(d->>'notes',''), 'savedAt', sakan_now(), 'savedBy', sakan_by(me))), 'updatedAt', sakan_now());
   elsif op = 'sendReport' then
-    if me->>'role' = 'client' and not sakan_can(me, 'send') then perform sakan_err('مش مسموحلك تبعت التقرير.'); end if;
+    if me->>'role' = 'client' and not sakan_can(me, 'send') then perform sakan_err('غير مسموح لك بإرسال التقرير.'); end if;
     d := args->'data';
     p.doc := p.doc || jsonb_build_object('reports', coalesce(p.doc->'reports','[]'::jsonb) || jsonb_build_array(jsonb_build_object('slot', d->'slot', 'number', d->'number', 'sentAt', sakan_now(), 'sentBy', sakan_by(me))));
   end if;
@@ -378,7 +378,7 @@ begin
   if op = 'chunk' then
     v := coalesce(args->>'upload','');
     if v !~ '^up-[0-9a-f-]{36}$' then perform sakan_err('رفع غير صالح.'); end if;
-    if length(coalesce(args->>'data','')) > 3000000 then perform sakan_err('الجزء كبير.'); end if;
+    if length(coalesce(args->>'data','')) > 3000000 then perform sakan_err('الجزء كبير جدًا.'); end if;
     -- الرفع بتاع المستخدم ده بس (اسم المستخدم جوه رقم الرفع على السيرفر)
     insert into sakan_chunks (kind, ref, seq, data) values ('up', v || ':' || lower(me->>'username'), (args->>'seq')::int, args->>'data')
       on conflict (kind, ref, seq) do update set data = excluded.data;
@@ -391,13 +391,13 @@ begin
     return coalesce((select jsonb_agg(meta order by meta->>'addedAt' desc) from sakan_files where project_id = p.id), '[]'::jsonb);
   end if;
   if op = 'addFile' then
-    if not (me->>'role' = 'admin' or (me->>'role' = 'engineer' and sakan_can(me, 'manageFiles'))) then perform sakan_err('مش مسموحلك ترفع ملفات.'); end if;
+    if not (me->>'role' = 'admin' or (me->>'role' = 'engineer' and sakan_can(me, 'manageFiles'))) then perform sakan_err('غير مسموح لك برفع الملفات.'); end if;
     d := args->'meta';
     if coalesce((d->>'size')::bigint, 0) > 25 * 1024 * 1024 then perform sakan_err('الملف أكبر من 25 ميجابايت.'); end if;
     if coalesce(d->>'category','') not in ('plans','designs','minutes') then perform sakan_err('نوع الملف غير معروف.'); end if;
     v := sakan_uid('file');
     v2 := (args->>'upload') || ':' || lower(me->>'username');
-    if not exists (select 1 from sakan_chunks where kind = 'up' and ref = v2) then perform sakan_err('الملف مااترفعش كامل. جرّب تاني.'); end if;
+    if not exists (select 1 from sakan_chunks where kind = 'up' and ref = v2) then perform sakan_err('لم يُرفع الملف بالكامل. حاول مرة أخرى.'); end if;
     update sakan_chunks set kind = 'file', ref = v where kind = 'up' and ref = v2;
     d := jsonb_build_object('id', v, 'projectId', p.id, 'category', d->>'category', 'name', left(coalesce(d->>'name','ملف'),200),
       'type', coalesce(nullif(d->>'type',''),'application/octet-stream'), 'size', coalesce((d->>'size')::bigint,0), 'addedAt', sakan_now(), 'addedBy', sakan_by(me));
@@ -412,7 +412,7 @@ begin
     if op = 'getFile' then
       return jsonb_build_object('meta', r.meta, 'chunks', (select count(*) from sakan_chunks where kind = 'file' and ref = r.id));
     end if;
-    if not ((me->>'role' = 'admin' or (me->>'role' = 'engineer' and sakan_can(me, 'manageFiles'))) and sakan_can(me, 'deleteItems')) then perform sakan_err('مش مسموحلك تمسح.'); end if;
+    if not ((me->>'role' = 'admin' or (me->>'role' = 'engineer' and sakan_can(me, 'manageFiles'))) and sakan_can(me, 'deleteItems')) then perform sakan_err('غير مسموح لك بالحذف.'); end if;
     delete from sakan_chunks where kind = 'file' and ref = r.id;
     delete from sakan_files where id = r.id;
     return null;
@@ -422,9 +422,9 @@ begin
     v := args->>'ref';
     if args->>'kind' = 'file' then
       select x.* into p from sakan_files f join sakan_projects x on x.id = f.project_id where f.id = v;
-      if not found or not sakan_sees(me, p) then perform sakan_err('الملف مش موجود.'); end if;
+      if not found or not sakan_sees(me, p) then perform sakan_err('الملف غير موجود.'); end if;
     elsif args->>'kind' = 'plan' then
-      if me->>'role' = 'client' and not exists (select 1 from sakan_projects x where x.owner_id = me->>'ownerId' and x.doc->>'planId' = v) then perform sakan_err('المخطط مش موجود.'); end if;
+      if me->>'role' = 'client' and not exists (select 1 from sakan_projects x where x.owner_id = me->>'ownerId' and x.doc->>'planId' = v) then perform sakan_err('المخطط غير موجود.'); end if;
     else perform sakan_err('غير معروف.'); end if;
     return to_jsonb((select data from sakan_chunks where kind = args->>'kind' and ref = v and seq = (args->>'seq')::int));
   end if;
@@ -437,13 +437,13 @@ begin
       where me->>'role' <> 'client' or exists (select 1 from sakan_projects y where y.owner_id = me->>'ownerId' and y.doc->>'planId' = x.id)), '[]'::jsonb);
   end if;
   if op = 'putPlan' then
-    if not sakan_can(me, 'manageProjects') then perform sakan_err('مش مسموحلك تعدّل المخططات.'); end if;
+    if not sakan_can(me, 'manageProjects') then perform sakan_err('غير مسموح لك بتعديل المخططات.'); end if;
     d := args->'plan';
     v := d->>'id';
     if v !~ '^plan-[a-zA-Z0-9_-]{1,70}$' then perform sakan_err('مخطط غير صالح.'); end if;
     if coalesce(args->>'upload','') <> '' then
       v2 := (args->>'upload') || ':' || lower(me->>'username');
-      if not exists (select 1 from sakan_chunks where kind = 'up' and ref = v2) then perform sakan_err('صورة المخطط مااترفعتش كاملة. جرّب تاني.'); end if;
+      if not exists (select 1 from sakan_chunks where kind = 'up' and ref = v2) then perform sakan_err('لم تُرفع صورة المخطط بالكامل. حاول مرة أخرى.'); end if;
       delete from sakan_chunks where kind = 'plan' and ref = v;
       update sakan_chunks set kind = 'plan', ref = v where kind = 'up' and ref = v2;
     end if;
@@ -452,7 +452,7 @@ begin
     return null;
   end if;
   if op = 'removePlan' then
-    if not sakan_can(me, 'deleteItems') then perform sakan_err('مش مسموحلك تمسح.'); end if;
+    if not sakan_can(me, 'deleteItems') then perform sakan_err('غير مسموح لك بالحذف.'); end if;
     delete from sakan_chunks where kind = 'plan' and ref = args->>'id';
     delete from sakan_plans where id = args->>'id';
     return null;
@@ -460,24 +460,24 @@ begin
 
   -- ---------- المهندسين ومديري النظام (للمدير بس) ----------
   if op = 'listStaff' then
-    if me->>'role' = 'client' then perform sakan_err('مش مسموح.'); end if;
+    if me->>'role' = 'client' then perform sakan_err('غير مسموح.'); end if;
     -- المهندس بيحتاج القايمة عشان أسماء المهندسين، من غير الصلاحيات
     return coalesce((select jsonb_agg(jsonb_build_object('username', doc->>'username', 'name', doc->>'name', 'role', doc->>'role',
         'perms', case when doc->>'role' = 'admin' or me->>'role' <> 'admin' then null else sakan_perms(sakan_engineer_perms(), doc->'perms') end, 'createdAt', doc->'createdAt') order by doc->>'createdAt')
       from sakan_staff), '[]'::jsonb);
   end if;
   if op = 'saveStaff' then
-    if me->>'role' <> 'admin' then perform sakan_err('ده لمدير النظام بس.'); end if;
+    if me->>'role' <> 'admin' then perform sakan_err('هذا متاح لمدير النظام فقط.'); end if;
     d := args->'data';
     v := trim(coalesce(d->>'username','')); v2 := trim(coalesce(d->>'name',''));
     if coalesce(d->>'original','') <> '' then select * into s from sakan_staff where ukey = lower(d->>'original'); end if;
     if v2 = '' then perform sakan_err('اكتب الاسم.'); end if;
-    if v !~ uname_re then perform sakan_err('اسم المستخدم من 3 لـ 30 حرف إنجليزي أو رقم (مسموح . _ -).'); end if;
-    if exists (select 1 from sakan_owners where ukey = lower(v)) or exists (select 1 from sakan_staff where ukey = lower(v) and ukey is distinct from s.ukey) then perform sakan_err('اسم المستخدم ده مستخدم قبل كده. اختار اسم تاني.'); end if;
-    if (s.ukey is null or coalesce(d->>'password','') <> '') and length(coalesce(d->>'password','')) < 4 then perform sakan_err('كلمة المرور 4 حروف أو أرقام على الأقل.'); end if;
-    if s.ukey is not null and s.ukey <> lower(v) and coalesce(d->>'password','') = '' then perform sakan_err('لما تغيّر اسم المستخدم اكتب كلمة مرور جديدة كمان.'); end if;
+    if v !~ uname_re then perform sakan_err('يتكون اسم المستخدم من 3 إلى 30 حرفًا إنجليزيًا أو رقمًا (مسموح . _ -).'); end if;
+    if exists (select 1 from sakan_owners where ukey = lower(v)) or exists (select 1 from sakan_staff where ukey = lower(v) and ukey is distinct from s.ukey) then perform sakan_err('اسم المستخدم هذا مستخدم من قبل. اختر اسمًا آخر.'); end if;
+    if (s.ukey is null or coalesce(d->>'password','') <> '') and length(coalesce(d->>'password','')) < 4 then perform sakan_err('يجب ألا تقل كلمة المرور عن 4 حروف أو أرقام.'); end if;
+    if s.ukey is not null and s.ukey <> lower(v) and coalesce(d->>'password','') = '' then perform sakan_err('عند تغيير اسم المستخدم اكتب كلمة مرور جديدة أيضًا.'); end if;
     v := v; tok := case when d->>'role' = 'admin' then 'admin' else 'engineer' end;
-    if s.ukey is not null and s.doc->>'role' = 'admin' and tok <> 'admin' and (select count(*) from sakan_staff where doc->>'role' = 'admin') = 1 then perform sakan_err('لازم يفضل فيه مدير نظام واحد على الأقل.'); end if;
+    if s.ukey is not null and s.doc->>'role' = 'admin' and tok <> 'admin' and (select count(*) from sakan_staff where doc->>'role' = 'admin') = 1 then perform sakan_err('يجب أن يبقى مدير نظام واحد على الأقل.'); end if;
     out := coalesce(s.doc, jsonb_build_object('createdAt', sakan_now())) || jsonb_build_object('name', v2, 'username', v, 'role', tok);
     out := case when tok = 'admin' then out - 'perms' else out || jsonb_build_object('perms', sakan_perms(sakan_engineer_perms(), coalesce(d->'perms', s.doc->'perms'))) end;
     if s.ukey is not null and s.ukey <> lower(v) then
@@ -491,24 +491,24 @@ begin
     return null;
   end if;
   if op = 'deleteStaff' then
-    if me->>'role' <> 'admin' then perform sakan_err('ده لمدير النظام بس.'); end if;
+    if me->>'role' <> 'admin' then perform sakan_err('هذا متاح لمدير النظام فقط.'); end if;
     select * into s from sakan_staff where ukey = lower(args->>'username');
     if not found then return null; end if;
-    if s.doc->>'role' = 'admin' and (select count(*) from sakan_staff where doc->>'role' = 'admin') = 1 then perform sakan_err('لازم يفضل فيه مدير نظام واحد على الأقل.'); end if;
+    if s.doc->>'role' = 'admin' and (select count(*) from sakan_staff where doc->>'role' = 'admin') = 1 then perform sakan_err('يجب أن يبقى مدير نظام واحد على الأقل.'); end if;
     delete from sakan_staff where ukey = s.ukey;
     delete from sakan_sessions where ukey = s.ukey and kind = 'staff';
     return null;
   end if;
   if op = 'changePassword' then
     v := coalesce(args->>'password','');
-    if length(v) < 4 then perform sakan_err('كلمة المرور 4 حروف أو أرقام على الأقل.'); end if;
+    if length(v) < 4 then perform sakan_err('يجب ألا تقل كلمة المرور عن 4 حروف أو أرقام.'); end if;
     v2 := lower(coalesce(args->>'username',''));
     -- كل واحد بيغيّر بتاعته، والمدير يقدر يغيّر لأي حد
-    if v2 <> lower(me->>'username') and me->>'role' <> 'admin' then perform sakan_err('مش مسموح.'); end if;
+    if v2 <> lower(me->>'username') and me->>'role' <> 'admin' then perform sakan_err('غير مسموح.'); end if;
     update sakan_staff set pass = sakan_hash(v) where ukey = v2;
     get diagnostics n = row_count;
     if n = 0 then update sakan_owners set pass = sakan_hash(v) where ukey = v2; get diagnostics n = row_count; end if;
-    if n = 0 then perform sakan_err('الحساب مش موجود.'); end if;
+    if n = 0 then perform sakan_err('الحساب غير موجود.'); end if;
     return null;
   end if;
 
@@ -522,7 +522,7 @@ begin
     return null;
   end if;
   if op = 'listLog' then
-    if not sakan_can(me, 'viewLog') then perform sakan_err('مش مسموحلك تشوف السجل.'); end if;
+    if not sakan_can(me, 'viewLog') then perform sakan_err('غير مسموح لك بالاطلاع على السجل.'); end if;
     return coalesce((select jsonb_agg(entry order by id desc) from (select * from sakan_log where coalesce(args->>'projectId','') = '' or project_id = args->>'projectId' order by id desc limit 5000) l), '[]'::jsonb);
   end if;
 

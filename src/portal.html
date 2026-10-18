@@ -31,7 +31,7 @@
   <form id="skLoginForm" class="sk-login-card" autocomplete="on">
     <img class="sk-login-logo" data-sk-logo alt="سكن جروب">
     <h1 id="skLoginTitle">تسجيل الدخول</h1>
-    <p class="sk-muted">المالك يدخل باسم المستخدم وكلمة المرور اللي بعتهاله المهندس.</p>
+    <p class="sk-muted">يدخل المالك باسم المستخدم وكلمة المرور اللذين أرسلهما له المهندس.</p>
     <label>اسم المستخدم<input id="skLoginUser" name="username" autocomplete="username" dir="ltr" required></label>
     <label>كلمة المرور<input id="skLoginPass" name="password" type="password" autocomplete="current-password" dir="ltr" required></label>
     <p id="skLoginError" class="sk-error" role="alert" hidden></p>
@@ -71,7 +71,7 @@
       <div><span class="eyebrow">حساب العميل</span><h2 id="skOFTitle">مالك جديد</h2></div>
       <button type="button" class="icon-button" data-sk-close aria-label="إغلاق">×</button>
     </div>
-    <p class="sk-muted">المالك بيدخل بالحساب ده ويشوف كل مشاريعه، زي أكتر من غرفة دريسنج.</p>
+    <p class="sk-muted">يدخل المالك بهذا الحساب ويرى جميع مشاريعه، مثل أكثر من غرفة دريسنج.</p>
     <div class="sk-grid">
       <label>اسم المالك<input id="skOName" maxlength="100" required></label>
       <label>اسم المستخدم<input id="skOUser" dir="ltr" maxlength="30" autocomplete="off" placeholder="client01" required></label>
@@ -79,9 +79,9 @@
     </div>
     <label class="sk-full sk-admin-only">المهندس المسؤول عن المالك<select id="skOEngineer"></select></label>
     <fieldset class="sk-perms sk-admin-only"><legend>صلاحيات المالك</legend>
-      <label><input type="checkbox" data-operm="edit"> يعدّل الاختيارات (من غيرها يتفرج بس)</label>
-      <label><input type="checkbox" data-operm="final"> يعتمد الاختيارات نهائي ويحفظ المقترح النهائي</label>
-      <label><input type="checkbox" data-operm="send"> يبعت التقرير للمهندس</label>
+      <label><input type="checkbox" data-operm="edit"> يعدّل الاختيارات (بدونها يكتفي بالعرض)</label>
+      <label><input type="checkbox" data-operm="final"> يعتمد الاختيارات نهائيًا ويحفظ المقترح النهائي</label>
+      <label><input type="checkbox" data-operm="send"> يرسل التقرير إلى المهندس</label>
     </fieldset>
     <p id="skOwnerFormError" class="sk-error" role="alert" hidden></p>
     <div class="sk-actions"><button type="button" class="sk-btn" data-sk-close>إلغاء</button><button class="sk-btn sk-btn-dark" type="submit">حفظ الحساب</button></div>
@@ -111,15 +111,15 @@
 <!-- بيانات دخول المالك بعد الحفظ -->
 <dialog id="skCreds" class="sk-dialog sk-narrow" aria-labelledby="skCredsTitle">
   <div class="sk-head-row"><h2 id="skCredsTitle">بيانات دخول المالك</h2><button class="icon-button" data-sk-close aria-label="إغلاق">×</button></div>
-  <p class="sk-muted">ابعت البيانات دي للمالك. كلمة المرور مش هتظهر تاني، ولو نسيتها اعمل واحدة جديدة من «تعديل الحساب».</p>
+  <p class="sk-muted">أرسل هذه البيانات إلى المالك. لن تظهر كلمة المرور مرة أخرى، وإذا نسيتها فأنشئ واحدة جديدة من «تعديل الحساب».</p>
   <pre id="skCredsText" class="sk-creds"></pre>
-  <div class="sk-actions"><button class="sk-btn" id="skCopyCreds">نسخ</button><button class="sk-btn sk-btn-dark" data-sk-close>تمام</button></div>
+  <div class="sk-actions"><button class="sk-btn" id="skCopyCreds">نسخ</button><button class="sk-btn sk-btn-dark" data-sk-close>حسنًا</button></div>
 </dialog>
 
 <!-- سجل التعديلات -->
 <dialog id="skLog" class="sk-dialog sk-panel sk-wide" aria-labelledby="skLogTitle">
   <div class="sk-head-row">
-    <div><span class="eyebrow">مين عدّل إيه وإمتى</span><h2 id="skLogTitle">سجل التعديلات</h2></div>
+    <div><span class="eyebrow">من عدّل ماذا ومتى</span><h2 id="skLogTitle">سجل التعديلات</h2></div>
     <button class="icon-button" data-sk-close aria-label="إغلاق">×</button>
   </div>
   <label class="sk-inline">المشروع <select id="skLogFilter"></select></label>
@@ -161,7 +161,7 @@
       <label><input type="checkbox" data-sperm="manageProjects"> يضيف ويعدّل المشاريع والمخططات</label>
       <label><input type="checkbox" data-sperm="manageFiles"> يضيف ملفات للمشروع (مخططات وتصاميم ومحاضر)</label>
       <label><input type="checkbox" data-sperm="deleteItems"> يحذف المشاريع والمخططات والملفات وحسابات الملّاك</label>
-      <label><input type="checkbox" data-sperm="viewLog"> يشوف سجل التعديلات</label>
+      <label><input type="checkbox" data-sperm="viewLog"> يطّلع على سجل التعديلات</label>
     </fieldset>
     <p id="skStaffFormError" class="sk-error" role="alert" hidden></p>
     <div class="sk-actions"><button type="button" class="sk-btn" data-sk-close>إلغاء</button><button class="sk-btn sk-btn-dark" type="submit">حفظ الحساب</button></div>
@@ -189,7 +189,7 @@
     </div>
   </div>
   <form id="skPassForm">
-    <h3>تغيير كلمة المرور بتاعتي</h3>
+    <h3>تغيير كلمة المرور الخاصة بي</h3>
     <label class="sk-pass-row"><input id="skNewPass" type="password" dir="ltr" autocomplete="new-password" required aria-label="كلمة المرور الجديدة" placeholder="كلمة المرور الجديدة"><button class="sk-btn sk-btn-dark" type="submit">تغيير</button></label>
   </form>
   <p id="skSettingsMsg" class="sk-note" role="status" hidden></p>
@@ -201,7 +201,7 @@
     <div><span class="eyebrow" id="skPropProject"></span><h2 id="skPropTitle">المقترحات</h2></div>
     <button class="icon-button" data-sk-close aria-label="إغلاق">×</button>
   </div>
-  <p class="sk-muted">احفظ اختياراتك الحالية كمقترح ١ أو مقترح ٢ عشان تقارن بينهم، ولما تستقر احفظها كمقترح نهائي.</p>
+  <p class="sk-muted">احفظ اختياراتك الحالية كمقترح ١ أو مقترح ٢ لتقارن بينهما، وعندما تستقر احفظها كمقترح نهائي.</p>
   <div id="skPropList" class="sk-prop-list"></div>
   <p id="skPropMsg" class="sk-note" role="status" hidden></p>
 </dialog>
@@ -226,7 +226,7 @@
 <!-- المخططات المرفوعة (تعديل وحذف) -->
 <dialog id="skPlans" class="sk-dialog sk-panel sk-wide" aria-labelledby="skPlansTitle">
   <div class="sk-head-row">
-    <div><span class="eyebrow">المهندس بيرفع المخطط، والمالك بيختار عليه</span><h2 id="skPlansTitle">المخططات</h2></div>
+    <div><span class="eyebrow">يرفع المهندس المخطط، ويختار المالك عليه</span><h2 id="skPlansTitle">المخططات</h2></div>
     <button class="icon-button" data-sk-close aria-label="إغلاق">×</button>
   </div>
   <div class="sk-toolbar"><button class="sk-btn sk-btn-dark" id="skUploadPlan">+ رفع مخطط جديد</button></div>

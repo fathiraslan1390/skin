@@ -375,6 +375,17 @@ html[dir=rtl] .sk-finish > .room-invite, html[dir=rtl] .sk-finish > .bottom-bar 
 #editorCanvas svg .edit-region, #editorCanvas svg .sk-handle-hit, #editorCanvas svg .sk-wall-hit { touch-action: none; }
 html[dir=ltr] .editor-sidebar, html[dir=ltr] .editor-bottom { direction: ltr; text-align: left; }
 
+/* مفيش مشروع مفتوح: رسالة بدل المخطط التجريبي */
+.sk-no-project-card { display: none; }
+body.sk-no-project main > :not(#skNoProject) { display: none !important; }
+body.sk-no-project .sk-no-project-card { display: grid; justify-items: center; gap: 10px; text-align: center; margin: 48px auto; max-width: 560px; padding: 40px 28px; border: 1px solid var(--line); border-radius: 18px; background: #fff; }
+.sk-no-project-card b { font-size: 18px; }
+.sk-no-project-card p { margin: 0; color: var(--muted); }
+html[data-theme=dark] .sk-no-project-card { background: #1b1b1b; border-color: #333; }
+body.sk-no-project .topbar .project-tag, body.sk-no-project #summaryTop, body.sk-no-project #resetAll { display: none !important; }
+/* الاختيارات بقت بتتحفظ على السيرفر مع المشروع، فالجملة دي مابقتش صح */
+.privacy-note { display: none !important; }
+
 /* ===== الثيم الليلي (dark_theme.py) ===== */
 @media screen{
 html[data-theme=dark]{--cream:#27241f;--white:#171717;--ink:#b0cbca;--muted:#7b8982;--teal:#7cb2ae;--wood:#5f4b2f;--gold:#a48149;--line:#30302c;--shadow:0 12px 42px rgba(176,203,202,0.0314)}
@@ -643,6 +654,9 @@ html[data-theme=dark] .sk-wall-info{color:#4c89cb !important}
 html[data-theme=dark] .sk-wall-box{fill:rgba(76,137,203,0.133);stroke:#4c89cb}
 html[data-theme=dark] .sk-cand{fill:rgba(108,205,148,0.133);stroke:#6ccd94}
 html[data-theme=dark] .sk-cand:hover{fill:rgba(108,205,148,0.333)}
+html[data-theme=dark] body.sk-no-project .sk-no-project-card{border:1px solid var(--line);background:#171717}
+html[data-theme=dark] .sk-no-project-card p{color:var(--muted)}
+html[data-theme=dark][data-theme=dark] .sk-no-project-card{background:#d2d2d2;border-color:#bebebe}
 html[data-theme=dark] .sk-paper{--cream:#f5f2ec;--white:#fff;--ink:#293f3e;--muted:#75837c;--teal:#497c78;--wood:#d8c8b1;--gold:#b7955e;--line:#e7e7df;--shadow:0 12px 42px #293f3e08}
 html[data-theme=dark] .sk-paper body{background:var(--cream);color:var(--ink)}
 html[data-theme=dark] .sk-paper button:focus-visible,html[data-theme=dark] .sk-paper input:focus-visible,html[data-theme=dark] .sk-paper textarea:focus-visible,html[data-theme=dark] .sk-paper a:focus-visible{outline:3px solid #b7955e90}
@@ -857,7 +871,7 @@ function layout(p){if(p.builtin)return null;if(!p.scale)return null;let scale=p.
 root.PlanProjects={schema:SCHEMA,current:builtin,builtin,uid,validate,list,put,remove,svg,polygon,layout,escape:esc,clone,activeKey:ACTIVE,kindName:k=>({straight:'خزانة مستقيمة',corner:'كورنر بواجهة مشطوفة',lcorner:'كورنر L',fixed:'وحدة ثابتة'})[k]||'خزانة'};
 })(window);
 </script><script>(()=>{'use strict';const D=APP_DATA,$=id=>document.getElementById(id),K='indesign:'+D.project,T=new Map(D.types.map(t=>[t.id,t]));let S={},active='B01',draft=null,tt;let saved={};try{saved=JSON.parse(localStorage.getItem(K)||'{}')||{}}catch{}if(saved.catalogVersion===D.catalogVersion)for(const b of D.boxes){let t=T.get(Number(saved.selections?.[b.id]));if(t?.kind===b.kind)S[b.id]=t.id}$('clientName').value=saved.client||'العميل';$('clientNotes').value=saved.notes||'';$('brand').src=D.logo;$('deskPhoto').src=D.desk;
-const kindName=PlanProjects.kindName,total=()=>D.boxes.length,isCorner=b=>b.kind==='corner'||b.kind==='lcorner',boxDims=b=>isCorner(b)&&b.legA?`ضلعان ${fmt(b.legA)} × ${fmt(b.legB)} سم · عمق ${fmt(b.cornerDepth)} سم`:b.width?`عرض ${fmt(b.width)} سم · عمق ${fmt(b.depth)} سم`:'المقاسات حسب المخطط';const esc=s=>String(s).replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m])),fmt=n=>Number(n).toLocaleString('en-US',{maximumFractionDigits:2}),box=()=>D.boxes.find(b=>b.id===active),allowed=()=>D.types.filter(t=>t.kind===box().kind);function toast(s){$('toast').textContent=s;$('toast').classList.add('show');clearTimeout(tt);tt=setTimeout(()=>$('toast').classList.remove('show'),2600)}function save(){if(!PlanProjects.current.builtin){let p=PlanProjects.current;p.selections={...S};p.client=$('clientName').value;p.notes=$('clientNotes').value;PlanProjects.put(p).then(ok=>{if(!ok)toast('تعذّر الحفظ على الجهاز. نزّل ملف المشروع للاحتفاظ به.');});return}try{localStorage.setItem(K,JSON.stringify({catalogVersion:D.catalogVersion,selections:S,client:$('clientName').value,notes:$('clientNotes').value}))}catch{toast('تعذّر الحفظ التلقائي. نزّل الملخص للاحتفاظ باختياراتك.')}}
+const kindName=PlanProjects.kindName,total=()=>D.boxes.length,isCorner=b=>b.kind==='corner'||b.kind==='lcorner',boxDims=b=>isCorner(b)&&b.legA?`ضلعان ${fmt(b.legA)} × ${fmt(b.legB)} سم · عمق ${fmt(b.cornerDepth)} سم`:b.width?`عرض ${fmt(b.width)} سم · عمق ${fmt(b.depth)} سم`:'المقاسات حسب المخطط';const esc=s=>String(s).replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m])),fmt=n=>Number(n).toLocaleString('en-US',{maximumFractionDigits:2}),box=()=>D.boxes.find(b=>b.id===active),allowed=()=>D.types.filter(t=>t.kind===box().kind);function toast(s){$('toast').textContent=s;$('toast').classList.add('show');clearTimeout(tt);tt=setTimeout(()=>$('toast').classList.remove('show'),2600)}function save(){if(!PlanProjects.current.builtin)return;try{localStorage.setItem(K,JSON.stringify({catalogVersion:D.catalogVersion,selections:S,client:$('clientName').value,notes:$('clientNotes').value}))}catch{toast('تعذّر الحفظ التلقائي. نزّل الملخص للاحتفاظ باختياراتك.')}}
 const G={B01:{r:[0,197.34,60,44.66],c:[30,219.67]},B02:{r:[0,108,60,89.34],c:[30,152.67]},B03:{p:'0,0 100,0 100,60 60,100 0,100',c:[41,39]},B04:{p:'291,0 391,0 391,100 331,100 291,60',c:[351,39]},B05:{r:[331,108,60,117.34],c:[361,166.67]},B06:{r:[331,225.34,60,58.66],c:[361,254.67]},B07:{p:'331,292 391,292 391,392 291,392 291,332',c:[353,356]},B08:{r:[193.67,332,89.33,60],c:[238.335,362]},B09:{r:[149,332,44.67,60],c:[171.335,362]}};
 function svg(){if(!PlanProjects.current.builtin)return PlanProjects.svg(PlanProjects.current,S,active);return `<svg viewBox="-45 -37 480 467" role="group" aria-label="مخطط خزائن غرفة ملابس طلال"><path d="M0 -22H391 M0 -25V-19 M391 -25V-19" fill="none" stroke="#b8bfb3" stroke-width=".6"/><text x="195.5" y="-27" class="map-dim">391 cm</text><g fill="#e5e4dd" stroke="#afb7ad" stroke-width=".6"><rect x="0" y="100" width="60" height="8"/><rect x="0" y="242" width="60" height="8"/><rect x="331" y="100" width="60" height="8"/><rect x="331" y="284" width="60" height="8"/><rect x="141" y="332" width="8" height="60"/><rect x="283" y="332" width="8" height="60"/></g><g class="fixed-unit" role="button" tabindex="0" aria-label="أدراج الشباك والمكتب السحب" id="deskMap"><rect class="fixed-shape" x="100" y="0" width="191" height="60" fill="#e1e7dd" stroke="#899b8e" stroke-width=".8"/><path d="M100 -6H291" stroke="#497c78" stroke-width="2"/><text x="195.5" y="-11" class="map-label">الشباك</text><text x="195.5" y="24" class="map-label">أدراج + مكتب سحب</text><text x="195.5" y="43" class="map-dim">191 × 60 cm · ثابت</text><path d="M149 60V90H242V60" stroke="#8caaa0" stroke-width=".8" stroke-dasharray="3,3" fill="none"/><path d="M195 66V81 M190 76L195 81 200 76" stroke="#8caaa0" fill="none"/></g>${D.boxes.map(b=>{const g=G[b.id],[x,y]=g.c,t=T.get(S[b.id]);return `<g class="unit ${active===b.id?'active':''} ${t?'chosen':''}" data-box="${b.id}" role="button" tabindex="0" aria-pressed="${active===b.id}" aria-label="${b.id} ${b.kind==='corner'?'كورنر مشطوف':'خزانة مستقيمة'} ${t?t.name:'لم يتم الاختيار'}">${g.r?`<rect class="cab" x="${g.r[0]}" y="${g.r[1]}" width="${g.r[2]}" height="${g.r[3]}"/>`:`<polygon class="cab" points="${g.p}"/>`}<rect class="badge" x="${x-19}" y="${y-11}" width="38" height="19" rx="4"/><text class="code" x="${x}" y="${y-1}">${b.id}</text><text class="choice" x="${x}" y="${y+17}">${t?t.label:'اختَر تقسيمة'}</text>${g.r&&g.r[3]>70?`<text class="size" x="${x}" y="${y+32}">${fmt(b.width)} cm</text>`:''}</g>`}).join('')}<text x="105" y="311" class="map-label">مدخل الغرفة</text><path d="M105 341V323 M101 328L105 323 109 328" stroke="#b3bdb1" fill="none"/></svg>`}
 function map(){ $('mapMount').innerHTML=svg();document.querySelectorAll('[data-box]').forEach(el=>{el.onclick=()=>activate(el.dataset.box,true,true);el.onkeydown=e=>{if(['Enter',' '].includes(e.key)){e.preventDefault();activate(el.dataset.box,true,true)}}});document.querySelectorAll('[data-fixed]').forEach(el=>{el.onclick=()=>toast('وحدة ثابتة حسب التصميم، ولا تحتاج لاختيار Type.');el.onkeydown=e=>{if(['Enter',' '].includes(e.key)){e.preventDefault();el.onclick()}}});if($('deskMap'))$('deskMap').onclick=()=>dialog('deskDialog');if($('deskMap'))$('deskMap').onkeydown=e=>{if(['Enter',' '].includes(e.key)){e.preventDefault();dialog('deskDialog')}}}
@@ -989,7 +1003,7 @@ const error=(id,msg)=>{$(id).textContent=msg;$(id).hidden=!msg},notify=msg=>{win
 function download(p){let b=new Blob([JSON.stringify({...p,schema:P.schema},null,2)],{type:'application/json;charset=utf-8'}),u=URL.createObjectURL(b),a=document.createElement('a');a.href=u;a.download='SakanGroup-'+p.title.replace(/[<>:"/\\|?*]/g,'').slice(0,50)+'.json';a.click();setTimeout(()=>URL.revokeObjectURL(u),1500)}
 async function activate(p,{skipSave=false}={}){if(!skipSave)INDESIGN_APP.save();INDESIGN_APP.loadProject(p);try{localStorage.setItem(P.activeKey,p.id)}catch{}$('projectsDialog').close();$('planEditorDialog').close();document.body.classList.remove('editing-plan');window.scrollTo({top:0,behavior:'smooth'})}
 async function library(){INDESIGN_APP.save();error('projectsError','');$('projectsDialog').showModal();await renderProjects()}
-async function renderProjects(){let plans=await P.list();$('projectList').innerHTML=[P.builtin,...plans].map(p=>`<article class="saved-project ${p.id===P.current.id?'current-project':''}"><button class="saved-project-open" data-open-plan="${E(p.id)}">${p.builtin?'<span class="project-thumb demo-thumb">سكن جروب<br><b>9 BOXES</b></span>':`<img class="project-thumb" src="${p.image}" alt="">`}<span><b>${E(p.title)}</b><small>${p.builtin?'المخطط الأصلي · 9 بوكسات':`${p.boxes.filter(b=>b.kind!=='fixed').length} بوكسات · ${Object.keys(p.selections||{}).length} اختيارات محفوظة`}</small><small>${E(p.client||'')}${p.id===P.current.id?' · مفتوح حاليًا':''}</small></span><span class="project-open-arrow">←</span></button>${p.builtin?'':`<div class="saved-project-actions"><button class="text-button" data-download-plan="${E(p.id)}">تحميل المشروع</button><button class="text-button" data-delete-plan="${E(p.id)}">حذف من الجهاز</button></div>`}</article>`).join('');const all=new Map([P.builtin,...plans].map(p=>[p.id,p]));$('projectList').querySelectorAll('[data-open-plan]').forEach(el=>el.onclick=()=>activate(all.get(el.dataset.openPlan)));$('projectList').querySelectorAll('[data-download-plan]').forEach(el=>el.onclick=()=>download(all.get(el.dataset.downloadPlan)));$('projectList').querySelectorAll('[data-delete-plan]').forEach(el=>el.onclick=async()=>{let id=el.dataset.deletePlan,p=all.get(id);if(!confirm(`حذف «${p.title}» من هذا الجهاز؟ احتفظ بملف المشروع إذا أردت فتحه لاحقًا.`))return;await P.remove(id);if(P.current.id===id){P.current=P.builtin;INDESIGN_APP.loadProject(P.builtin);try{localStorage.removeItem(P.activeKey)}catch{}}await renderProjects()})}
+async function renderProjects(){let plans=await P.list();$('projectList').innerHTML=plans.map(p=>`<article class="saved-project ${p.id===P.current.id?'current-project':''}"><button class="saved-project-open" data-open-plan="${E(p.id)}">${p.builtin?'<span class="project-thumb demo-thumb">سكن جروب<br><b>9 BOXES</b></span>':`<img class="project-thumb" src="${p.image}" alt="">`}<span><b>${E(p.title)}</b><small>${p.builtin?'المخطط الأصلي · 9 بوكسات':`${p.boxes.filter(b=>b.kind!=='fixed').length} بوكسات · ${Object.keys(p.selections||{}).length} اختيارات محفوظة`}</small><small>${E(p.client||'')}${p.id===P.current.id?' · مفتوح حاليًا':''}</small></span><span class="project-open-arrow">←</span></button>${p.builtin?'':`<div class="saved-project-actions"><button class="text-button" data-download-plan="${E(p.id)}">تحميل المشروع</button><button class="text-button" data-delete-plan="${E(p.id)}">حذف من الجهاز</button></div>`}</article>`).join('')||'<p class="sk-muted">لا توجد مخططات بعد. ارفع مخططًا جديدًا.</p>';const all=new Map([P.builtin,...plans].map(p=>[p.id,p]));$('projectList').querySelectorAll('[data-open-plan]').forEach(el=>el.onclick=()=>activate(all.get(el.dataset.openPlan)));$('projectList').querySelectorAll('[data-download-plan]').forEach(el=>el.onclick=()=>download(all.get(el.dataset.downloadPlan)));$('projectList').querySelectorAll('[data-delete-plan]').forEach(el=>el.onclick=async()=>{let id=el.dataset.deletePlan,p=all.get(id);if(!confirm(`حذف «${p.title}» من هذا الجهاز؟ احتفظ بملف المشروع إذا أردت فتحه لاحقًا.`))return;await P.remove(id);if(P.current.id===id){P.current=P.builtin;INDESIGN_APP.loadProject(P.builtin);try{localStorage.removeItem(P.activeKey)}catch{}}await renderProjects()})}
 $('switchPlan').onclick=library;$('closeProjects').onclick=()=>$('projectsDialog').close();$('newPlan').onclick=()=>{openEditor(null);$('planFile').click()};$('editPlan').onclick=()=>openEditor(P.current);$('exportProject').onclick=()=>{INDESIGN_APP.save();download(P.current)};$('importProject').onclick=()=>$('projectImportFile').click();$('projectImportFile').onchange=async e=>{let f=e.target.files[0];e.target.value='';if(!f)return;try{if(f.size>20000000)throw Error('ملف المشروع كبير جدًا.');let p=P.validate(JSON.parse(await f.text()));let existing=(await P.list()).find(q=>q.id===p.id);if(existing&&!confirm(`المشروع «${existing.title}» موجود. هل تريد فتح النسخة الواردة واستبدال المحفوظة؟`))return;let ok=await P.put(p);await activate(p,{skipSave:true});if(!ok)notify('المشروع مفتوح، لكن الحفظ على الجهاز تعذّر. احتفظ بملف المشروع.')}catch(err){error('projectsError',err instanceof SyntaxError?'تعذّر قراءة ملف JSON. اختر ملف مشروع صادر من البرنامج.':err.message)}};
 function openEditor(p){busy=false;saving=false;$('savePlan').disabled=false;draft=p&&!p.builtin?P.clone(p):{schema:P.schema,id:P.uid(),title:'',client:'',image:null,imageWidth:0,imageHeight:0,boxes:[],scale:null,height:2.85,selections:{},notes:'',created:Date.now()};selected=draft.boxes[0]?.id||null;tool='draw';first=null;scalePoints=[];pdfDoc=null;pdfPage=1;fileRun++;$('pdfPageLabel').hidden=true;$('planName').value=draft.title;$('planClient').value=draft.client;$('planHeight').value=draft.height;$('editorTitle').textContent=p?'تعديل المخطط':'مخطط جديد';$('planZoom').value=1;$('editorCanvas').style.width='100%';error('editorError','');$('projectsDialog').close();$('planEditorDialog').showModal();document.body.classList.add('editing-plan');updateEditor();}
 function closeEditor(){if(saving)return;if(draft&&(draft.image||draft.boxes.length)&&!confirm('إغلاق المحرر؟ التعديلات الجديدة لن تُحفظ قبل الضغط على حفظ.'))return;$('planEditorDialog').close();document.body.classList.remove('editing-plan');draft=null;fileRun++;}
@@ -1049,7 +1063,7 @@ window.INDESIGN_PROJECTS_UI={boot,openEditor,editor:{get selected(){return selec
   <form id="skLoginForm" class="sk-login-card" autocomplete="on">
     <img class="sk-login-logo" data-sk-logo alt="سكن جروب">
     <h1 id="skLoginTitle">تسجيل الدخول</h1>
-    <p class="sk-muted">المالك يدخل باسم المستخدم وكلمة المرور اللي بعتهاله المهندس.</p>
+    <p class="sk-muted">يدخل المالك باسم المستخدم وكلمة المرور اللذين أرسلهما له المهندس.</p>
     <label>اسم المستخدم<input id="skLoginUser" name="username" autocomplete="username" dir="ltr" required></label>
     <label>كلمة المرور<input id="skLoginPass" name="password" type="password" autocomplete="current-password" dir="ltr" required></label>
     <p id="skLoginError" class="sk-error" role="alert" hidden></p>
@@ -1089,7 +1103,7 @@ window.INDESIGN_PROJECTS_UI={boot,openEditor,editor:{get selected(){return selec
       <div><span class="eyebrow">حساب العميل</span><h2 id="skOFTitle">مالك جديد</h2></div>
       <button type="button" class="icon-button" data-sk-close aria-label="إغلاق">×</button>
     </div>
-    <p class="sk-muted">المالك بيدخل بالحساب ده ويشوف كل مشاريعه، زي أكتر من غرفة دريسنج.</p>
+    <p class="sk-muted">يدخل المالك بهذا الحساب ويرى جميع مشاريعه، مثل أكثر من غرفة دريسنج.</p>
     <div class="sk-grid">
       <label>اسم المالك<input id="skOName" maxlength="100" required></label>
       <label>اسم المستخدم<input id="skOUser" dir="ltr" maxlength="30" autocomplete="off" placeholder="client01" required></label>
@@ -1097,9 +1111,9 @@ window.INDESIGN_PROJECTS_UI={boot,openEditor,editor:{get selected(){return selec
     </div>
     <label class="sk-full sk-admin-only">المهندس المسؤول عن المالك<select id="skOEngineer"></select></label>
     <fieldset class="sk-perms sk-admin-only"><legend>صلاحيات المالك</legend>
-      <label><input type="checkbox" data-operm="edit"> يعدّل الاختيارات (من غيرها يتفرج بس)</label>
-      <label><input type="checkbox" data-operm="final"> يعتمد الاختيارات نهائي ويحفظ المقترح النهائي</label>
-      <label><input type="checkbox" data-operm="send"> يبعت التقرير للمهندس</label>
+      <label><input type="checkbox" data-operm="edit"> يعدّل الاختيارات (بدونها يكتفي بالعرض)</label>
+      <label><input type="checkbox" data-operm="final"> يعتمد الاختيارات نهائيًا ويحفظ المقترح النهائي</label>
+      <label><input type="checkbox" data-operm="send"> يرسل التقرير إلى المهندس</label>
     </fieldset>
     <p id="skOwnerFormError" class="sk-error" role="alert" hidden></p>
     <div class="sk-actions"><button type="button" class="sk-btn" data-sk-close>إلغاء</button><button class="sk-btn sk-btn-dark" type="submit">حفظ الحساب</button></div>
@@ -1129,15 +1143,15 @@ window.INDESIGN_PROJECTS_UI={boot,openEditor,editor:{get selected(){return selec
 <!-- بيانات دخول المالك بعد الحفظ -->
 <dialog id="skCreds" class="sk-dialog sk-narrow" aria-labelledby="skCredsTitle">
   <div class="sk-head-row"><h2 id="skCredsTitle">بيانات دخول المالك</h2><button class="icon-button" data-sk-close aria-label="إغلاق">×</button></div>
-  <p class="sk-muted">ابعت البيانات دي للمالك. كلمة المرور مش هتظهر تاني، ولو نسيتها اعمل واحدة جديدة من «تعديل الحساب».</p>
+  <p class="sk-muted">أرسل هذه البيانات إلى المالك. لن تظهر كلمة المرور مرة أخرى، وإذا نسيتها فأنشئ واحدة جديدة من «تعديل الحساب».</p>
   <pre id="skCredsText" class="sk-creds"></pre>
-  <div class="sk-actions"><button class="sk-btn" id="skCopyCreds">نسخ</button><button class="sk-btn sk-btn-dark" data-sk-close>تمام</button></div>
+  <div class="sk-actions"><button class="sk-btn" id="skCopyCreds">نسخ</button><button class="sk-btn sk-btn-dark" data-sk-close>حسنًا</button></div>
 </dialog>
 
 <!-- سجل التعديلات -->
 <dialog id="skLog" class="sk-dialog sk-panel sk-wide" aria-labelledby="skLogTitle">
   <div class="sk-head-row">
-    <div><span class="eyebrow">مين عدّل إيه وإمتى</span><h2 id="skLogTitle">سجل التعديلات</h2></div>
+    <div><span class="eyebrow">من عدّل ماذا ومتى</span><h2 id="skLogTitle">سجل التعديلات</h2></div>
     <button class="icon-button" data-sk-close aria-label="إغلاق">×</button>
   </div>
   <label class="sk-inline">المشروع <select id="skLogFilter"></select></label>
@@ -1179,7 +1193,7 @@ window.INDESIGN_PROJECTS_UI={boot,openEditor,editor:{get selected(){return selec
       <label><input type="checkbox" data-sperm="manageProjects"> يضيف ويعدّل المشاريع والمخططات</label>
       <label><input type="checkbox" data-sperm="manageFiles"> يضيف ملفات للمشروع (مخططات وتصاميم ومحاضر)</label>
       <label><input type="checkbox" data-sperm="deleteItems"> يحذف المشاريع والمخططات والملفات وحسابات الملّاك</label>
-      <label><input type="checkbox" data-sperm="viewLog"> يشوف سجل التعديلات</label>
+      <label><input type="checkbox" data-sperm="viewLog"> يطّلع على سجل التعديلات</label>
     </fieldset>
     <p id="skStaffFormError" class="sk-error" role="alert" hidden></p>
     <div class="sk-actions"><button type="button" class="sk-btn" data-sk-close>إلغاء</button><button class="sk-btn sk-btn-dark" type="submit">حفظ الحساب</button></div>
@@ -1207,7 +1221,7 @@ window.INDESIGN_PROJECTS_UI={boot,openEditor,editor:{get selected(){return selec
     </div>
   </div>
   <form id="skPassForm">
-    <h3>تغيير كلمة المرور بتاعتي</h3>
+    <h3>تغيير كلمة المرور الخاصة بي</h3>
     <label class="sk-pass-row"><input id="skNewPass" type="password" dir="ltr" autocomplete="new-password" required aria-label="كلمة المرور الجديدة" placeholder="كلمة المرور الجديدة"><button class="sk-btn sk-btn-dark" type="submit">تغيير</button></label>
   </form>
   <p id="skSettingsMsg" class="sk-note" role="status" hidden></p>
@@ -1219,7 +1233,7 @@ window.INDESIGN_PROJECTS_UI={boot,openEditor,editor:{get selected(){return selec
     <div><span class="eyebrow" id="skPropProject"></span><h2 id="skPropTitle">المقترحات</h2></div>
     <button class="icon-button" data-sk-close aria-label="إغلاق">×</button>
   </div>
-  <p class="sk-muted">احفظ اختياراتك الحالية كمقترح ١ أو مقترح ٢ عشان تقارن بينهم، ولما تستقر احفظها كمقترح نهائي.</p>
+  <p class="sk-muted">احفظ اختياراتك الحالية كمقترح ١ أو مقترح ٢ لتقارن بينهما، وعندما تستقر احفظها كمقترح نهائي.</p>
   <div id="skPropList" class="sk-prop-list"></div>
   <p id="skPropMsg" class="sk-note" role="status" hidden></p>
 </dialog>
@@ -1244,7 +1258,7 @@ window.INDESIGN_PROJECTS_UI={boot,openEditor,editor:{get selected(){return selec
 <!-- المخططات المرفوعة (تعديل وحذف) -->
 <dialog id="skPlans" class="sk-dialog sk-panel sk-wide" aria-labelledby="skPlansTitle">
   <div class="sk-head-row">
-    <div><span class="eyebrow">المهندس بيرفع المخطط، والمالك بيختار عليه</span><h2 id="skPlansTitle">المخططات</h2></div>
+    <div><span class="eyebrow">يرفع المهندس المخطط، ويختار المالك عليه</span><h2 id="skPlansTitle">المخططات</h2></div>
     <button class="icon-button" data-sk-close aria-label="إغلاق">×</button>
   </div>
   <div class="sk-toolbar"><button class="sk-btn sk-btn-dark" id="skUploadPlan">+ رفع مخطط جديد</button></div>
@@ -1304,7 +1318,7 @@ window.SakanI18n = (function () {
   const EN = {
     /* ---------- عام ---------- */
     "سكن جروب": "Sakan Group", "إغلاق": "Close", "إلغاء": "Cancel", "حذف": "Delete", "تعديل": "Edit", "اختيار": "Choose",
-    "تمام": "OK", "نسخ": "Copy", "اتنسخ ✓": "Copied ✓", "انسخها يدوي": "Copy it manually", "إضافة": "Add", "تغيير": "Change",
+    "تمام": "OK", "نسخ": "Copy", "تم النسخ ✓": "Copied ✓", "انسخها يدويًا": "Copy it manually", "إضافة": "Add", "تغيير": "Change",
     "الاسم": "Name", "اسم المستخدم": "Username", "كلمة المرور": "Password", "دخول": "Sign in", "خروج": "Sign out",
     "مهندس": "Engineer", "مالك": "Owner", "عميل": "Client", "مدير النظام": "System admin", "المهندس": "Engineer", "المالك": "Owner", "العميل": "Client",
     "أنت": "You", "ثابت": "fixed", "الملفات": "Files", "؟": "?", "—": "—", "م": "m",
@@ -1445,127 +1459,127 @@ window.SakanI18n = (function () {
 
     /* ---------- البوابة ---------- */
     "شريط الأدوات": "Toolbar", "مشاريع المالك": "Owner projects", "المشاريع": "Projects", "طريقة الرسم:": "Drawing method:", "طريقة الرسم": "Drawing method", "سحب": "Drag", "بالمقاسات": "By measurements", "تلقائي": "Automatic",
-    "رسم بالسحب": "Draw by dragging", "اسحب على المخطط من ركن الخزانة للركن المقابل. اسحب البوكس عشان تحرّكه، ومن المربعات الصغيرة عشان تكبّره. البوكس بيلزق لوحده في حواف البوكسات اللي جنبه.": "Drag on the plan from one corner of the cabinet to the opposite one. Drag a box to move it, or its small squares to resize it. Boxes snap to the edges of neighbouring boxes.",
-    "رسم بالمقاسات": "Draw by measurements", "اضغط أول الحيطة وآخرها (أو اسحب عليها) على الخط اللي الخزاين هتتركب عليه.": "Click the start and end of the wall (or drag along it) on the line the cabinets will sit against.",
-    "اضغط آخر الحيطة.": "Click the end of the wall.", "اكتب المقاسات، وهتشوف البوكسات قبل ما تترص.": "Type the sizes; you'll see the boxes before they're placed.",
-    "طول الحيطة (سم)": "Wall length (cm)", "عروض الخزاين بالترتيب (سم)": "Cabinet widths in order (cm)", "العمق (سم)": "Depth (cm)", "الخزاين ناحية:": "Cabinets on:",
-    "امسك نقطة 1 أو 2 وحرّكها عشان تظبط الحيطة، واكتب المقاسات.": "Drag point 1 or 2 to adjust the wall, then type the sizes.",
-    "اضغط آخر الحيطة (نقطة 2).": "Click the end of the wall (point 2).", "ميل البوكس (درجة)": "Box angle (degrees)",
-    "تعذّر الاتصال بالسيرفر. اتأكد من الإنترنت وجرّب تاني.": "Couldn't reach the server. Check your internet and try again.", "الجلسة انتهت. ادخل تاني.": "Your session ended. Please sign in again.",
-    "محاولات دخول غلط كتير. استنى 10 دقايق وجرّب تاني.": "Too many failed sign-ins. Wait 10 minutes and try again.", "حصلت مشكلة على السيرفر.": "Something went wrong on the server.",
-    "مش مسموح.": "Not allowed.", "مش مسموحلك تمسح.": "You're not allowed to delete.", "ده لمدير النظام بس.": "Only the system admin can do this.", "تعذّر الاتصال. جرّب تاني.": "Couldn't connect. Try again.",
-    "بالنقط": "Points", "رسم بالنقط": "Draw by points", "تم": "Done", "شيل آخر نقطة": "Remove last point", "ابدأ من الأول": "Start over",
-    "اضغط على أركان الخزانة واحد ورا التاني حواليها. 4 نقط للخزانة المستقيمة، 5 للكورنر المشطوف، 6 للكورنر حرف L. اقفل الشكل بالضغط على نقطة 1 أو «تم». تقدر تمسك أي نقطة وتحرّكها قبل ما تخلّص.": "Click the cabinet's corners one after another around it. 4 points for a straight cabinet, 5 for a chamfered corner, 6 for an L corner. Close the shape by clicking point 1 or «Done». You can drag any point before you finish.",
-    "اضغط على أركان الخزانة بالترتيب، واقفل الشكل على نقطة 1.": "Click the cabinet's corners in order, and close the shape on point 1.",
-    "الشكل صغير قوي.": "The shape is too small.", "مش قادر أعرف شكل الزاوية. حط النقط على أركان الخزانة بالترتيب حواليها.": "Couldn't work out the corner shape. Place the points on the cabinet's corners in order around it.",
-    "اتضافت. اضبط المقياس عشان عمق الزاوية يطلع مظبوط.": "Added. Set the scale so the corner depth comes out right.",
+    "رسم بالسحب": "Draw by dragging", "اسحب على المخطط من ركن الخزانة إلى الركن المقابل. اسحب البوكس لتحريكه، ومن المربعات الصغيرة لتكبيره. يلتصق البوكس تلقائيًا بحواف البوكسات المجاورة.": "Drag on the plan from one corner of the cabinet to the opposite one. Drag a box to move it, or its small squares to resize it. Boxes snap to the edges of neighbouring boxes.",
+    "رسم بالمقاسات": "Draw by measurements", "اضغط على بداية الحائط ونهايته (أو اسحب عليه) على الخط الذي ستُركّب عليه الخزائن.": "Click the start and end of the wall (or drag along it) on the line the cabinets will sit against.",
+    "اضغط آخر الحائط.": "Click the end of the wall.", "اكتب المقاسات، وهتشوف البوكسات قبل ما تترص.": "Type the sizes; you'll see the boxes before they're placed.",
+    "طول الحائط (سم)": "Wall length (cm)", "عروض الخزائن بالترتيب (سم)": "Cabinet widths in order (cm)", "العمق (سم)": "Depth (cm)", "جهة الخزائن:": "Cabinets on:",
+    "اسحب النقطة 1 أو 2 لضبط الحائط، واكتب المقاسات.": "Drag point 1 or 2 to adjust the wall, then type the sizes.",
+    "اضغط على نهاية الحائط (نقطة 2).": "Click the end of the wall (point 2).", "ميل البوكس (درجة)": "Box angle (degrees)",
+    "تعذّر الاتصال بالسيرفر. تأكد من الاتصال بالإنترنت وحاول مرة أخرى.": "Couldn't reach the server. Check your internet and try again.", "انتهت الجلسة. سجّل الدخول مرة أخرى.": "Your session ended. Please sign in again.",
+    "محاولات دخول خاطئة كثيرة. انتظر 10 دقائق وحاول مرة أخرى.": "Too many failed sign-ins. Wait 10 minutes and try again.", "حدثت مشكلة في السيرفر.": "Something went wrong on the server.",
+    "غير مسموح.": "Not allowed.", "غير مسموح لك بالحذف.": "You're not allowed to delete.", "هذا متاح لمدير النظام فقط.": "Only the system admin can do this.", "تعذّر الاتصال. حاول مرة أخرى.": "Couldn't connect. Try again.",
+    "بالنقاط": "Points", "رسم بالنقاط": "Draw by points", "تم": "Done", "احذف آخر نقطة": "Remove last point", "ابدأ من الأول": "Start over",
+    "اضغط على أركان الخزانة واحدًا تلو الآخر حولها. 4 نقاط للخزانة المستقيمة، 5 للكورنر المشطوف، 6 للكورنر حرف L. أغلق الشكل بالضغط على نقطة 1 أو «تم». يمكنك سحب أي نقطة وتحريكها قبل الانتهاء.": "Click the cabinet's corners one after another around it. 4 points for a straight cabinet, 5 for a chamfered corner, 6 for an L corner. Close the shape by clicking point 1 or «Done». You can drag any point before you finish.",
+    "اضغط على أركان الخزانة بالترتيب، وأغلق الشكل عند نقطة 1.": "Click the cabinet's corners in order, and close the shape on point 1.",
+    "الشكل صغير جدًا.": "The shape is too small.", "تعذّر تحديد شكل الزاوية. ضع النقاط على أركان الخزانة بالترتيب حولها.": "Couldn't work out the corner shape. Place the points on the cabinet's corners in order around it.",
+    "تمت الإضافة. اضبط المقياس ليكون عمق الزاوية صحيحًا.": "Added. Set the scale so the corner depth comes out right.",
     "تحت الخط ↓": "Below the line ↓", "فوق الخط ↑": "Above the line ↑", "يمين الخط →": "Right of the line →", "شمال الخط ←": "Left of the line ←",
-    "رص البوكسات": "Place boxes", "ارسم الحيطة من جديد": "Redraw the wall", "رسم تلقائي": "Automatic drawing",
-    "«دوّر على الخزاين» بيعلّم المستطيلات اللي شكلها خزانة، واضغط على أي واحد منهم عشان يتضاف. أو ارسم تقريبي حوالين الخزانة، والبرنامج يظبط البوكس على خطوط المخطط.": "“Find cabinets” marks rectangles that look like cabinets; click any of them to add it. Or draw roughly around a cabinet and the box snaps to the plan's lines.",
-    "دوّر على الخزاين": "Find cabinets", "إضافة الكل": "Add all", "تكرار": "Duplicate",
+    "رص البوكسات": "Place boxes", "ارسم الحائط من جديد": "Redraw the wall", "رسم تلقائي": "Automatic drawing",
+    "«ابحث عن الخزائن» يحدد المستطيلات التي تشبه الخزائن، واضغط على أيٍّ منها لإضافته. أو ارسم تقريبيًا حول الخزانة، وسيضبط البرنامج البوكس على خطوط المخطط.": "“Find cabinets” marks rectangles that look like cabinets; click any of them to add it. Or draw roughly around a cabinet and the box snaps to the plan's lines.",
+    "ابحث عن الخزائن": "Find cabinets", "إضافة الكل": "Add all", "تكرار": "Duplicate",
     "Ctrl+D تكرار البوكس · الأسهم للتحريك · Delete للحذف · Ctrl + العجلة للتكبير": "Ctrl+D duplicate · arrows move · Delete removes · Ctrl + wheel zooms",
-    "حدد الحيطة، واكتب عروض الخزاين بالسنتي.": "Mark the wall, then type the cabinet widths in cm.", "دوّر على الخزاين، أو ارسم تقريبي حوالين كل خزانة.": "Find cabinets, or draw roughly around each cabinet.",
+    "حدد الحيطة، واكتب عروض الخزائن بالسنتيمتر.": "Mark the wall, then type the cabinet widths in cm.", "ابحث عن الخزائن، أو ارسم تقريبيًا حول كل خزانة.": "Find cabinets, or draw roughly around each cabinet.",
     "اسحب لرسم بوكس. اسحب البوكس لتحريكه، ومن أركانه لتكبيره.": "Drag to draw a box. Drag a box to move it, or its corners to resize it.",
-    "بدوّر على الخزاين في المخطط…": "Looking for cabinets in the plan…", "مالقيتش مستطيلات واضحة. جرّب «ارسم تقريبي» على كل خزانة.": "No clear rectangles found. Try drawing roughly around each cabinet.",
-    "مقدرتش أحلل الصورة دي.": "Couldn't analyse this image.", "ارسم خط الحيطة الأول.": "Draw the wall line first.", "اكتب طول الحيطة بالسنتي.": "Type the wall length in cm.",
-    "اكتب عروض الخزاين بالسنتي، مثلًا: 90، 60، 120.": "Type the cabinet widths in cm, e.g. 90, 60, 120.", "البوكسات بتطلع برا المخطط. جرّب الناحية التانية أو راجع الطول.": "The boxes go outside the plan. Try the other side or check the length.",
-    "العملاء": "Clients", "عرض 360°": "360° view", "مراجعة": "Review", "الإدارة": "Administration", "+ عميل جديد": "+ New client", "› كل العملاء": "‹ All clients", "+ مشروع للعميل ده": "+ Project for this client", "لسه مفيش عملاء": "No clients yet", "مفيش مشاريع للعميل ده.": "This client has no projects.", "جرّب اسم تاني للعميل أو المشروع.": "Try another client or project name.", "ابحث باسم العميل أو المشروع أو اسم المستخدم أو المهندس…": "Search by client, project, username or engineer…", "ابدأ بـ «عميل جديد» واعمله اسم مستخدم وكلمة مرور، وبعدين ضيفله مشروع أو أكتر.": "Start with “New client”, give them a username and password, then add one or more projects.", "اطلب من مدير النظام يضيف حسابات العملاء.": "Ask the system admin to add client accounts.", "الإعدادات": "Settings", "المستخدمين والصلاحيات": "Users & permissions",
-    "ليلي / نهاري": "Dark / light", "تسجيل الدخول": "Sign in", "المالك يدخل باسم المستخدم وكلمة المرور اللي بعتهاله المهندس.": "Owners sign in with the username and password the engineer sent them.",
-    "اسم المستخدم أو كلمة المرور غلط.": "Wrong username or password.",
+    "جارٍ البحث عن الخزائن في المخطط…": "Looking for cabinets in the plan…", "لم يُعثر على مستطيلات واضحة. جرّب الرسم التقريبي حول كل خزانة.": "No clear rectangles found. Try drawing roughly around each cabinet.",
+    "تعذّر تحليل هذه الصورة.": "Couldn't analyse this image.", "ارسم خط الحائط أولًا.": "Draw the wall line first.", "اكتب طول الحائط بالسنتيمتر.": "Type the wall length in cm.",
+    "اكتب عروض الخزائن بالسنتي، مثلًا: 90، 60، 120.": "Type the cabinet widths in cm, e.g. 90, 60, 120.", "البوكسات تخرج عن حدود المخطط. جرّب الجهة الأخرى أو راجع الطول.": "The boxes go outside the plan. Try the other side or check the length.",
+    "العملاء": "Clients", "عرض 360°": "360° view", "مراجعة": "Review", "الإدارة": "Administration", "+ عميل جديد": "+ New client", "› كل العملاء": "‹ All clients", "+ مشروع لهذا العميل": "+ Project for this client", "لا يوجد عملاء بعد": "No clients yet", "لا توجد مشاريع لهذا العميل.": "This client has no projects.", "جرّب اسمًا آخر للعميل أو المشروع.": "Try another client or project name.", "ابحث باسم العميل أو المشروع أو اسم المستخدم أو المهندس…": "Search by client, project, username or engineer…", "ابدأ بـ «عميل جديد» وأنشئ له اسم مستخدم وكلمة مرور، ثم أضف له مشروعًا أو أكثر.": "Start with “New client”, give them a username and password, then add one or more projects.", "اطلب من مدير النظام إضافة حسابات العملاء.": "Ask the system admin to add client accounts.", "الإعدادات": "Settings", "المستخدمين والصلاحيات": "Users & permissions",
+    "ليلي / نهاري": "Dark / light", "تسجيل الدخول": "Sign in", "يدخل المالك باسم المستخدم وكلمة المرور اللذين أرسلهما له المهندس.": "Owners sign in with the username and password the engineer sent them.",
+    "اسم المستخدم أو كلمة المرور غير صحيحة.": "Wrong username or password.",
     "لوحة المهندس": "Engineer panel", "+ مشروع جديد": "+ New project", "+ مالك جديد": "+ New owner", "+ مهندس جديد": "+ New engineer", "سجل التعديلات": "Change log",
     "ابحث باسم المشروع أو المالك أو اسم المستخدم أو المهندس…": "Search by project, owner, username or engineer…", "بحث عن مشروع أو عميل": "Search for a project or client",
     "حساب العميل": "Client account", "مالك جديد": "New owner", "تعديل حساب المالك": "Edit owner account",
-    "المالك بيدخل بالحساب ده ويشوف كل مشاريعه، زي أكتر من غرفة دريسنج.": "The owner signs in with this account and sees all their projects, such as several dressing rooms.",
+    "يدخل المالك بهذا الحساب ويرى جميع مشاريعه، مثل أكثر من غرفة دريسنج.": "The owner signs in with this account and sees all their projects, such as several dressing rooms.",
     "اسم المالك": "Owner name", "حفظ الحساب": "Save account", "صلاحيات المالك": "Owner permissions",
-    "يعدّل الاختيارات (من غيرها يتفرج بس)": "Can edit choices (otherwise view only)", "يحفظ المقترح النهائي": "Can save the final proposal", "يبعت التقرير للمهندس": "Can send the report to the engineer",
+    "يعدّل الاختيارات (بدونها يكتفي بالعرض)": "Can edit choices (otherwise view only)", "يحفظ المقترح النهائي": "Can save the final proposal", "يرسل التقرير إلى المهندس": "Can send the report to the engineer",
     "المهندس المسؤول عن المالك": "Engineer responsible for the owner", "المهندس المسؤول عن المشروع": "Engineer responsible for the project",
-    "بدون تحديد (أي مهندس)": "Not set (any engineer)", "زي المهندس المسؤول عن المالك": "Same as the owner's engineer", "أي مهندس": "any engineer",
+    "بدون تحديد (أي مهندس)": "Not set (any engineer)", "نفس المهندس المسؤول عن المالك": "Same as the owner's engineer", "أي مهندس": "any engineer",
     "مشروع": "Project", "اسم المشروع / الغرفة": "Project / room name", "مثال: دريسنج الماستر": "e.g. Master dressing room", "مخطط المشروع": "Project plan",
     "رفع مخطط جديد": "Upload new plan", "حفظ المشروع": "Save project", "تعديل المشروع": "Edit project", "مشروع جديد": "New project", "(المخطط التجريبي)": "(demo plan)",
-    "بيانات دخول المالك": "Owner sign-in details", "ابعت البيانات دي للمالك. كلمة المرور مش هتظهر تاني، ولو نسيتها اعمل واحدة جديدة من «تعديل الحساب».": "Send these details to the owner. The password won't be shown again; if it's forgotten, set a new one from “Edit account”.",
-    "مين عدّل إيه وإمتى": "Who changed what, and when", "المشروع": "Project", "التاريخ والوقت": "Date & time", "المستخدم": "User", "التعديل": "Change", "كل المشاريع": "All projects",
-    "مفيش تعديلات متسجلة.": "No changes recorded.",
+    "بيانات دخول المالك": "Owner sign-in details", "أرسل هذه البيانات إلى المالك. لن تظهر كلمة المرور مرة أخرى، وإذا نسيتها فأنشئ واحدة جديدة من «تعديل الحساب».": "Send these details to the owner. The password won't be shown again; if it's forgotten, set a new one from “Edit account”.",
+    "من عدّل ماذا ومتى": "Who changed what, and when", "المشروع": "Project", "التاريخ والوقت": "Date & time", "المستخدم": "User", "التعديل": "Change", "كل المشاريع": "All projects",
+    "لا توجد تعديلات مسجلة.": "No changes recorded.",
     "المهندسين ومديري النظام": "Engineers and system admins", "الملّاك (العملاء)": "Owners (clients)", "حساب": "Account", "مهندس جديد": "New engineer", "تعديل الحساب": "Edit account",
     "نوع الحساب": "Account type", "صلاحيات المهندس": "Engineer permissions", "يضيف ويعدّل حسابات الملّاك": "Can add and edit owner accounts",
-    "يضيف ويعدّل المشاريع": "Can add and edit projects", "يحذف المشاريع وحسابات الملّاك": "Can delete projects and owner accounts", "يشوف سجل التعديلات": "Can view the change log",
+    "يضيف ويعدّل المشاريع": "Can add and edit projects", "يحذف المشاريع وحسابات الملّاك": "Can delete projects and owner accounts", "يطّلع على سجل التعديلات": "Can view the change log",
     "كل الصلاحيات": "All permissions", "الملّاك": "Owners", "الحذف": "Delete", "السجل": "Log", "تعديل الاختيارات": "Edit choices", "المقترح النهائي": "Final proposal", "إرسال التقرير": "Send report",
-    "سيبها فاضية لو مش هتغيّرها.": "Leave blank to keep it.", "لسه مفيش ملّاك.": "No owners yet.", "بدون صلاحيات": "No permissions",
-    "لغة البرنامج": "Language", "الثيم": "Theme", "☀ نهاري": "☀ Light", "☾ ليلي": "☾ Dark", "تغيير كلمة المرور بتاعتي": "Change my password", "كلمة المرور الجديدة": "New password",
-    "اتغيرت كلمة المرور.": "Password changed.",
+    "اتركها فارغة إذا لم تكن ستغيّرها.": "Leave blank to keep it.", "لا يوجد ملّاك بعد.": "No owners yet.", "بدون صلاحيات": "No permissions",
+    "لغة البرنامج": "Language", "الثيم": "Theme", "☀ نهاري": "☀ Light", "☾ ليلي": "☾ Dark", "تغيير كلمة المرور الخاصة بي": "Change my password", "كلمة المرور الجديدة": "New password",
+    "تم تغيير كلمة المرور.": "Password changed.",
     "المقترحات": "Proposals", "تقرير PDF": "PDF report", "مقترح ١": "Proposal 1", "مقترح ٢": "Proposal 2", "الاختيارات الحالية": "Current choices", "الاختيارات": "Choices",
-    "احفظ اختياراتك الحالية كمقترح ١ أو مقترح ٢ عشان تقارن بينهم، ولما تستقر احفظها كمقترح نهائي.": "Save your current choices as Proposal 1 or Proposal 2 to compare them, and when you decide, save them as the final proposal.",
-    "احفظ الاختيارات الحالية هنا": "Save current choices here", "استرجاع": "Restore", "لسه ماتحفظش": "Not saved yet",
-    "اختار تقسيمة لبوكس واحد على الأقل قبل ما تحفظ المقترح.": "Choose a layout for at least one box before saving the proposal.",
-    "هتحفظ الاختيارات الحالية كمقترح نهائي. متأكد؟": "Save the current choices as the final proposal. Are you sure?",
+    "احفظ اختياراتك الحالية كمقترح ١ أو مقترح ٢ لتقارن بينهما، وعندما تستقر احفظها كمقترح نهائي.": "Save your current choices as Proposal 1 or Proposal 2 to compare them, and when you decide, save them as the final proposal.",
+    "احفظ الاختيارات الحالية هنا": "Save current choices here", "استرجاع": "Restore", "لم يُحفظ بعد": "Not saved yet",
+    "اختر تقسيمة لبوكس واحد على الأقل قبل حفظ المقترح.": "Choose a layout for at least one box before saving the proposal.",
+    "سيتم حفظ الاختيارات الحالية كمقترح نهائي. هل أنت متأكد؟": "Save the current choices as the final proposal. Are you sure?",
     "تقرير على ورق سكن جروب": "Report on Sakan Group letterhead", "تقرير الاختيارات": "Choices report", "نسخة التقرير": "Report version",
     "حفظ PDF / طباعة": "Save PDF / print", "إرسال التقرير للمهندس": "Send report to engineer",
     "تقرير اختيارات الخزائن": "Cabinet choices report", "النسخة": "Version", "المخطط": "Plan", "التاريخ": "Date", "الوقت": "Time", "المكتمل": "Completed", "تاريخ الحفظ": "Saved on",
     "الخزانة والمقاس": "Cabinet & size", "التقسيمة المختارة": "Chosen layout", "توقيع المالك": "Owner signature", "اعتماد المهندس": "Engineer approval",
     "سكن جروب · SAKAN GROUP": "SAKAN GROUP",
-    "مفيش مشاريع لسه": "No projects yet", "ضيف مشروع للعميل ده من تبويب «العملاء».": "Add a project for this client from the “Clients” tab.",
-    "المهندس لسه ماضافلكش مشاريع.": "The engineer hasn't added projects for you yet.", "لسه مفيش ملّاك": "No owners yet",
+    "لا توجد مشاريع بعد": "No projects yet", "أضف مشروعًا لهذا العميل من تبويب «العملاء».": "Add a project for this client from the “Clients” tab.",
+    "لم يضف المهندس أي مشاريع لك بعد.": "The engineer hasn't added projects for you yet.", "لا يوجد ملّاك بعد": "No owners yet",
     "ابدأ بـ «مالك جديد» واعمله اسم مستخدم وكلمة مرور، وبعدين ضيفله مشروع أو أكتر.": "Start with “New owner”, give them a username and password, then add one or more projects.",
     "اطلب من مدير النظام يضيف حسابات الملّاك.": "Ask the system admin to add owner accounts.",
-    "مفيش نتايج": "No results", "جرّب اسم تاني للمشروع أو المالك.": "Try another project or owner name.",
+    "لا توجد نتائج": "No results", "جرّب اسم تاني للمشروع أو المالك.": "Try another project or owner name.",
     "+ مشروع للمالك ده": "+ Project for this owner", "فتح المشروع": "Open project", "عرض التقرير": "View report", "مفيش مشاريع للمالك ده.": "This owner has no projects.",
-    "لسه محدش عدّل": "No edits yet", "مفيش مشروع مفتوح. افتح مشروع من «العملاء» أو «مشاريع المالك».": "No project open. Open one from “Clients” or “Owner projects”.",
-    "افتح مشروع الأول من «مشاريع المالك».": "Open a project first from “Owner projects”.", "المشروع ده مش موجود.": "This project doesn't exist.",
+    "لم يعدّل أحد بعد": "No edits yet", "لا يوجد مشروع مفتوح. افتح مشروعًا من «العملاء» أو «مشاريع المالك».": "No project open. Open one from “Clients” or “Owner projects”.",
+    "افتح مشروعًا أولًا من «مشاريع المالك».": "Open a project first from “Owner projects”.", "هذا المشروع غير موجود.": "This project doesn't exist.",
     "مخطط المشروع مش موجود على الجهاز ده. لحد ما السيرفر يتربط، المشروع بيشتغل على نفس الجهاز اللي المهندس عمله عليه.": "This project's plan isn't on this device. Until the server is connected, a project only works on the device the engineer created it on.",
-    "لسه مفيش ملّاك": "No owners yet",
+    "لا يوجد ملّاك بعد": "No owners yet",
     /* السجل */
     "تسجيل دخول": "Signed in", "تسجيل خروج": "Signed out", "تعديل الاختيارات ": "Edited choices", "تعديل الملاحظات": "Edited notes", "مسح الملاحظات": "Cleared notes",
     "حذف مشروع": "Deleted project", "تعديل مشروع": "Edited project", "إضافة مشروع": "Added project", "حذف مالك": "Deleted owner", "تعديل مالك": "Edited owner", "إضافة مالك": "Added owner",
     "حذف حساب": "Deleted account", "تعديل حساب": "Edited account", "إضافة حساب": "Added account", "تغيير كلمة المرور": "Changed password",
     "حفظ تقرير PDF": "Saved PDF report", "إرسال تقرير للمهندس": "Sent report to engineer", "كلمة مرور جديدة": "new password",
     /* أخطاء البيانات */
-    "مساحة التخزين على الجهاز اتملت. امسح مشاريع قديمة وجرّب تاني.": "Device storage is full. Delete old projects and try again.",
+    "امتلأت مساحة التخزين على الجهاز. احذف مشاريع قديمة وحاول مرة أخرى.": "Device storage is full. Delete old projects and try again.",
     "اكتب اسم المالك.": "Enter the owner's name.", "اكتب اسم المشروع.": "Enter the project name.", "اكتب الاسم.": "Enter the name.",
-    "اسم المستخدم من 3 لـ 30 حرف إنجليزي أو رقم (مسموح . _ -).": "Username must be 3–30 English letters or digits (. _ - allowed).",
-    "اسم المستخدم ده مستخدم قبل كده. اختار اسم تاني.": "That username is taken. Choose another.",
-    "كلمة المرور 4 حروف أو أرقام على الأقل.": "Password must be at least 4 characters.",
-    "لما تغيّر اسم المستخدم اكتب كلمة مرور جديدة كمان.": "When changing the username, enter a new password too.",
-    "اختار مالك المشروع.": "Choose the project owner.", "اختار مخطط المشروع.": "Choose the project plan.", "المشروع مش موجود.": "Project not found.",
-    "الحساب مش موجود.": "Account not found.", "لازم يفضل فيه مدير نظام واحد على الأقل.": "There must be at least one system admin.",
+    "يتكون اسم المستخدم من 3 إلى 30 حرفًا إنجليزيًا أو رقمًا (مسموح . _ -).": "Username must be 3–30 English letters or digits (. _ - allowed).",
+    "اسم المستخدم هذا مستخدم من قبل. اختر اسمًا آخر.": "That username is taken. Choose another.",
+    "يجب ألا تقل كلمة المرور عن 4 حروف أو أرقام.": "Password must be at least 4 characters.",
+    "عند تغيير اسم المستخدم اكتب كلمة مرور جديدة أيضًا.": "When changing the username, enter a new password too.",
+    "اختر مالك المشروع.": "Choose the project owner.", "اختر مخطط المشروع.": "Choose the project plan.", "المشروع غير موجود.": "Project not found.",
+    "الحساب غير موجود.": "Account not found.", "يجب أن يبقى مدير نظام واحد على الأقل.": "There must be at least one system admin.",
     "العربية": "العربية", "اسم المستخدم:": "Username:", "المهندس المسؤول": "Responsible engineer",
     /* مسودة واعتماد */
-    "حفظ": "Save", "حفظ مسودة": "Save draft", "اختيار المالك": "Owner's choices", "المخططات والملفات": "Plans & files", "اعتماد نهائي": "Final approval", "رجوع لمسودة للتعديل": "Back to draft to edit", "مسودة": "Draft", "معتمد نهائي ✓": "Approved ✓",
-    "تعديلات مش محفوظة": "Unsaved changes", "اتحفظت الاختيارات كمسودة.": "Choices saved as a draft.", "اتعتمدت الاختيارات.": "Choices approved.",
-    "فيه تعديلات في الاختيارات لسه ماتحفظتش. تحفظها قبل ما تكمل؟": "You have unsaved changes to the choices. Save them before continuing?",
+    "حفظ": "Save", "حفظ مسودة": "Save draft", "اختيار المالك": "Owner's choices", "المخططات والملفات": "Plans & files", "اعتماد نهائي": "Final approval", "إعادة إلى مسودة للتعديل": "Back to draft to edit", "مسودة": "Draft", "معتمد نهائي ✓": "Approved ✓",
+    "تعديلات غير محفوظة": "Unsaved changes", "تم حفظ الاختيارات كمسودة.": "Choices saved as a draft.", "تم اعتماد الاختيارات.": "Choices approved.",
+    "توجد تعديلات في الاختيارات لم تُحفظ بعد. هل تريد حفظها قبل المتابعة؟": "You have unsaved changes to the choices. Save them before continuing?",
     "اعتماد نهائي للاختيارات؟ بعد الاعتماد مش هتتعدل غير لو رجعتها مسودة.": "Approve the choices as final? After approval they can't be edited unless returned to draft.",
     "اعتماد نهائي للاختيارات": "Approved choices as final",
     "ترجّع الاختيارات مسودة عشان تعدّل عليها؟ هيتسجل في السجل إنها اتفتحت تاني.": "Return the choices to draft to edit them? The log will record that they were reopened.",
     "الاختيارات معتمدة. رجّعها مسودة الأول عشان تعدّل.": "The choices are approved. Return them to draft first to edit.",
-    "يعتمد الاختيارات نهائي ويحفظ المقترح النهائي": "Can approve choices and save the final proposal",
+    "يعتمد الاختيارات نهائيًا ويحفظ المقترح النهائي": "Can approve choices and save the final proposal",
     /* الاعتماد للتصنيع وطلب التعديل */
     "تم الاعتماد - ابدأ التصنيع": "Approved – start manufacturing", "تم الاعتماد - في التصنيع ✓": "Approved – in manufacturing ✓",
     "فتح للتعديل": "Reopen for editing", "طلب السماح بالتعديل": "Request permission to edit", "السماح بالتعديل": "Allow editing",
     "رفض الطلب": "Reject request", "رفض طلب التعديل": "Edit request rejected",
-    "طلب التعديل مستني موافقة مدير النظام": "Edit request awaiting system admin approval",
+    "طلب التعديل بانتظار موافقة مدير النظام": "Edit request awaiting system admin approval",
     "مدير النظام سمح بالتعديل": "System admin allowed editing", "مدير النظام رفض طلب التعديل": "System admin rejected the edit request",
-    "اتبعت الطلب لمدير النظام.": "Request sent to the system admin.",
-    "إيه التعديل اللي محتاجه؟ الطلب هيروح لمدير النظام.": "What change do you need? The request will go to the system admin.",
-    "مفيش طلب تعديل.": "There is no edit request.", "الاختيارات لسه مسودة، تقدر تعدّل عادي.": "The choices are still a draft; you can edit them.",
-    "تم الاعتماد - ابدأ التصنيع؟ بعد كده الاختيارات مش هتتعدل غير لو مدير النظام سمح بالتعديل.": "Approve and start manufacturing? After that the choices can't be edited unless the system admin allows it.",
-    "تسمح للمالك يعدّل الاختيارات؟ هترجع مسودة.": "Allow the owner to edit the choices? They will go back to draft.",
-    "ترفض طلب التعديل؟": "Reject the edit request?",
-    "ترجّع الاختيارات مسودة عشان تتعدل؟ هيتسجل في السجل إنها اتفتحت تاني.": "Return the choices to draft for editing? The log will record that they were reopened.",
-    "الاختيارات معتمدة ومقفولة. اطلب من مدير النظام السماح بالتعديل.": "The choices are approved and locked. Ask the system admin for permission to edit.",
-    "فيه طلب تعديل مستني الموافقة.": "An edit request is already pending.",
+    "تم إرسال الطلب إلى مدير النظام.": "Request sent to the system admin.",
+    "ما التعديل الذي تحتاجه؟ سيُرسل الطلب إلى مدير النظام.": "What change do you need? The request will go to the system admin.",
+    "لا يوجد طلب تعديل.": "There is no edit request.", "الاختيارات ما زالت مسودة، ويمكنك تعديلها.": "The choices are still a draft; you can edit them.",
+    "تم الاعتماد - ابدأ التصنيع؟ بعد ذلك لن يمكن تعديل الاختيارات إلا إذا سمح مدير النظام بالتعديل.": "Approve and start manufacturing? After that the choices can't be edited unless the system admin allows it.",
+    "هل تسمح للمالك بتعديل الاختيارات؟ ستعود إلى مسودة.": "Allow the owner to edit the choices? They will go back to draft.",
+    "هل تريد رفض طلب التعديل؟": "Reject the edit request?",
+    "هل تريد إعادة الاختيارات إلى مسودة لتعديلها؟ سيُسجَّل في السجل أنها فُتحت مرة أخرى.": "Return the choices to draft for editing? The log will record that they were reopened.",
+    "الاختيارات معتمدة ومقفلة. اطلب من مدير النظام السماح بالتعديل.": "The choices are approved and locked. Ask the system admin for permission to edit.",
+    "يوجد طلب تعديل بانتظار الموافقة.": "An edit request is already pending.",
     /* المخططات والملفات */
-    "المخططات": "Plans", "المهندس بيرفع المخطط، والمالك بيختار عليه": "The engineer uploads the plan; the owner chooses on it",
-    "لسه مفيش مخططات مرفوعة": "No plans uploaded yet", "ارفع صورة أو PDF للمخطط، وحدد عليه البوكسات.": "Upload a plan image or PDF and mark its boxes.",
-    "المقياس مضبوط": "Scale set", "من غير مقياس": "No scale", "مش مستخدم في أي مشروع": "Not used in any project",
+    "المخططات": "Plans", "يرفع المهندس المخطط، ويختار المالك عليه": "The engineer uploads the plan; the owner chooses on it",
+    "لا توجد مخططات مرفوعة بعد": "No plans uploaded yet", "ارفع صورة أو PDF للمخطط، وحدد عليه البوكسات.": "Upload a plan image or PDF and mark its boxes.",
+    "المقياس مضبوط": "Scale set", "بدون مقياس": "No scale", "غير مستخدم في أي مشروع": "Not used in any project",
     "حذف مخطط": "Deleted plan", "حفظ مخطط": "Saved plan", "يضيف ويعدّل المشاريع والمخططات": "Can add and edit projects and plans",
     "يضيف ملفات للمشروع (مخططات وتصاميم ومحاضر)": "Can add project files (plans, designs, minutes)",
     "يحذف المشاريع والمخططات والملفات وحسابات الملّاك": "Can delete projects, plans, files and owner accounts",
     "ملفات المشروع": "Project files", "مخططات": "Plans", "تصاميم": "Designs", "محاضر اجتماعات": "Meeting minutes", "نوع الملف": "File type",
-    "+ إضافة ملف": "+ Add file", "فتح": "Open", "تنزيل": "Download", "اتضاف الملف.": "File added.", "إضافة ملف": "Added file", "حذف ملف": "Deleted file",
+    "+ إضافة ملف": "+ Add file", "فتح": "Open", "تنزيل": "Download", "تمت إضافة الملف.": "File added.", "إضافة ملف": "Added file", "حذف ملف": "Deleted file",
     "تعذّر حفظ الملف على الجهاز.": "Couldn't save the file on this device.", "الملف أكبر من 25 ميجابايت.": "The file is larger than 25 MB.",
     /* التعليقات والإشعارات */
-    "التعليقات": "Comments", "إرسال": "Send", "اكتب تعليقك…": "Write a comment…", "اكتب تعليقك": "Write a comment", "اكتب التعليق الأول.": "Write a comment first.",
-    "اكتب أي سؤال أو طلب للمهندس هنا، وهيوصله إشعار.": "Write any question or request for the engineer here; they'll get a notification.",
-    "مفيش تعليقات لسه.": "No comments yet.", "تعليق من المالك": "Owner comment", "رد على المالك": "Reply to owner",
-    "الإشعارات": "Notifications", "مفيش جديد.": "Nothing new.", "تعليق جديد": "New comment", "تقرير مبعوت": "Report sent",
+    "التعليقات": "Comments", "إرسال": "Send", "اكتب تعليقك…": "Write a comment…", "اكتب تعليقك": "Write a comment", "اكتب التعليق أولًا.": "Write a comment first.",
+    "اكتب هنا أي سؤال أو طلب للمهندس، وسيصله إشعار.": "Write any question or request for the engineer here; they'll get a notification.",
+    "لا توجد تعليقات بعد.": "No comments yet.", "تعليق من المالك": "Owner comment", "رد على المالك": "Reply to owner",
+    "الإشعارات": "Notifications", "لا جديد.": "Nothing new.", "تعليق جديد": "New comment", "تقرير مُرسل": "Report sent",
   };
 
   /* نصوص فيها أرقام أو أسماء. الجزء اللي بين الأقواس بيتترجم لو ليه ترجمة. */
@@ -1588,15 +1602,15 @@ window.SakanI18n = (function () {
     [/^(\d+) ملّاك$/, "$1 owners"],
     [/^(\d+) عملاء$/, "$1 clients"],
     [/^إضافة الكل \((\d+)\)$/, "Add all ($1)"],
-    [/^(\S) تبديل الناحية$/, "$1 Switch side"],
+    [/^(\S) تبديل الجهة$/, "$1 Switch side"],
     [/^الطول على المقياس: (\d+) سم · الميل: (-?\d+)°$/, "Length on scale: $1 cm · Angle: $2°"],
     [/^الميل: (-?\d+)°$/, "Angle: $1°"],
-    [/^(\d+) نقط$/, "$1 points"],
-    [/^(\d+) نقط · خزانة مستقيمة$/, "$1 points · straight cabinet"],
-    [/^(\d+) نقط · كورنر مشطوف$/, "$1 points · chamfered corner"],
-    [/^(\d+) نقط · كورنر حرف L$/, "$1 points · L corner"],
-    [/^اتحطت (\d+) نقط\. الخزانة المستقيمة 4 نقط، والكورنر المشطوف 5، والكورنر حرف L ست نقط\.$/, "$1 points placed. A straight cabinet takes 4 points, a chamfered corner 5, and an L corner 6."],
-    [/^مجموع العروض ([\d.]+) سم أكبر من طول الحيطة ([\d.]+) سم\.$/, "The widths add up to $1 cm, more than the $2 cm wall."],
+    [/^(\d+) نقاط$/, "$1 points"],
+    [/^(\d+) نقاط · خزانة مستقيمة$/, "$1 points · straight cabinet"],
+    [/^(\d+) نقاط · كورنر مشطوف$/, "$1 points · chamfered corner"],
+    [/^(\d+) نقاط · كورنر حرف L$/, "$1 points · L corner"],
+    [/^اتحطت (\d+) نقاط\. الخزانة المستقيمة 4 نقاط، والكورنر المشطوف 5، والكورنر حرف L ست نقاط\.$/, "$1 points placed. A straight cabinet takes 4 points, a chamfered corner 5, and an L corner 6."],
+    [/^مجموع العروض ([\d.]+) سم أكبر من طول الحائط ([\d.]+) سم\.$/, "The widths add up to $1 cm, more than the $2 cm wall."],
     [/^(\d+) اختيارات محفوظة$/, "$1 saved choices"],
     [/^عرض ([\d.,]+) سم$/, "Width $1 cm"],
     [/^عمق ([\d.,]+) سم$/, "Depth $1 cm"],
@@ -1608,27 +1622,27 @@ window.SakanI18n = (function () {
     [/^سكن جروب \/ (.+)$/, "Sakan Group / $1"],
     [/^سكن جروب \| (.+)$/, "Sakan Group | $1"],
     [/^ملخص اختيارات (.+)$/, "Choices summary — $1"],
-    [/^(\S+): اختار (.+)$/, "$1: chose $2"],
+    [/^(\S+): اختر (.+)$/, "$1: chose $2"],
     [/^(\S+): مسح (.+)$/, "$1: cleared $2"],
     [/^(\S+): من (.+) إلى (.+)$/, "$1: from $2 to $3"],
     [/^آخر تعديل (.+)$/, "Last edit $1"],
-    [/^اتبعت تقرير «(.+)» للمهندس\. لو عايز تبعته بنفسك كمان، اضغط «حفظ PDF» وابعت الملف\.$/, "The “$1” report was sent to the engineer. To send it yourself too, press “Save PDF” and send the file."],
-    [/^اتبعت تقرير «(.+)» (.+)$/, "“$1” report sent $2"],
-    [/^اتحفظ «(.+)»\.$/, "“$1” saved."],
-    [/^رجعت اختيارات «(.+)»\.$/, "“$1” choices restored."],
+    [/^تم إرسال تقرير «(.+)» للمهندس\. لو عايز تبعته بنفسك كمان، اضغط «حفظ PDF» وابعت الملف\.$/, "The “$1” report was sent to the engineer. To send it yourself too, press “Save PDF” and send the file."],
+    [/^تم إرسال تقرير «(.+)» (.+)$/, "“$1” report sent $2"],
+    [/^تم حفظ «(.+)»\.$/, "“$1” saved."],
+    [/^تم استرجاع اختيارات «(.+)»\.$/, "“$1” choices restored."],
     [/^«(.+)» محفوظ قبل كده\. تستبدله بالاختيارات الحالية؟$/, "“$1” is already saved. Replace it with the current choices?"],
-    [/^ترجّع اختيارات «(.+)»؟ .*$/, "Restore the “$1” choices? Your current choices will change (save them in a proposal first if you want to keep them)."],
+    [/^هل تريد استرجاع اختيارات «(.+)»؟ .*$/, "Restore the “$1” choices? Your current choices will change (save them in a proposal first if you want to keep them)."],
     [/^حذف مشروع «(.+)»؟ .*$/, "Delete project “$1”? Its proposals and choices will be removed."],
     [/^حذف حساب «(.+)»؟ المالك .*و(\d+) مشاريع.*$/, "Delete “$1”'s account? The owner won't be able to sign in, and their $2 projects will be removed."],
     [/^حذف حساب «(.+)»؟ مش هيقدر يدخل تاني\.$/, "Delete “$1”'s account? They won't be able to sign in."],
     [/^حذف «(.+)» من هذا الجهاز؟ .*$/, "Delete “$1” from this device? Keep the project file if you want to open it later."],
     [/^المشروع «(.+)» موجود\. .*$/, "Project “$1” exists. Open the incoming copy and replace the saved one?"],
     [/^اعتمده (.+?) · (.+) · مدير النظام رفض طلب التعديل$/, "Approved by $1 · $2 · System admin rejected the edit request"],
-    [/^(.+) طالب السماح بالتعديل: (.+)$/, "$1 requests permission to edit: $2"],
-    [/^(.+) طالب السماح بالتعديل$/, "$1 requests permission to edit"],
+    [/^(.+) يطلب السماح بالتعديل: (.+)$/, "$1 requests permission to edit: $2"],
+    [/^(.+) يطلب السماح بالتعديل$/, "$1 requests permission to edit"],
     [/^اعتمده (.+)$/, "Approved by $1"],
     [/^آخر حفظ (.+)$/, "Last saved $1"],
-    [/^رجعت اختيارات «(.+)»\. اضغط «حفظ مسودة» عشان تتحفظ\.$/, "“$1” choices restored. Press “Save draft” to keep them."],
+    [/^تم استرجاع اختيارات «(.+)»\. اضغط «حفظ مسودة» عشان تتحفظ\.$/, "“$1” choices restored. Press “Save draft” to keep them."],
     [/^حذف حساب «(.+)»؟ المالك مش هيقدر يدخل تاني، و(\d+) مشاريع بتاعته هيتمسحوا\.$/, "Delete “$1”'s account? The owner won't be able to sign in, and their $2 projects will be removed."],
     [/^المخطط ده مستخدم في (\d+) مشاريع\. .*$/, "This plan is used in $1 projects. Change those projects' plan first via “Edit”."],
     [/^حذف مخطط «(.+)»؟$/, "Delete plan “$1”?"],
@@ -1853,7 +1867,7 @@ window.SakanPortalAPI = (function () {
   function store(db) {
     if (db.log.length > MAX_LOG) db.log = db.log.slice(-MAX_LOG);
     try { localStorage.setItem(KEY, JSON.stringify(db)); }
-    catch (e) { throw Error("مساحة التخزين على الجهاز اتملت. امسح مشاريع قديمة وجرّب تاني."); }
+    catch (e) { throw Error("امتلأت مساحة التخزين على الجهاز. احذف مشاريع قديمة وحاول مرة أخرى."); }
   }
 
   async function hash(username, password) {
@@ -1940,11 +1954,11 @@ window.SakanPortalAPI = (function () {
       const db = load();
       const name = String(data.name || "").trim(), username = String(data.username || "").trim();
       if (!name) throw Error("اكتب اسم المالك.");
-      if (!USERNAME.test(username)) throw Error("اسم المستخدم من 3 لـ 30 حرف إنجليزي أو رقم (مسموح . _ -).");
+      if (!USERNAME.test(username)) throw Error("يتكون اسم المستخدم من 3 إلى 30 حرفًا إنجليزيًا أو رقمًا (مسموح . _ -).");
       let o = data.id ? db.owners.find((x) => x.id === data.id) : null;
-      if (usernameTaken(db, username, o && o.id)) throw Error("اسم المستخدم ده مستخدم قبل كده. اختار اسم تاني.");
-      if ((!o || data.password) && (!data.password || data.password.length < 4)) throw Error("كلمة المرور 4 حروف أو أرقام على الأقل.");
-      if (o && !same(o.username, username) && !data.password) throw Error("لما تغيّر اسم المستخدم اكتب كلمة مرور جديدة كمان.");
+      if (usernameTaken(db, username, o && o.id)) throw Error("اسم المستخدم هذا مستخدم من قبل. اختر اسمًا آخر.");
+      if ((!o || data.password) && (!data.password || data.password.length < 4)) throw Error("يجب ألا تقل كلمة المرور عن 4 حروف أو أرقام.");
+      if (o && !same(o.username, username) && !data.password) throw Error("عند تغيير اسم المستخدم اكتب كلمة مرور جديدة أيضًا.");
       if (!o) { o = { id: uid("own"), createdAt: now(), createdBy: by, perms: perms(CLIENT_PERMS) }; db.owners.push(o); }
       Object.assign(o, { name, username, updatedAt: now() });
       if (data.perms) o.perms = perms(CLIENT_PERMS, data.perms);
@@ -1982,8 +1996,8 @@ window.SakanPortalAPI = (function () {
       const db = load();
       const name = String(data.name || "").trim();
       if (!name) throw Error("اكتب اسم المشروع.");
-      if (!db.owners.some((o) => o.id === data.ownerId)) throw Error("اختار مالك المشروع.");
-      if (!data.planId) throw Error("اختار مخطط المشروع.");
+      if (!db.owners.some((o) => o.id === data.ownerId)) throw Error("اختر مالك المشروع.");
+      if (!data.planId) throw Error("اختر مخطط المشروع.");
       let p = data.id ? db.projects.find((x) => x.id === data.id) : null;
       if (!p) {
         p = { id: uid("prj"), createdAt: now(), createdBy: by, work: { selections: {}, notes: "" }, proposals: {}, reports: [] };
@@ -2010,7 +2024,7 @@ window.SakanPortalAPI = (function () {
       const db = load();
       const p = db.projects.find((x) => x.id === id);
       if (!p) return null;
-      if (p.work && p.work.status === "approved") throw Error("الاختيارات معتمدة ومقفولة. اطلب من مدير النظام السماح بالتعديل.");
+      if (p.work && p.work.status === "approved") throw Error("الاختيارات معتمدة ومقفلة. اطلب من مدير النظام السماح بالتعديل.");
       p.work = { selections: work.selections || {}, notes: work.notes || "", status: "draft", updatedAt: now(), updatedBy: work.by };
       p.updatedAt = p.work.updatedAt;
       store(db);
@@ -2021,7 +2035,7 @@ window.SakanPortalAPI = (function () {
     async approveWork(id, by) {
       const db = load();
       const p = db.projects.find((x) => x.id === id);
-      if (!p) throw Error("المشروع مش موجود.");
+      if (!p) throw Error("المشروع غير موجود.");
       p.work = Object.assign({ selections: {}, notes: "" }, p.work, { status: "approved", approvedAt: now(), approvedBy: by });
       p.updatedAt = now();
       store(db);
@@ -2033,9 +2047,9 @@ window.SakanPortalAPI = (function () {
     async requestEdit(id, reason, by) {
       const db = load();
       const p = db.projects.find((x) => x.id === id);
-      if (!p) throw Error("المشروع مش موجود.");
-      if (!p.work || p.work.status !== "approved") throw Error("الاختيارات لسه مسودة، تقدر تعدّل عادي.");
-      if (p.editRequest && p.editRequest.status === "pending") throw Error("فيه طلب تعديل مستني الموافقة.");
+      if (!p) throw Error("المشروع غير موجود.");
+      if (!p.work || p.work.status !== "approved") throw Error("الاختيارات ما زالت مسودة، ويمكنك تعديلها.");
+      if (p.editRequest && p.editRequest.status === "pending") throw Error("يوجد طلب تعديل بانتظار الموافقة.");
       p.editRequest = { status: "pending", reason: String(reason || "").trim().slice(0, 500), at: now(), by };
       p.updatedAt = now();
       store(db);
@@ -2046,7 +2060,7 @@ window.SakanPortalAPI = (function () {
     async resolveEdit(id, allow, by) {
       const db = load();
       const p = db.projects.find((x) => x.id === id);
-      if (!p || !p.editRequest || p.editRequest.status !== "pending") throw Error("مفيش طلب تعديل.");
+      if (!p || !p.editRequest || p.editRequest.status !== "pending") throw Error("لا يوجد طلب تعديل.");
       Object.assign(p.editRequest, { status: allow ? "allowed" : "rejected", resolvedAt: now(), resolvedBy: by });
       if (allow) p.work = Object.assign({ selections: {}, notes: "" }, p.work, { status: "draft", reopenedAt: now(), reopenedBy: by });
       p.updatedAt = now();
@@ -2058,7 +2072,7 @@ window.SakanPortalAPI = (function () {
     async reopenWork(id, by) {
       const db = load();
       const p = db.projects.find((x) => x.id === id);
-      if (!p) throw Error("المشروع مش موجود.");
+      if (!p) throw Error("المشروع غير موجود.");
       p.work = Object.assign({ selections: {}, notes: "" }, p.work, { status: "draft", reopenedAt: now(), reopenedBy: by });
       p.updatedAt = now();
       store(db);
@@ -2068,10 +2082,10 @@ window.SakanPortalAPI = (function () {
     /* POST /projects/:id/comments — تعليقات المشروع (المالك يكتب، والمدير أو المهندس يرد) */
     async addComment(id, text, by) {
       text = String(text || "").trim().slice(0, 2000);
-      if (!text) throw Error("اكتب التعليق الأول.");
+      if (!text) throw Error("اكتب التعليق أولًا.");
       const db = load();
       const p = db.projects.find((x) => x.id === id);
-      if (!p) throw Error("المشروع مش موجود.");
+      if (!p) throw Error("المشروع غير موجود.");
       p.comments = p.comments || [];
       p.comments.push({ id: uid("cmt"), text, at: now(), by });
       p.updatedAt = now();
@@ -2117,7 +2131,7 @@ window.SakanPortalAPI = (function () {
     async saveProposal(id, slot, data) {
       const db = load();
       const p = db.projects.find((x) => x.id === id);
-      if (!p) throw Error("المشروع مش موجود.");
+      if (!p) throw Error("المشروع غير موجود.");
       p.proposals = p.proposals || {};
       p.proposals[slot] = { selections: data.selections || {}, notes: data.notes || "", savedAt: now(), savedBy: data.by };
       p.updatedAt = now();
@@ -2125,12 +2139,12 @@ window.SakanPortalAPI = (function () {
       return publicProject(p, db);
     },
 
-    /* POST /projects/:id/reports — العميل بيبعت التقرير للمهندس.
+    /* POST /projects/:id/reports — العميل بيرسل التقرير إلى المهندس.
        على السيرفر: يحفظ الـ PDF أو يبعته إيميل/واتساب للمهندس. */
     async sendReport(id, data) {
       const db = load();
       const p = db.projects.find((x) => x.id === id);
-      if (!p) throw Error("المشروع مش موجود.");
+      if (!p) throw Error("المشروع غير موجود.");
       p.reports = p.reports || [];
       p.reports.push({ slot: data.slot, number: data.number, sentAt: now(), sentBy: data.by });
       store(db);
@@ -2173,12 +2187,12 @@ window.SakanPortalAPI = (function () {
       const username = String(data.username || "").trim(), name = String(data.name || "").trim();
       const e = data.original ? db.engineers.find((x) => same(x.username, data.original)) : null;
       if (!name) throw Error("اكتب الاسم.");
-      if (!USERNAME.test(username)) throw Error("اسم المستخدم من 3 لـ 30 حرف إنجليزي أو رقم (مسموح . _ -).");
-      if (db.owners.some((o) => same(o.username, username)) || db.engineers.some((x) => x !== e && same(x.username, username))) throw Error("اسم المستخدم ده مستخدم قبل كده. اختار اسم تاني.");
-      if ((!e || data.password) && (!data.password || data.password.length < 4)) throw Error("كلمة المرور 4 حروف أو أرقام على الأقل.");
-      if (e && !same(e.username, username) && !data.password) throw Error("لما تغيّر اسم المستخدم اكتب كلمة مرور جديدة كمان.");
+      if (!USERNAME.test(username)) throw Error("يتكون اسم المستخدم من 3 إلى 30 حرفًا إنجليزيًا أو رقمًا (مسموح . _ -).");
+      if (db.owners.some((o) => same(o.username, username)) || db.engineers.some((x) => x !== e && same(x.username, username))) throw Error("اسم المستخدم هذا مستخدم من قبل. اختر اسمًا آخر.");
+      if ((!e || data.password) && (!data.password || data.password.length < 4)) throw Error("يجب ألا تقل كلمة المرور عن 4 حروف أو أرقام.");
+      if (e && !same(e.username, username) && !data.password) throw Error("عند تغيير اسم المستخدم اكتب كلمة مرور جديدة أيضًا.");
       const role = data.role === "admin" ? "admin" : "engineer";
-      if (e && e.role === "admin" && role !== "admin" && db.engineers.filter((x) => x.role === "admin").length === 1) throw Error("لازم يفضل فيه مدير نظام واحد على الأقل.");
+      if (e && e.role === "admin" && role !== "admin" && db.engineers.filter((x) => x.role === "admin").length === 1) throw Error("يجب أن يبقى مدير نظام واحد على الأقل.");
       const row = e || { createdAt: now() };
       Object.assign(row, { name, username, role, perms: role === "admin" ? undefined : perms(ENGINEER_PERMS, data.perms || row.perms) });
       if (data.password) row.passwordHash = await hash(username, data.password);
@@ -2191,17 +2205,17 @@ window.SakanPortalAPI = (function () {
       const db = load();
       const e = db.engineers.find((x) => same(x.username, username));
       if (!e) return;
-      if (e.role === "admin" && db.engineers.filter((x) => x.role === "admin").length === 1) throw Error("لازم يفضل فيه مدير نظام واحد على الأقل.");
+      if (e.role === "admin" && db.engineers.filter((x) => x.role === "admin").length === 1) throw Error("يجب أن يبقى مدير نظام واحد على الأقل.");
       db.engineers = db.engineers.filter((x) => x !== e);
       store(db);
     },
 
     /* PUT /staff/:username/password — كل واحد يغيّر كلمة المرور بتاعته */
     async changePassword(username, password) {
-      if (!password || password.length < 4) throw Error("كلمة المرور 4 حروف أو أرقام على الأقل.");
+      if (!password || password.length < 4) throw Error("يجب ألا تقل كلمة المرور عن 4 حروف أو أرقام.");
       const db = load();
       const e = db.engineers.find((x) => same(x.username, username)) || db.owners.find((x) => same(x.username, username));
-      if (!e) throw Error("الحساب مش موجود.");
+      if (!e) throw Error("الحساب غير موجود.");
       e.passwordHash = await hash(e.username, password);
       store(db);
     },
@@ -2263,12 +2277,12 @@ window.SakanPortalAPI = (function () {
         body: JSON.stringify({ token, op, args: args || {} }),
       });
     } catch (e) {
-      throw Error("تعذّر الاتصال بالسيرفر. اتأكد من الإنترنت وجرّب تاني.");
+      throw Error("تعذّر الاتصال بالسيرفر. تأكد من الاتصال بالإنترنت وحاول مرة أخرى.");
     }
     const body = await res.json().catch(() => null);
     if (!res.ok) {
-      const msg = (body && body.message) || "حصلت مشكلة على السيرفر.";
-      if (msg === "SESSION") { setToken(null); throw Error("الجلسة انتهت. ادخل تاني."); }
+      const msg = (body && body.message) || "حدثت مشكلة في السيرفر.";
+      if (msg === "SESSION") { setToken(null); throw Error("انتهت الجلسة. سجّل الدخول مرة أخرى."); }
       throw Error(msg);
     }
     return body;
@@ -2536,6 +2550,7 @@ window.SakanPortalAPI = (function () {
     $("skLogin").addEventListener("cancel", (e) => e.preventDefault());
 
     document.body.prepend($("skTopnav"));
+    document.querySelector("main").insertAdjacentHTML("afterbegin", '<section class="sk-no-project-card" id="skNoProject"></section>');
     document.body.prepend($("skScrim"));
     document.querySelectorAll("[data-tab]").forEach((b) => (b.onclick = () => {
       const id = b.dataset.tab, wasOpen = $(id).open;
@@ -2628,6 +2643,7 @@ window.SakanPortalAPI = (function () {
     document.body.classList.toggle("sk-readonly", !!user && user.role === "client" && !can("edit"));
     document.body.classList.toggle("sk-can-log", can("viewLog"));
     document.body.classList.toggle("sk-has-project", !!project);
+    syncEmpty();
     $("skTopnav").hidden = !user;
     if (!user) { $("skProjectLabel").textContent = ""; updateWorkbar(); return; }
     $("skUserName").textContent = user.name;
@@ -2635,10 +2651,25 @@ window.SakanPortalAPI = (function () {
     $("skUserRole").className = "sk-role sk-badge-" + user.role;
     $("skProjectLabel").textContent = project
       ? `مشروع: ${project.name} · المالك: ${project.ownerName}`
-      : (isEng() ? "مفيش مشروع مفتوح. افتح مشروع من «العملاء» أو «مشاريع المالك»." : "المهندس لسه ماضافلكش مشاريع.");
+      : (isEng() ? "لا يوجد مشروع مفتوح. افتح مشروعًا من «العملاء» أو «مشاريع المالك»." : "لم يضف المهندس أي مشاريع لك بعد.");
     if (project) document.title = "سكن جروب | " + project.name;
     updateWorkbar();
   }
+
+  /* لما مفيش مشروع مفتوح، بدل المخطط التجريبي بتظهر رسالة فاضية بالخطوة الجاية */
+  function syncEmpty() {
+    const empty = !project && (!P.current || P.current.builtin);
+    document.body.classList.toggle("sk-no-project", empty);
+    const el = $("skNoProject");
+    if (!el || !empty) return;
+    if (!user) { el.innerHTML = ""; return; }
+    el.innerHTML = isEng()
+      ? `<b>لا يوجد مشروع مفتوح</b><p>افتح مشروعًا من «العملاء»، أو أضف عميلًا ومشروعًا جديدًا.</p>
+         <div class="sk-actions"><button class="sk-btn sk-btn-dark" data-empty="clients">العملاء</button>${can("manageProjects") ? '<button class="sk-btn" data-empty="plans">المخططات</button>' : ""}</div>`
+      : `<b>لا توجد مشاريع بعد</b><p>سيظهر مشروعك هنا بمجرد أن يضيفه المهندس المسؤول.</p>`;
+    el.querySelectorAll("[data-empty]").forEach((b) => (b.onclick = () => (b.dataset.empty === "plans" ? openPlans() : $("skTabProjects").click())));
+  }
+  window.addEventListener("indesign:project", () => setTimeout(syncEmpty, 0));
 
   /* ---------------- مسودة / اعتماد نهائي ---------------- */
   const approved = () => !!project && !!project.work && project.work.status === "approved";
@@ -2655,12 +2686,12 @@ window.SakanPortalAPI = (function () {
     const st = $("skWorkStatus");
     st.className = "sk-status " + (approved() ? "approved" : dirty ? "dirty" : "draft");
     const req = project.editRequest, pending = approved() && !!req && req.status === "pending";
-    st.textContent = approved() ? "تم الاعتماد - في التصنيع ✓" : dirty ? "تعديلات مش محفوظة" : "مسودة";
+    st.textContent = approved() ? "تم الاعتماد - في التصنيع ✓" : dirty ? "تعديلات غير محفوظة" : "مسودة";
     $("skWorkInfo").textContent = pending
-      ? (isAdmin() ? `${req.by.name} طالب السماح بالتعديل${req.reason ? ": " + req.reason : ""}` : "طلب التعديل مستني موافقة مدير النظام")
+      ? (isAdmin() ? `${req.by.name} يطلب السماح بالتعديل${req.reason ? ": " + req.reason : ""}` : "طلب التعديل بانتظار موافقة مدير النظام")
       : approved()
       ? `اعتمده ${w.approvedBy ? w.approvedBy.name : ""} · ${fmtDate(w.approvedAt)}${req && req.status === "rejected" && user.role === "client" ? " · مدير النظام رفض طلب التعديل" : ""}`
-      : w.updatedAt ? `آخر حفظ ${fmtDate(w.updatedAt)} · ${w.updatedBy ? w.updatedBy.name : ""}` : "لسه ماتحفظش";
+      : w.updatedAt ? `آخر حفظ ${fmtDate(w.updatedAt)} · ${w.updatedBy ? w.updatedBy.name : ""}` : "لم يُحفظ بعد";
     // بعد الاعتماد: مدير النظام بس اللي يفتح التعديل، والمالك يطلب منه
     $("skRequestEdit").hidden = !approved() || user.role !== "client" || pending;
     $("skAllowEdit").hidden = $("skRejectEdit").hidden = !pending || !isAdmin();
@@ -2685,8 +2716,8 @@ window.SakanPortalAPI = (function () {
     say("skLoginError", "");
     let u;
     try { u = await API.login($("skLoginUser").value.trim(), $("skLoginPass").value); }
-    catch (err) { return say("skLoginError", err.message || "تعذّر الاتصال. جرّب تاني.", true); }
-    if (!u) return say("skLoginError", "اسم المستخدم أو كلمة المرور غلط.", true);
+    catch (err) { return say("skLoginError", err.message || "تعذّر الاتصال. حاول مرة أخرى.", true); }
+    if (!u) return say("skLoginError", "اسم المستخدم أو كلمة المرور غير صحيحة.", true);
     user = u;
     close("skLogin");
     await enter(null, true);
@@ -2729,10 +2760,10 @@ window.SakanPortalAPI = (function () {
     try { return P.validate(plan); } catch (e) { return plan; }
   }
 
-  // قبل ما نسيب المشروع: لو فيه تعديلات مش محفوظة نسأل
+  // قبل ما نسيب المشروع: لو فيه تعديلات غير محفوظة نسأل
   async function leaveProject() {
     if (!project || !dirty) return true;
-    if (confirm("فيه تعديلات في الاختيارات لسه ماتحفظتش. تحفظها قبل ما تكمل؟")) return saveWork();
+    if (confirm("توجد تعديلات في الاختيارات لم تُحفظ بعد. هل تريد حفظها قبل المتابعة؟")) return saveWork();
     dirty = false;
     return true;
   }
@@ -2742,10 +2773,12 @@ window.SakanPortalAPI = (function () {
     if (!(await leaveProject())) return;
     const p = await API.getProject(id);
     // المالك مايفتحش غير مشاريعه (والسيرفر لازم يتأكد من ده كمان)
-    if (!p || (user.role === "client" && p.ownerId !== user.ownerId) || !mineProject(p)) { notice("المشروع ده مش موجود."); return; }
+    if (!p || (user.role === "client" && p.ownerId !== user.ownerId) || !mineProject(p)) { notice("هذا المشروع غير موجود."); return; }
     const plan = await findPlan(p.planId);
     if (!plan) {
-      alert("مخطط المشروع مش موجود على الجهاز ده. لحد ما السيرفر يتربط، المشروع بيشتغل على نفس الجهاز اللي المهندس عمله عليه.");
+      // المخطط اتحذف: المهندس يختار للمشروع مخطط جديد
+      if (can("manageProjects")) { if (confirm(`مخطط مشروع «${p.name}» محذوف. هل تريد اختيار مخطط جديد له الآن؟`)) openProjectForm(p); }
+      else alert("مخطط هذا المشروع غير متاح حاليًا. تواصل مع المهندس المسؤول.");
       return;
     }
     project = p;          // لازم قبل activate عشان حدث indesign:project مايفصلش المشروع
@@ -2778,7 +2811,7 @@ window.SakanPortalAPI = (function () {
   function describeChanges(a, b) {
     const ids = [...new Set([...Object.keys(a), ...Object.keys(b)])].sort();
     return ids.filter((id) => a[id] !== b[id]).map((id) =>
-      !a[id] ? `${id}: اختار ${typeLabel(b[id])}` :
+      !a[id] ? `${id}: اختر ${typeLabel(b[id])}` :
       !b[id] ? `${id}: مسح ${typeLabel(a[id])}` :
       `${id}: من ${typeLabel(a[id])} إلى ${typeLabel(b[id])}`);
   }
@@ -2806,13 +2839,13 @@ window.SakanPortalAPI = (function () {
     saved = { selections: sel, notes };
     dirty = false;
     updateWorkbar();
-    notice("اتحفظت الاختيارات كمسودة.");
+    notice("تم حفظ الاختيارات كمسودة.");
     return true;
   }
 
   async function approveWork() {
     if (!project) return;
-    if (!confirm("تم الاعتماد - ابدأ التصنيع؟ بعد كده الاختيارات مش هتتعدل غير لو مدير النظام سمح بالتعديل.")) return;
+    if (!confirm("تم الاعتماد - ابدأ التصنيع؟ بعد ذلك لن يمكن تعديل الاختيارات إلا إذا سمح مدير النظام بالتعديل.")) return;
     if (dirty && !(await saveWork())) return;
     try {
       project = await API.approveWork(project.id, by());
@@ -2821,20 +2854,20 @@ window.SakanPortalAPI = (function () {
     } catch (e) { alert(e.message); return; }
     await log("تم الاعتماد - ابدأ التصنيع", `${count(saved.selections)} من ${APP.boxes().length} اختيارات`);
     updateWorkbar();
-    notice("اتعتمدت الاختيارات.");
+    notice("تم اعتماد الاختيارات.");
   }
 
   async function requestEdit() {
-    const reason = prompt("إيه التعديل اللي محتاجه؟ الطلب هيروح لمدير النظام.");
+    const reason = prompt("ما التعديل الذي تحتاجه؟ سيُرسل الطلب إلى مدير النظام.");
     if (reason === null) return;
     try { project = await API.requestEdit(project.id, reason, by()); } catch (e) { alert(e.message); return; }
     await log("طلب السماح بالتعديل", reason.trim());
     updateWorkbar();
-    notice("اتبعت الطلب لمدير النظام.");
+    notice("تم إرسال الطلب إلى مدير النظام.");
   }
 
   async function resolveEdit(allow) {
-    if (!confirm(allow ? "تسمح للمالك يعدّل الاختيارات؟ هترجع مسودة." : "ترفض طلب التعديل؟")) return;
+    if (!confirm(allow ? "هل تسمح للمالك بتعديل الاختيارات؟ ستعود إلى مسودة." : "هل تريد رفض طلب التعديل؟")) return;
     try { project = await API.resolveEdit(project.id, allow, by()); } catch (e) { alert(e.message); return; }
     await log(allow ? "السماح بالتعديل" : "رفض طلب التعديل", project.editRequest.by.name);
     updateWorkbar();
@@ -2843,9 +2876,9 @@ window.SakanPortalAPI = (function () {
 
   async function reopenWork() {
     if (!project) return;
-    if (!confirm("ترجّع الاختيارات مسودة عشان تتعدل؟ هيتسجل في السجل إنها اتفتحت تاني.")) return;
+    if (!confirm("هل تريد إعادة الاختيارات إلى مسودة لتعديلها؟ سيُسجَّل في السجل أنها فُتحت مرة أخرى.")) return;
     try { project = await API.reopenWork(project.id, by()); } catch (e) { alert(e.message); return; }
-    await log("رجوع لمسودة للتعديل");
+    await log("إعادة إلى مسودة للتعديل");
     updateWorkbar();
   }
 
@@ -2859,13 +2892,13 @@ window.SakanPortalAPI = (function () {
   function projectFacts(p) {
     const last = p.work && p.work.updatedAt
       ? `آخر تعديل ${fmtDate(p.work.updatedAt)} · ${esc(p.work.updatedBy.name)} (${ROLE[p.work.updatedBy.role]})`
-      : "لسه محدش عدّل";
+      : "لم يعدّل أحد بعد";
     const rep = (p.reports || []).slice(-1)[0];
     return `<span class="sk-muted">المخطط: ${esc(p.planTitle || "—")} · ${count(p.work && p.work.selections)} اختيارات</span>
       ${isEng() ? `<span class="sk-muted">${engineerLine(p)}</span>` : ""}
       <span class="sk-muted">${last}</span>
       <span class="sk-chips">${slotChips(p)}</span>
-      ${rep ? `<span class="sk-sent">اتبعت تقرير «${SLOTS[rep.slot] || "الاختيارات الحالية"}» ${fmtDate(rep.sentAt)}</span>` : ""}`;
+      ${rep ? `<span class="sk-sent">تم إرسال تقرير «${SLOTS[rep.slot] || "الاختيارات الحالية"}» ${fmtDate(rep.sentAt)}</span>` : ""}`;
   }
   function wireProjectButtons(root, byId) {
     root.querySelectorAll("[data-open]").forEach((b) => (b.onclick = () => openProject(b.dataset.open)));
@@ -2874,7 +2907,7 @@ window.SakanPortalAPI = (function () {
     root.querySelectorAll("[data-log]").forEach((b) => (b.onclick = () => openLog(b.dataset.log)));
     root.querySelectorAll("[data-del]").forEach((b) => (b.onclick = async () => {
       const p = byId.get(b.dataset.del);
-      if (!confirm(`حذف مشروع «${p.name}»؟ المقترحات والاختيارات بتاعته هتتمسح.`)) return;
+      if (!confirm(`حذف مشروع «${p.name}»؟ ستُحذف مقترحاته واختياراته.`)) return;
       await API.deleteProject(p.id);
       await log("حذف مشروع", `${p.name} · المالك ${p.ownerName}`, p);
       if (project && project.id === p.id) { project = null; dirty = false; }
@@ -2898,7 +2931,7 @@ window.SakanPortalAPI = (function () {
       const all = await API.listProjects();
       const owners = (await API.listOwners()).filter((o) => mineOwner(o, all));
       if (!owners.some((o) => o.id === ownerView)) ownerView = project ? project.ownerId : (owners[0] ? owners[0].id : "");
-      $("skOwnerPick").innerHTML = owners.map((o) => `<option value="${o.id}">${esc(o.name)} (${esc(o.username)})</option>`).join("") || `<option value="">لسه مفيش ملّاك</option>`;
+      $("skOwnerPick").innerHTML = owners.map((o) => `<option value="${o.id}">${esc(o.name)} (${esc(o.username)})</option>`).join("") || `<option value="">لا يوجد ملّاك بعد</option>`;
       $("skOwnerPick").value = ownerView;
       ownerId = ownerView;
       const o = owners.find((x) => x.id === ownerId);
@@ -2908,7 +2941,7 @@ window.SakanPortalAPI = (function () {
     const list = ownerId ? (await API.listProjects(ownerId)).filter(mineProject) : [];
     const el = $("skOwnerList");
     if (!list.length) {
-      el.innerHTML = `<div class="sk-empty"><b>مفيش مشاريع لسه</b><p>${isEng() ? "ضيف مشروع للعميل ده من تبويب «العملاء»." : "المهندس لسه ماضافلكش مشاريع."}</p></div>`;
+      el.innerHTML = `<div class="sk-empty"><b>لا توجد مشاريع بعد</b><p>${isEng() ? "أضف مشروعًا لهذا العميل من تبويب «العملاء»." : "لم يضف المهندس أي مشاريع لك بعد."}</p></div>`;
       return;
     }
     el.innerHTML = list.map((p) => `<article class="sk-room ${project && project.id === p.id ? "current" : ""}">
@@ -2947,7 +2980,7 @@ window.SakanPortalAPI = (function () {
     $("skSearch").hidden = !!clientView;
     $("skSearchCount").hidden = true;
     if (!owners.length) {
-      el.innerHTML = `<div class="sk-empty"><b>لسه مفيش عملاء</b><p>${can("manageOwners") ? "ابدأ بـ «عميل جديد» واعمله اسم مستخدم وكلمة مرور، وبعدين ضيفله مشروع أو أكتر." : "اطلب من مدير النظام يضيف حسابات العملاء."}</p></div>`;
+      el.innerHTML = `<div class="sk-empty"><b>لا يوجد عملاء بعد</b><p>${can("manageOwners") ? "ابدأ بـ «عميل جديد» وأنشئ له اسم مستخدم وكلمة مرور، ثم أضف له مشروعًا أو أكثر." : "اطلب من مدير النظام إضافة حسابات العملاء."}</p></div>`;
       return;
     }
     const canOwners = can("manageOwners"), canProjects = can("manageProjects"), canDel = can("deleteItems"), canLog = can("viewLog");
@@ -2962,7 +2995,7 @@ window.SakanPortalAPI = (function () {
       }).filter((r) => !q || hit(r.o.name, r.o.username, r.o.engineerName) || r.matched.length);
       $("skSearchCount").hidden = !q;
       $("skSearchCount").textContent = `${rows.length} عملاء`;
-      if (!rows.length) { el.innerHTML = `<div class="sk-empty"><b>مفيش نتايج</b><p>جرّب اسم تاني للعميل أو المشروع.</p></div>`; return; }
+      if (!rows.length) { el.innerHTML = `<div class="sk-empty"><b>لا توجد نتائج</b><p>جرّب اسمًا آخر للعميل أو المشروع.</p></div>`; return; }
       el.innerHTML = `<ol class="sk-client-list">${rows.map(({ o, projects, matched }) => `
         <li><button class="sk-client" data-client="${o.id}">
           <span class="sk-client-avatar">${esc(String(o.name).replace(/^(أ|م|د|ا)\.\s*/, "").charAt(0))}</span>
@@ -2983,7 +3016,7 @@ window.SakanPortalAPI = (function () {
         <header>
           <div><b>${esc(o.name)}</b> <span class="sk-muted">اسم المستخدم: <span dir="ltr">${esc(o.username)}</span> · ${mine.length} مشاريع · المهندس المسؤول: ${o.engineerName ? esc(o.engineerName) : "أي مهندس"}</span></div>
           <div class="sk-actions">
-            ${canProjects ? `<button class="sk-btn sk-btn-dark" data-add-for="${o.id}">+ مشروع للعميل ده</button>` : ""}
+            ${canProjects ? `<button class="sk-btn sk-btn-dark" data-add-for="${o.id}">+ مشروع لهذا العميل</button>` : ""}
             ${canOwners ? `<button class="sk-btn" data-owner-edit="${o.id}">تعديل الحساب</button>` : ""}
             ${canDel ? `<button class="sk-btn sk-danger" data-owner-del="${o.id}">حذف الحساب</button>` : ""}
           </div>
@@ -2997,7 +3030,7 @@ window.SakanPortalAPI = (function () {
             ${canLog ? `<button class="sk-btn" data-log="${p.id}">السجل</button>` : ""}
             ${canDel ? `<button class="sk-btn sk-danger" data-del="${p.id}">حذف</button>` : ""}
           </div>
-        </article>`).join("") || `<p class="sk-muted sk-owner-empty">مفيش مشاريع للعميل ده.</p>`}
+        </article>`).join("") || `<p class="sk-muted sk-owner-empty">لا توجد مشاريع لهذا العميل.</p>`}
       </section>`;
     $("skClientsBack").onclick = () => { clientView = ""; renderProjects(); };
     const ownersById = new Map(owners.map((o) => [o.id, o]));
@@ -3006,7 +3039,7 @@ window.SakanPortalAPI = (function () {
     el.querySelectorAll("[data-owner-edit]").forEach((b) => (b.onclick = () => openOwnerForm(ownersById.get(b.dataset.ownerEdit))));
     el.querySelectorAll("[data-owner-del]").forEach((b) => (b.onclick = async () => {
       const o = ownersById.get(b.dataset.ownerDel);
-      if (!confirm(`حذف حساب «${o.name}»؟ المالك مش هيقدر يدخل تاني، و${o.projects} مشاريع بتاعته هيتمسحوا.`)) return;
+      if (!confirm(`حذف حساب «${o.name}»؟ لن يتمكن المالك من الدخول مرة أخرى، وستُحذف مشاريعه (${o.projects}).`)) return;
       await API.deleteOwner(o.id);
       await log("حذف مالك", `${o.name} · ${o.username}`, null);
       if (project && project.ownerId === o.id) project = null;
@@ -3025,7 +3058,7 @@ window.SakanPortalAPI = (function () {
     $("skOUser").value = o ? o.username : "";
     $("skOPass").value = "";
     $("skOPass").required = !o;
-    $("skOPassHint").textContent = o ? "سيبها فاضية لو مش هتغيّرها." : "";
+    $("skOPassHint").textContent = o ? "اتركها فارغة إذا لم تكن ستغيّرها." : "";
     const perms = o ? o.perms : { edit: true, final: true, send: true };
     document.querySelectorAll("[data-operm]").forEach((c) => (c.checked = !!perms[c.dataset.operm]));
     say("skOwnerFormError", "");
@@ -3059,8 +3092,8 @@ window.SakanPortalAPI = (function () {
   }
 
   $("skCopyCreds").onclick = async () => {
-    try { await navigator.clipboard.writeText($("skCredsText").textContent); $("skCopyCreds").textContent = "اتنسخ ✓"; }
-    catch (e) { $("skCopyCreds").textContent = "انسخها يدوي"; }
+    try { await navigator.clipboard.writeText($("skCredsText").textContent); $("skCopyCreds").textContent = "تم النسخ ✓"; }
+    catch (e) { $("skCopyCreds").textContent = "انسخها يدويًا"; }
     setTimeout(() => ($("skCopyCreds").textContent = "نسخ"), 2000);
   };
 
@@ -3074,10 +3107,11 @@ window.SakanPortalAPI = (function () {
     $("skFName").value = (p && p.name) || "";
     $("skFOwner").innerHTML = owners.map((o) => `<option value="${o.id}">${esc(o.name)} (${esc(o.username)})</option>`).join("");
     $("skFOwner").value = (p && p.ownerId) || ownerView || owners[0].id;
-    if (isAdmin()) { $("skFEngineer").innerHTML = await engineerOptions("زي المهندس المسؤول عن المالك"); $("skFEngineer").value = (p && p.engineer) || ""; }
-    const plans = [P.builtin, ...(await P.list())];
-    $("skFPlan").innerHTML = plans.map((q) => `<option value="${esc(q.id)}">${esc(q.title)}${q.builtin ? " (المخطط التجريبي)" : ""}</option>`).join("");
-    $("skFPlan").value = (p && p.planId) || (plans[1] ? plans[1].id : P.builtin.id);
+    if (isAdmin()) { $("skFEngineer").innerHTML = await engineerOptions("نفس المهندس المسؤول عن المالك"); $("skFEngineer").value = (p && p.engineer) || ""; }
+    const plans = await P.list();
+    $("skFPlan").innerHTML = `<option value="">${plans.length ? "اختر مخطط المشروع" : "لا توجد مخططات بعد، ارفع مخططًا أولًا"}</option>` +
+      plans.map((q) => `<option value="${esc(q.id)}">${esc(q.title)}</option>`).join("");
+    $("skFPlan").value = (p && plans.some((q) => q.id === p.planId) && p.planId) || (plans.length === 1 ? plans[0].id : "");
     say("skFormError", "");
     closeAll();
     open("skProjectForm");
@@ -3133,7 +3167,7 @@ window.SakanPortalAPI = (function () {
         <td><b>${esc(r.name)}</b><br><span class="sk-role sk-badge-${r.role}">${ROLE[r.role] || ""}</span> <span class="sk-muted" dir="ltr">${esc(r.username)}</span></td>
         <td>${esc(r.projectName || "—")}</td>
         <td><b>${esc(r.action)}</b>${r.details ? `<br><span class="sk-muted">${esc(r.details)}</span>` : ""}</td>
-      </tr>`).join("") : `<tr><td colspan="4" class="sk-muted">مفيش تعديلات متسجلة.</td></tr>`;
+      </tr>`).join("") : `<tr><td colspan="4" class="sk-muted">لا توجد تعديلات مسجلة.</td></tr>`;
   }
 
   /* ---------------- المستخدمين والصلاحيات (لمدير النظام) ---------------- */
@@ -3160,19 +3194,19 @@ window.SakanPortalAPI = (function () {
         <div><b>${esc(o.name)}</b> <span class="sk-role sk-badge-client">${ROLE.client}</span> <span class="sk-muted" dir="ltr">${esc(o.username)}</span> <span class="sk-muted">· ${o.projects} مشاريع · المهندس المسؤول: ${o.engineerName ? esc(o.engineerName) : "أي مهندس"}</span>
           <div class="sk-chips">${permChips(o.perms, CLIENT_PERMS)}</div></div>
         <div class="sk-actions"><button class="sk-btn" data-client-edit="${o.id}">تعديل</button><button class="sk-btn sk-danger" data-client-del="${o.id}">حذف</button></div>
-      </article>`).join("") || `<p class="sk-muted">لسه مفيش ملّاك.</p>`;
+      </article>`).join("") || `<p class="sk-muted">لا يوجد ملّاك بعد.</p>`;
     const staffBy = new Map(staff.map((e) => [e.username, e])), ownersBy = new Map(owners.map((o) => [o.id, o]));
     $("skUsers").querySelectorAll("[data-staff-edit]").forEach((b) => (b.onclick = () => openStaffForm(staffBy.get(b.dataset.staffEdit))));
     $("skUsers").querySelectorAll("[data-staff-del]").forEach((b) => (b.onclick = async () => {
       const e = staffBy.get(b.dataset.staffDel);
-      if (!confirm(`حذف حساب «${e.name}»؟ مش هيقدر يدخل تاني.`)) return;
+      if (!confirm(`حذف حساب «${e.name}»؟ لن يتمكن من الدخول مرة أخرى.`)) return;
       try { await API.deleteStaff(e.username); await log("حذف حساب", `${e.name} · ${e.username}`, null); renderUsers(); }
       catch (err) { say("skUsersMsg", err.message, true); }
     }));
     $("skUsers").querySelectorAll("[data-client-edit]").forEach((b) => (b.onclick = () => openOwnerForm(ownersBy.get(b.dataset.clientEdit))));
     $("skUsers").querySelectorAll("[data-client-del]").forEach((b) => (b.onclick = async () => {
       const o = ownersBy.get(b.dataset.clientDel);
-      if (!confirm(`حذف حساب «${o.name}»؟ المالك مش هيقدر يدخل تاني، و${o.projects} مشاريع بتاعته هيتمسحوا.`)) return;
+      if (!confirm(`حذف حساب «${o.name}»؟ لن يتمكن المالك من الدخول مرة أخرى، وستُحذف مشاريعه (${o.projects}).`)) return;
       await API.deleteOwner(o.id);
       await log("حذف مالك", `${o.name} · ${o.username}`, null);
       if (project && project.ownerId === o.id) { project = null; updateChrome(); }
@@ -3189,7 +3223,7 @@ window.SakanPortalAPI = (function () {
     $("skSUser").value = e ? e.username : "";
     $("skSPass").value = "";
     $("skSPass").required = !e;
-    $("skSPassHint").textContent = e ? "سيبها فاضية لو مش هتغيّرها." : "";
+    $("skSPassHint").textContent = e ? "اتركها فارغة إذا لم تكن ستغيّرها." : "";
     $("skSRole").value = e ? e.role : "engineer";
     const perms = (e && e.perms) || { manageOwners: true, manageProjects: true, deleteItems: false, viewLog: true };
     document.querySelectorAll("[data-sperm]").forEach((c) => (c.checked = !!perms[c.dataset.sperm]));
@@ -3226,14 +3260,14 @@ window.SakanPortalAPI = (function () {
       await API.changePassword(user.username, $("skNewPass").value);
       await log("تغيير كلمة المرور", "", null);
       $("skPassForm").reset();
-      say("skSettingsMsg", "اتغيرت كلمة المرور.");
+      say("skSettingsMsg", "تم تغيير كلمة المرور.");
     } catch (err) { say("skSettingsMsg", err.message, true); }
   });
 
   /* ---------------- المقترحات ---------------- */
   function needProject() {
     if (project) return true;
-    notice("افتح مشروع الأول من «مشاريع المالك».");
+    notice("افتح مشروعًا أولًا من «مشاريع المالك».");
     openOwner();
     return false;
   }
@@ -3255,7 +3289,7 @@ window.SakanPortalAPI = (function () {
       const pr = project.proposals && project.proposals[k];
       return `<article class="sk-prop ${k === "final" ? "final" : ""} ${pr ? "saved" : ""}">
         <div><b>${SLOTS[k]}</b>
-          <span class="sk-muted">${pr ? `${count(pr.selections)} من ${total} اختيارات · ${fmtDate(pr.savedAt)} · ${esc(pr.savedBy.name)} (${ROLE[pr.savedBy.role]})` : "لسه ماتحفظش"}</span></div>
+          <span class="sk-muted">${pr ? `${count(pr.selections)} من ${total} اختيارات · ${fmtDate(pr.savedAt)} · ${esc(pr.savedBy.name)} (${ROLE[pr.savedBy.role]})` : "لم يُحفظ بعد"}</span></div>
         <div class="sk-actions">
           ${canSave(k) ? `<button class="sk-btn ${k === "final" ? "sk-btn-dark" : ""}" data-save="${k}">احفظ الاختيارات الحالية هنا</button>` : ""}
           ${pr && canSave(k) ? `<button class="sk-btn" data-load="${k}">استرجاع</button>` : ""}
@@ -3270,28 +3304,28 @@ window.SakanPortalAPI = (function () {
 
   async function saveProposal(slot) {
     const sel = APP.getSelections();
-    if (!count(sel)) return say("skPropMsg", "اختار تقسيمة لبوكس واحد على الأقل قبل ما تحفظ المقترح.", true);
+    if (!count(sel)) return say("skPropMsg", "اختر تقسيمة لبوكس واحد على الأقل قبل حفظ المقترح.", true);
     const old = project.proposals && project.proposals[slot];
-    if (old && !confirm(`«${SLOTS[slot]}» محفوظ قبل كده. تستبدله بالاختيارات الحالية؟`)) return;
-    if (slot === "final" && !old && !confirm("هتحفظ الاختيارات الحالية كمقترح نهائي. متأكد؟")) return;
+    if (old && !confirm(`«${SLOTS[slot]}» محفوظ من قبل. هل تريد استبداله بالاختيارات الحالية؟`)) return;
+    if (slot === "final" && !old && !confirm("سيتم حفظ الاختيارات الحالية كمقترح نهائي. هل أنت متأكد؟")) return;
     try {
       project = await API.saveProposal(project.id, slot, { selections: sel, notes: $("clientNotes").value, by: by() });
       await log("حفظ " + SLOTS[slot], `${count(sel)} من ${APP.boxes().length} اختيارات`);
-      say("skPropMsg", `اتحفظ «${SLOTS[slot]}».`);
+      say("skPropMsg", `تم حفظ «${SLOTS[slot]}».`);
       renderProposals();
     } catch (err) { say("skPropMsg", err.message, true); }
   }
 
   async function restoreProposal(slot) {
     const pr = project.proposals[slot];
-    if (approved()) return say("skPropMsg", "الاختيارات معتمدة ومقفولة. اطلب من مدير النظام السماح بالتعديل.", true);
-    if (!confirm(`ترجّع اختيارات «${SLOTS[slot]}»؟ الاختيارات الحالية هتتغير (لو عايز تحتفظ بيها احفظها في مقترح الأول).`)) return;
+    if (approved()) return say("skPropMsg", "الاختيارات معتمدة ومقفلة. اطلب من مدير النظام السماح بالتعديل.", true);
+    if (!confirm(`هل تريد استرجاع اختيارات «${SLOTS[slot]}»؟ ستتغير الاختيارات الحالية (إذا أردت الاحتفاظ بها فاحفظها في مقترح أولًا).`)) return;
     muted = true;
     APP.setState(pr.selections, null, pr.notes);
     muted = false;
     checkDirty();
     await log("استرجاع " + SLOTS[slot], `${count(pr.selections)} اختيارات`);
-    say("skPropMsg", `رجعت اختيارات «${SLOTS[slot]}». اضغط «حفظ مسودة» عشان تتحفظ.`);
+    say("skPropMsg", `تم استرجاع اختيارات «${SLOTS[slot]}». اضغط «حفظ مسودة» لحفظها.`);
   }
 
   /* ---------------- تقرير PDF ---------------- */
@@ -3391,7 +3425,7 @@ window.SakanPortalAPI = (function () {
     try {
       project = await API.sendReport(project.id, { slot: reportSlot, number: reportNumber(reportSlot), by: by() });
       await log("إرسال تقرير للمهندس", label);
-      say("skReportMsg", `اتبعت تقرير «${label}» للمهندس. لو عايز تبعته بنفسك كمان، اضغط «حفظ PDF» وابعت الملف.`);
+      say("skReportMsg", `تم إرسال تقرير «${label}» إلى المهندس. إذا أردت إرساله بنفسك أيضًا، اضغط «حفظ PDF» وأرسل الملف.`);
     } catch (err) { say("skReportMsg", err.message, true); }
   };
 
@@ -3412,23 +3446,25 @@ window.SakanPortalAPI = (function () {
       return `<article class="sk-plan">
         <img src="${q.image}" alt="">
         <div><b>${esc(q.title)}</b>
-          <span class="sk-muted">${q.boxes.filter((b) => b.kind !== "fixed").length} بوكسات · ${q.scale ? "المقياس مضبوط" : "من غير مقياس"}</span>
-          <span class="sk-muted">${used.length ? "مستخدم في: " + used.map((p) => esc(p.name)).join("، ") : "مش مستخدم في أي مشروع"}</span></div>
+          <span class="sk-muted">${q.boxes.filter((b) => b.kind !== "fixed").length} بوكسات · ${q.scale ? "المقياس مضبوط" : "بدون مقياس"}</span>
+          <span class="sk-muted">${used.length ? "مستخدم في: " + used.map((p) => esc(p.name)).join("، ") : "غير مستخدم في أي مشروع"}</span></div>
         <div class="sk-actions">
           ${can("manageProjects") ? `<button class="sk-btn" data-plan-edit="${esc(q.id)}">تعديل البوكسات والمقياس</button>` : ""}
           ${can("deleteItems") ? `<button class="sk-btn sk-danger" data-plan-del="${esc(q.id)}">حذف</button>` : ""}
         </div>
       </article>`;
-    }).join("") : `<div class="sk-empty"><b>لسه مفيش مخططات مرفوعة</b><p>ارفع صورة أو PDF للمخطط، وحدد عليه البوكسات.</p></div>`;
+    }).join("") : `<div class="sk-empty"><b>لا توجد مخططات مرفوعة بعد</b><p>ارفع صورة أو PDF للمخطط، وحدد عليه البوكسات.</p></div>`;
     const byId = new Map(plans.map((q) => [q.id, q]));
     $("skPlanList").querySelectorAll("[data-plan-edit]").forEach((b) => (b.onclick = () => { closeAll(); UI.openEditor(P.validate(byId.get(b.dataset.planEdit))); }));
     $("skPlanList").querySelectorAll("[data-plan-del]").forEach((b) => (b.onclick = async () => {
       const q = byId.get(b.dataset.planDel), used = projects.filter((p) => p.planId === q.id);
-      if (used.length) return alert(`المخطط ده مستخدم في ${used.length} مشاريع. غيّر مخطط المشاريع دي الأول من «تعديل».`);
-      if (!confirm(`حذف مخطط «${q.title}»؟`)) return;
+      if (!confirm(used.length
+        ? `المخطط «${q.title}» مستخدم في: ${used.map((p) => p.name).join("، ")}.\nعند حذفه ستبقى هذه المشاريع بدون مخطط إلى أن تختار لها مخططًا جديدًا من «تعديل». هل تريد الحذف؟`
+        : `حذف مخطط «${q.title}»؟`)) return;
       await P.remove(q.id);
       await log("حذف مخطط", q.title, null);
-      if (P.current.id === q.id) APP.loadProject(P.builtin);
+      if (P.current.id === q.id) { if (project && project.planId === q.id) { project = null; dirty = false; updateChrome(); } APP.loadProject(P.builtin); }
+      syncEmpty();
       renderPlans();
     }));
   }
@@ -3461,7 +3497,7 @@ window.SakanPortalAPI = (function () {
         <div><b>${esc(f.name)}</b><span class="sk-muted">${fmtSize(f.size)} · ${fmtDate(f.addedAt)} · ${esc(f.addedBy.name)}</span></div>
         <div class="sk-actions"><button class="sk-btn" data-file-open="${f.id}">فتح</button><button class="sk-btn" data-file-get="${f.id}">تنزيل</button>
           ${canFiles() && can("deleteItems") ? `<button class="sk-btn sk-danger" data-file-del="${f.id}">حذف</button>` : ""}</div>
-      </article>`).join("") : `<div class="sk-empty"><p>مفيش ${FILE_CATS[fileCat]} في المشروع ده.</p></div>`;
+      </article>`).join("") : `<div class="sk-empty"><p>لا توجد ${FILE_CATS[fileCat]} في هذا المشروع.</p></div>`;
     const byId = new Map(list.map((f) => [f.id, f]));
     const blobUrl = async (id) => URL.createObjectURL(await API.getFile(id));
     $("skFileList").querySelectorAll("[data-file-open]").forEach((b) => (b.onclick = async () => { const u = await blobUrl(b.dataset.fileOpen); window.open(u, "_blank"); setTimeout(() => URL.revokeObjectURL(u), 60000); }));
@@ -3487,7 +3523,7 @@ window.SakanPortalAPI = (function () {
         await API.addFile(project.id, f, fileCat, by());
         await log("إضافة ملف", `${FILE_CATS[fileCat]} · ${f.name}`);
       }
-      say("skFilesMsg", list.length > 1 ? `اتضاف ${list.length} ملفات.` : "اتضاف الملف.");
+      say("skFilesMsg", list.length > 1 ? `تمت إضافة ${list.length} ملفات.` : "تمت إضافة الملف.");
     } catch (err) { say("skFilesMsg", err.message, true); }
     renderFiles();
   };
@@ -3507,7 +3543,7 @@ window.SakanPortalAPI = (function () {
     $("skCommentList").innerHTML = list.length ? list.map((c) => `<article class="sk-comment ${c.by.username === user.username ? "mine" : ""} ${c.by.role === "client" ? "from-client" : ""}">
         <header><b>${esc(c.by.name)}</b> <span class="sk-role sk-badge-${c.by.role}">${ROLE[c.by.role]}</span> <span class="sk-muted">${fmtDate(c.at)}</span></header>
         <p>${esc(c.text)}</p>
-      </article>`).join("") : `<div class="sk-empty"><p>${user.role === "client" ? "اكتب أي سؤال أو طلب للمهندس هنا، وهيوصله إشعار." : "مفيش تعليقات لسه."}</p></div>`;
+      </article>`).join("") : `<div class="sk-empty"><p>${user.role === "client" ? "اكتب هنا أي سؤال أو طلب للمهندس، وسيصله إشعار." : "لا توجد تعليقات بعد."}</p></div>`;
     $("skCommentList").scrollTop = $("skCommentList").scrollHeight;
     await API.markSeen(user.username, project.id);
     refreshNotifications();
@@ -3525,7 +3561,7 @@ window.SakanPortalAPI = (function () {
   });
 
   /* ---------------- الإشعارات ---------------- */
-  const NOTIFY = { comment: "تعليق جديد", report: "تقرير مبعوت", approved: "تم الاعتماد - ابدأ التصنيع", editRequest: "طلب السماح بالتعديل", editAllowed: "مدير النظام سمح بالتعديل", editRejected: "مدير النظام رفض طلب التعديل" };
+  const NOTIFY = { comment: "تعليق جديد", report: "تقرير مُرسل", approved: "تم الاعتماد - ابدأ التصنيع", editRequest: "طلب السماح بالتعديل", editAllowed: "مدير النظام سمح بالتعديل", editRejected: "مدير النظام رفض طلب التعديل" };
   let notifications = [];
   async function refreshNotifications() {
     if (!user) return;
@@ -3546,7 +3582,7 @@ window.SakanPortalAPI = (function () {
         <b>${NOTIFY[n.kind]} · ${esc(n.projectName)}</b>
         <span>${esc(n.by.name)} (${ROLE[n.by.role]})${n.kind === "comment" || n.kind === "editRequest" ? (n.text ? ": " + esc(n.text.length > 120 ? n.text.slice(0, 120) + "…" : n.text) : "") : n.kind === "report" ? ": " + (SLOTS[n.text] || "الاختيارات الحالية") : ""}</span>
         <span class="sk-muted">${fmtDate(n.at)}</span>
-      </button>`).join("") : `<div class="sk-empty"><p>مفيش جديد.</p></div>`;
+      </button>`).join("") : `<div class="sk-empty"><p>لا جديد.</p></div>`;
     $("skNotifyList").querySelectorAll("[data-n]").forEach((b) => (b.onclick = async () => {
       const n = notifications[Number(b.dataset.n)];
       await API.markSeen(user.username, n.projectId);
@@ -3586,8 +3622,8 @@ window.SakanPortalAPI = (function () {
 /* أدوات رسم البوكسات في محرر المخطط (SakanPlanTools)
  * طرق الرسم التلاتة، والمهندس بيختار منهم وقت الرسم:
  * - «سحب»: يسحب مستطيل مرة واحدة، ويحرّك البوكس أو يكبّره من أركانه، والبوكس بيلزق في اللي جنبه.
- * - «بالمقاسات»: يحدد الحيطة بخط، ويكتب عروض الخزاين بالسنتي، فتترص لوحدها بالمقاس الحقيقي.
- * - «تلقائي»: البرنامج يدور على مستطيلات الخزاين في الصورة، أو يرسم تقريبي والبرنامج يظبطه على خطوط المخطط.
+ * - «بالمقاسات»: يحدد الحائط بخط، ويكتب عروض الخزائن بالسنتي، فتترص لوحدها بالمقاس الحقيقي.
+ * - «تلقائي»: البرنامج يدور على مستطيلات الخزائن في الصورة، أو يرسم تقريبي والبرنامج يظبطه على خطوط المخطط.
  * وفي كل الطرق: تكرار البوكس (Ctrl+D)، تحريك بالأسهم، حذف بـ Delete، وتكبير بـ Ctrl + عجلة الماوس.
  * بيعتمد على INDESIGN_PROJECTS_UI.editor اللي portal_build.py بيضيفه للمحرر.
  */
@@ -3596,15 +3632,15 @@ window.SakanPortalAPI = (function () {
   const UI = window.INDESIGN_PROJECTS_UI, ED = UI && UI.editor, P = window.PlanProjects;
   if (!ED || !P) return;
   const $ = (id) => document.getElementById(id);
-  const MODES = { drag: "سحب", points: "بالنقط", wall: "بالمقاسات", auto: "تلقائي" };
+  const MODES = { drag: "سحب", points: "بالنقاط", wall: "بالمقاسات", auto: "تلقائي" };
   let mode = "drag";
   try { mode = localStorage.getItem("sakan:drawMode") || "drag"; } catch (e) {}
   if (!MODES[mode]) mode = "drag";
 
   let drag = null, suppressClick = false;
-  let wall = { a: null, b: null };   // خط الحيطة في وضع «بالمقاسات»
+  let wall = { a: null, b: null };   // خط الحائط في وضع «بالمقاسات»
   let candidates = [];                // مستطيلات لقاها الوضع «التلقائي»
-  let poly = [];                      // نقط حدود الخزانة في وضع «بالنقط»
+  let poly = [];                      // نقاط حدود الخزانة في وضع «بالنقاط»
   let pixels = null;                  // كاش صورة المخطط للتحليل
 
   const draft = () => UI.getDraft();
@@ -3719,7 +3755,7 @@ window.SakanPortalAPI = (function () {
     s.appendChild(g);
   }
 
-  /* ---------------- السحب: رسم / تحريك / تكبير / خط الحيطة / رسم تقريبي ---------------- */
+  /* ---------------- السحب: رسم / تحريك / تكبير / خط الحائط / رسم تقريبي ---------------- */
   function onDown(e) {
     suppressClick = false; // لو click قديم ماوصلش، مايبلعش الضغطة الجديدة
     if (!ready() || e.button !== 0 || ED.tool === "scale" || ED.first) return;
@@ -3740,7 +3776,7 @@ window.SakanPortalAPI = (function () {
       const b = box(boxEl.dataset.editorBox);
       drag = { kind: "move", b, o: { x: b.x, y: b.y, w: b.w, h: b.h }, start: q, select: true };
     } else if (mode === "wall" && wall.b) {
-      return; // الحيطة متحددة: اللمس في مكان فاضي مايحرّكهاش، والتظبيط بمسك النقطة نفسها
+      return; // الحائط متحددة: اللمس في مكان فاضي مايحرّكهاش، والتظبيط بمسك النقطة نفسها
     } else if (mode === "points") {
       drag = { kind: "points", start: q };
     } else if (e.pointerType === "touch" && mode !== "wall") {
@@ -3837,7 +3873,7 @@ window.SakanPortalAPI = (function () {
     if (d.kind === "wall") {
       const q = toSvg(e);
       if (d.moved) { wall = { a: d.start, b: magnet(d.start, q, e) }; suppressClick = true; wallReady(); }
-      else { // ضغطتين: نقطة 1 (أول الحيطة) ونقطة 2 (آخرها)
+      else { // ضغطتين: نقطة 1 (أول الحائط) ونقطة 2 (آخرها)
         if (!wall.a) wall = { a: q, b: null }; else if (!wall.b) { wall.b = magnet(wall.a, q, e); wallReady(); }
         suppressClick = true; paintWall(); renderPanel();
       }
@@ -3860,8 +3896,8 @@ window.SakanPortalAPI = (function () {
     }
   }
 
-  /* ---------------- «بالمقاسات»: خط الحيطة وعروض الخزاين ---------------- */
-  // خط الحيطة بأي زاوية. لو قريب جدًا من الأفقي أو الرأسي (أقل من درجة ونص) بيتعدل لوحده، إلا لو Alt مضغوط
+  /* ---------------- «بالمقاسات»: خط الحائط وعروض الخزائن ---------------- */
+  // خط الحائط بأي زاوية. لو قريب جدًا من الأفقي أو الرأسي (أقل من درجة ونص) بيتعدل لوحده، إلا لو Alt مضغوط
   function magnet(a, q, e) {
     if (e && e.altKey) return q;
     const ang = Math.atan2(q[1] - a[1], q[0] - a[0]), near = Math.round(ang / (Math.PI / 2)) * (Math.PI / 2);
@@ -3872,7 +3908,7 @@ window.SakanPortalAPI = (function () {
   const wallUnits = () => wall.b ? Math.hypot(wall.b[0] - wall.a[0], wall.b[1] - wall.a[1]) : 0;
   const wallDir = () => { const L = wallUnits() || 1; return [(wall.b[0] - wall.a[0]) / L, (wall.b[1] - wall.a[1]) / L]; };
   const wallAngle = () => { const [x, y] = wallDir(); let d = Math.round((-Math.atan2(y, x) * 180) / Math.PI); d = ((d % 180) + 180) % 180; return d > 90 ? d - 180 : d; };
-  // ناحية الخزاين: الناحية الأولى دايمًا تحت الخط أو يمينه، والتانية عكسها
+  // ناحية الخزائن: الناحية الأولى دايمًا تحت الخط أو يمينه، والتانية عكسها
   function wallNormal() {
     const [tx, ty] = wallDir();
     let n = [-ty, tx];
@@ -3900,12 +3936,12 @@ window.SakanPortalAPI = (function () {
     return b;
   }
   function wallLayout() {
-    if (!wall.b) return { err: "ارسم خط الحيطة الأول." };
+    if (!wall.b) return { err: "ارسم خط الحائط أولًا." };
     const len = num($("skWallLen").value), depth = num($("skWallDepth").value) || 60, widths = widthsOf($("skWallWidths").value);
-    if (!(len >= 20)) return { err: "اكتب طول الحيطة بالسنتي." };
-    if (!widths.length) return { err: "اكتب عروض الخزاين بالسنتي، مثلًا: 90، 60، 120." };
+    if (!(len >= 20)) return { err: "اكتب طول الحائط بالسنتيمتر." };
+    if (!widths.length) return { err: "اكتب عروض الخزائن بالسنتي، مثلًا: 90، 60، 120." };
     const total = widths.reduce((a, b) => a + b, 0);
-    if (total > len + 0.5) return { err: `مجموع العروض ${total} سم أكبر من طول الحيطة ${len} سم.` };
+    if (total > len + 0.5) return { err: `مجموع العروض ${total} سم أكبر من طول الحائط ${len} سم.` };
     const u = wallUnits() / len, t = wallDir(), n = wallNormal(), d = depth * u;
     const out = []; let at = 0;
     for (const wcm of widths) {
@@ -3914,7 +3950,7 @@ window.SakanPortalAPI = (function () {
       at += w;
     }
     const outside = (b) => P.polygon(Object.assign({ kind: "straight" }, b), draft()).some(([x, y]) => x < -0.5 || y < -0.5 || x > 1000.5 || y > H() + 0.5);
-    if (out.some(outside)) return { err: "البوكسات بتطلع برا المخطط. جرّب الناحية التانية أو راجع الطول.", out };
+    if (out.some(outside)) return { err: "البوكسات تخرج عن حدود المخطط. جرّب الجهة الأخرى أو راجع الطول.", out };
     return { out, len, u, depth };
   }
   function paintWall() {
@@ -3951,8 +3987,8 @@ window.SakanPortalAPI = (function () {
     say("");
   }
 
-  /* ---------------- «بالنقط»: حدود الخزانة نقطة نقطة ---------------- */
-  // 4 نقط = خزانة مستقيمة، 5 نقط = كورنر مشطوف، 6 نقط = كورنر حرف L. الشكل ممكن يبقى مايل
+  /* ---------------- «بالنقاط»: حدود الخزانة نقطة نقطة ---------------- */
+  // 4 نقاط = خزانة مستقيمة، 5 نقاط = كورنر مشطوف، 6 نقاط = كورنر حرف L. الشكل ممكن يبقى مايل
   function paintPoly() {
     const s = svgEl(); if (!s) return;
     s.querySelectorAll(".sk-poly").forEach((el) => el.remove());
@@ -3985,7 +4021,7 @@ window.SakanPortalAPI = (function () {
   }
   function fitPoly(raw) {
     const pts = cleanPoly(raw), n = pts.length;
-    if (n < 4 || n > 6) return { err: `اتحطت ${n} نقط. الخزانة المستقيمة 4 نقط، والكورنر المشطوف 5، والكورنر حرف L ست نقط.` };
+    if (n < 4 || n > 6) return { err: `تم وضع ${n} نقاط. الخزانة المستقيمة 4 نقاط، والكورنر المشطوف 5، والكورنر حرف L ست نقاط.` };
     // ميل الشكل من أطول ضلع فيه، وأقل من درجة ونص بيتعدل مستقيم
     let long = 0, ang = 0;
     pts.forEach((p, i) => { const q = pts[(i + 1) % n], L = Math.hypot(q[0] - p[0], q[1] - p[1]); if (L > long) { long = L; ang = Math.atan2(q[1] - p[1], q[0] - p[0]); } });
@@ -3995,7 +4031,7 @@ window.SakanPortalAPI = (function () {
     const loc = pts.map((p) => rotate([p[0] - c0[0], p[1] - c0[1]], -ang));
     const x0 = Math.min(...loc.map((p) => p[0])), x1 = Math.max(...loc.map((p) => p[0])), y0 = Math.min(...loc.map((p) => p[1])), y1 = Math.max(...loc.map((p) => p[1]));
     const w = x1 - x0, h = y1 - y0;
-    if (w < 4 || h < 4) return { err: "الشكل صغير قوي." };
+    if (w < 4 || h < 4) return { err: "الشكل صغير جدًا." };
     const [cx, cy] = rotate([(x0 + x1) / 2, (y0 + y1) / 2], ang), center = [c0[0] + cx, c0[1] + cy];
     const box = { x: center[0] - w / 2, y: center[1] - h / 2, w, h };
     if (ang) box.angle = Math.round((ang * 180 / Math.PI) * 100) / 100;
@@ -4004,7 +4040,7 @@ window.SakanPortalAPI = (function () {
     const tol = Math.min(w, h) * 0.12, has = (X, Y) => loc.some((p) => Math.hypot(p[0] - X, p[1] - Y) <= tol);
     const corners = { nw: [x0, y0], ne: [x1, y0], se: [x1, y1], sw: [x0, y1] }, opposite = { nw: "se", ne: "sw", se: "nw", sw: "ne" };
     const missing = Object.keys(corners).filter((k) => !has(...corners[k]));
-    if (missing.length !== 1) return { err: "مش قادر أعرف شكل الزاوية. حط النقط على أركان الخزانة بالترتيب حواليها." };
+    if (missing.length !== 1) return { err: "تعذّر تحديد شكل الزاوية. ضع النقاط على أركان الخزانة بالترتيب حولها." };
     const face = opposite[missing[0]], mx = face === "ne" || face === "se", mz = face === "sw" || face === "se";
     const uv = loc.map((p) => [mx ? x1 - p[0] : p[0] - x0, mz ? y1 - p[1] : p[1] - y0]);
     // عمق الضلعين: النقطة اللي على الحافة البعيدة وجوه الشكل
@@ -4023,7 +4059,7 @@ window.SakanPortalAPI = (function () {
     if (f.box.kind === "straight" && !["south", "north", "east", "west"].includes(nb.face)) nb.face = "south";
     if (!f.box.angle) delete nb.angle;
     addBoxes([nb]);
-    say(f.noScale && f.box.kind !== "straight" ? "اتضافت. اضبط المقياس عشان عمق الزاوية يطلع مظبوط." : "");
+    say(f.noScale && f.box.kind !== "straight" ? "تمت الإضافة. اضبط المقياس ليكون عمق الزاوية صحيحًا." : "");
   }
 
   /* ---------------- «تلقائي»: تحليل صورة المخطط ---------------- */
@@ -4069,7 +4105,7 @@ window.SakanPortalAPI = (function () {
   }
   // بيدوّر على المساحات المقفولة اللي شكلها مستطيل وحجمها قريب من حجم خزانة
   async function detect() {
-    say("بدوّر على الخزاين في المخطط…");
+    say("جارٍ البحث عن الخزائن في المخطط…");
     const px = await getPixels(), { W } = px, Hh = px.H;
     const wall = new Uint8Array(W * Hh);
     for (let y = 0; y < Hh; y++) for (let x = 0; x < W; x++) {
@@ -4101,7 +4137,7 @@ window.SakanPortalAPI = (function () {
     const overlaps = (a, b) => { const ix = Math.max(0, Math.min(a.x + a.w, b.x + b.w) - Math.max(a.x, b.x)), iy = Math.max(0, Math.min(a.y + a.h, b.y + b.h) - Math.max(a.y, b.y)); return ix * iy / Math.min(a.w * a.h, b.w * b.h) > 0.5; };
     candidates = found.filter((c) => !draft().boxes.some((b) => overlaps(b, c)));
     paintCandidates(); renderPanel();
-    say(candidates.length ? "" : "مالقيتش مستطيلات واضحة. جرّب «ارسم تقريبي» على كل خزانة.");
+    say(candidates.length ? "" : "لم يُعثر على مستطيلات واضحة. جرّب الرسم التقريبي حول كل خزانة.");
   }
   function paintCandidates() {
     const s = svgEl(); if (!s) return;
@@ -4132,30 +4168,30 @@ window.SakanPortalAPI = (function () {
     document.querySelector(".editor-sidebar").insertAdjacentHTML("afterbegin",
       `<section class="sk-draw-panel" id="skDrawPanel">
         <div data-for="drag"><b>رسم بالسحب</b>
-          <p>اسحب على المخطط من ركن الخزانة للركن المقابل. اسحب البوكس عشان تحرّكه، ومن المربعات الصغيرة عشان تكبّره. البوكس بيلزق لوحده في حواف البوكسات اللي جنبه.</p></div>
-        <div data-for="points"><b>رسم بالنقط</b>
-          <p>اضغط على أركان الخزانة واحد ورا التاني حواليها. 4 نقط للخزانة المستقيمة، 5 للكورنر المشطوف، 6 للكورنر حرف L. اقفل الشكل بالضغط على نقطة 1 أو «تم». تقدر تمسك أي نقطة وتحرّكها قبل ما تخلّص.</p>
+          <p>اسحب على المخطط من ركن الخزانة إلى الركن المقابل. اسحب البوكس لتحريكه، ومن المربعات الصغيرة لتكبيره. يلتصق البوكس تلقائيًا بحواف البوكسات المجاورة.</p></div>
+        <div data-for="points"><b>رسم بالنقاط</b>
+          <p>اضغط على أركان الخزانة واحدًا تلو الآخر حولها. 4 نقاط للخزانة المستقيمة، 5 للكورنر المشطوف، 6 للكورنر حرف L. أغلق الشكل بالضغط على نقطة 1 أو «تم». يمكنك سحب أي نقطة وتحريكها قبل الانتهاء.</p>
           <p class="sk-wall-info" id="skPolyInfo" hidden></p>
           <div class="sk-auto-actions">
             <button type="button" class="primary" id="skPolyDone">تم</button>
-            <button type="button" class="secondary" id="skPolyUndo">شيل آخر نقطة</button>
+            <button type="button" class="secondary" id="skPolyUndo">احذف آخر نقطة</button>
             <button type="button" class="text-button" id="skPolyClear">ابدأ من الأول</button>
           </div></div>
         <div data-for="wall"><b>رسم بالمقاسات</b>
-          <p id="skWallHint">اضغط أول الحيطة وآخرها (أو اسحب عليها) على الخط اللي الخزاين هتتركب عليه.</p>
+          <p id="skWallHint">اضغط على بداية الحائط ونهايته (أو اسحب عليه) على الخط الذي ستُركّب عليه الخزائن.</p>
           <p class="sk-wall-info" id="skWallInfo" dir="auto" hidden></p>
           <div id="skWallForm">
-            <label>طول الحيطة (سم)<input id="skWallLen" inputmode="decimal" dir="ltr"></label>
-            <label>عروض الخزاين بالترتيب (سم)<input id="skWallWidths" dir="ltr" placeholder="90, 60, 120"></label>
+            <label>طول الحائط (سم)<input id="skWallLen" inputmode="decimal" dir="ltr"></label>
+            <label>عروض الخزائن بالترتيب (سم)<input id="skWallWidths" dir="ltr" placeholder="90, 60, 120"></label>
             <label>العمق (سم)<input id="skWallDepth" inputmode="decimal" dir="ltr" value="60"></label>
-            <div class="sk-wall-side"><span>الخزاين ناحية:</span><button type="button" id="skWallSide" data-side="1"></button></div>
+            <div class="sk-wall-side"><span>جهة الخزائن:</span><button type="button" id="skWallSide" data-side="1"></button></div>
             <button type="button" class="primary" id="skWallApply">رص البوكسات</button>
-            <button type="button" class="text-button" id="skWallReset">ارسم الحيطة من جديد</button>
+            <button type="button" class="text-button" id="skWallReset">ارسم الحائط من جديد</button>
           </div></div>
         <div data-for="auto"><b>رسم تلقائي</b>
-          <p>«دوّر على الخزاين» بيعلّم المستطيلات اللي شكلها خزانة، واضغط على أي واحد منهم عشان يتضاف. أو ارسم تقريبي حوالين الخزانة، والبرنامج يظبط البوكس على خطوط المخطط.</p>
+          <p>«ابحث عن الخزائن» يحدد المستطيلات التي تشبه الخزائن، واضغط على أيٍّ منها لإضافته. أو ارسم تقريبيًا حول الخزانة، وسيضبط البرنامج البوكس على خطوط المخطط.</p>
           <div class="sk-auto-actions">
-            <button type="button" class="primary" id="skDetect">دوّر على الخزاين</button>
+            <button type="button" class="primary" id="skDetect">ابحث عن الخزائن</button>
             <button type="button" class="secondary" id="skAddAll" hidden>إضافة الكل</button>
           </div></div>
         <p class="sk-draw-msg" id="skDrawMsg" role="status" hidden></p>
@@ -4178,7 +4214,7 @@ window.SakanPortalAPI = (function () {
     $("skWallWidths").onkeydown = (e) => { if (e.key === "Enter") applyWall(); };
     $("skWallApply").onclick = applyWall;
     $("skWallReset").onclick = () => { wall = { a: null, b: null }; paintWall(); renderPanel(); };
-    $("skDetect").onclick = () => detect().catch(() => say("مقدرتش أحلل الصورة دي."));
+    $("skDetect").onclick = () => detect().catch(() => say("تعذّر تحليل هذه الصورة."));
     $("skAddAll").onclick = () => { const all = candidates.splice(0); addBoxes(all.map((c) => newBox(c.x, c.y, c.w, c.h))); renderPanel(); };
     $("skDupBox").onclick = duplicate;
     $("skPolyDone").onclick = finishPoly;
@@ -4219,26 +4255,26 @@ window.SakanPortalAPI = (function () {
     document.querySelectorAll("[data-draw-mode]").forEach((b) => b.setAttribute("aria-checked", b.dataset.drawMode === mode));
     document.querySelectorAll("#skDrawPanel [data-for]").forEach((el) => (el.hidden = el.dataset.for !== mode));
     $("skWallForm").hidden = !wall.b;
-    $("skWallHint").textContent = wall.b ? "امسك نقطة 1 أو 2 وحرّكها عشان تظبط الحيطة، واكتب المقاسات." : wall.a ? "اضغط آخر الحيطة (نقطة 2)." : "اضغط أول الحيطة وآخرها (أو اسحب عليها) على الخط اللي الخزاين هتتركب عليه.";
+    $("skWallHint").textContent = wall.b ? "اسحب النقطة 1 أو 2 لضبط الحائط، واكتب المقاسات." : wall.a ? "اضغط على نهاية الحائط (نقطة 2)." : "اضغط على بداية الحائط ونهايته (أو اسحب عليه) على الخط الذي ستُركّب عليه الخزائن.";
     $("skWallInfo").hidden = !wall.b;
     if (wall.b) {
       const sc = draft().scale, cm = sc && sc.metersPerUnit ? Math.round(wallUnits() * sc.metersPerUnit * 100) : null;
       $("skWallInfo").textContent = (cm ? `الطول على المقياس: ${cm} سم · ` : "") + `الميل: ${wallAngle()}°`;
       const [nx, ny] = wallNormal(), i = ((Math.round(Math.atan2(ny, nx) / (Math.PI / 4)) % 8) + 8) % 8;
-      $("skWallSide").textContent = "→↘↓↙←↖↑↗"[i] + " تبديل الناحية";
+      $("skWallSide").textContent = "→↘↓↙←↖↑↗"[i] + " تبديل الجهة";
     }
     const kinds = { 4: "خزانة مستقيمة", 5: "كورنر مشطوف", 6: "كورنر حرف L" };
     $("skPolyInfo").hidden = !poly.length;
-    $("skPolyInfo").textContent = `${poly.length} نقط` + (kinds[poly.length] ? ` · ${kinds[poly.length]}` : "");
+    $("skPolyInfo").textContent = `${poly.length} نقاط` + (kinds[poly.length] ? ` · ${kinds[poly.length]}` : "");
     $("skPolyDone").disabled = poly.length < 4; $("skPolyUndo").disabled = !poly.length; $("skPolyClear").hidden = !poly.length;
     $("skAddAll").hidden = !candidates.length;
     $("skAddAll").textContent = `إضافة الكل (${candidates.length})`;
   }
   function helpText() {
     if (!draft().image || ED.busy || ED.tool === "scale" || ED.first) return;
-    const t = mode === "points" ? "اضغط على أركان الخزانة بالترتيب، واقفل الشكل على نقطة 1."
-      : mode === "wall" ? "حدد الحيطة، واكتب عروض الخزاين بالسنتي."
-      : mode === "auto" ? "دوّر على الخزاين، أو ارسم تقريبي حوالين كل خزانة."
+    const t = mode === "points" ? "اضغط على أركان الخزانة بالترتيب، وأغلق الشكل عند نقطة 1."
+      : mode === "wall" ? "حدد الحيطة، واكتب عروض الخزائن بالسنتيمتر."
+      : mode === "auto" ? "ابحث عن الخزائن، أو ارسم تقريبيًا حول كل خزانة."
       : "اسحب لرسم بوكس. اسحب البوكس لتحريكه، ومن أركانه لتكبيره.";
     $("editorHelp").textContent = t;
   }
@@ -4255,7 +4291,7 @@ window.SakanPortalAPI = (function () {
   function duplicate() {
     const b = draft().boxes.find((q) => q.id === ED.selected); if (!b) return;
     const free = (x, y) => x >= 0 && y >= 0 && x + b.w <= 1000.1 && y + b.h <= H() + 0.1 && !draft().boxes.some((q) => x < q.x + q.w - 0.5 && x + b.w > q.x + 0.5 && y < q.y + q.h - 0.5 && y + b.h > q.y + 0.5);
-    if (b.angle) { // البوكس المايل: النسخة بتتحط جنبه على نفس الحيطة
+    if (b.angle) { // البوكس المايل: النسخة بتتحط جنبه على نفس الحائط
       const [ux, uy] = rotate([b.w, 0], rad(b)), c = { ...b, x: b.x + ux, y: b.y + uy };
       if (c.x + c.w / 2 > 1000 || c.y + c.h / 2 > H() || c.x + c.w / 2 < 0 || c.y + c.h / 2 < 0) Object.assign(c, { x: b.x - ux, y: b.y - uy });
       keepInside(c); addBoxes([c]); return;

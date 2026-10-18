@@ -364,3 +364,14 @@ html[dir=rtl] .sk-finish > .room-invite, html[dir=rtl] .sk-finish > .bottom-bar 
 .sk-cand:hover { fill: #2f8a5555; }
 #editorCanvas svg .edit-region, #editorCanvas svg .sk-handle-hit, #editorCanvas svg .sk-wall-hit { touch-action: none; }
 html[dir=ltr] .editor-sidebar, html[dir=ltr] .editor-bottom { direction: ltr; text-align: left; }
+
+/* مفيش مشروع مفتوح: رسالة بدل المخطط التجريبي */
+.sk-no-project-card { display: none; }
+body.sk-no-project main > :not(#skNoProject) { display: none !important; }
+body.sk-no-project .sk-no-project-card { display: grid; justify-items: center; gap: 10px; text-align: center; margin: 48px auto; max-width: 560px; padding: 40px 28px; border: 1px solid var(--line); border-radius: 18px; background: #fff; }
+.sk-no-project-card b { font-size: 18px; }
+.sk-no-project-card p { margin: 0; color: var(--muted); }
+html[data-theme=dark] .sk-no-project-card { background: #1b1b1b; border-color: #333; }
+body.sk-no-project .topbar .project-tag, body.sk-no-project #summaryTop, body.sk-no-project #resetAll { display: none !important; }
+/* الاختيارات بقت بتتحفظ على السيرفر مع المشروع، فالجملة دي مابقتش صح */
+.privacy-note { display: none !important; }
