@@ -1,0 +1,267 @@
+<!-- ===================== بوابة سكن جروب =====================
+     النوافذ دي بتتحط آخر الـ body في البرنامج. المنطق كله في portal.js -->
+
+<!-- شريط الأدوات الأسود (بيتنقل لأول الصفحة من portal.js) -->
+<div class="sk-scrim" id="skScrim" hidden></div>
+<nav class="sk-topnav" id="skTopnav" aria-label="شريط الأدوات" hidden>
+  <div class="sk-topnav-in">
+    <img class="sk-topnav-logo" data-sk-logo alt="سكن جروب">
+    <div class="sk-tabs" role="tablist">
+      <button class="sk-tab" id="skTabOwner" data-tab="skOwner">مشاريع المالك</button>
+      <button class="sk-tab sk-eng-only" id="skTabProjects" data-tab="skProjects">العملاء</button>
+      <button class="sk-tab sk-admin-only" id="skTabUsers" data-tab="skUsers">المستخدمين والصلاحيات</button>
+      <button class="sk-tab" id="skTabSettings" data-tab="skSettings">الإعدادات</button>
+    </div>
+    <div class="sk-topnav-user">
+      <button class="sk-tab sk-bell" id="skBell" data-tab="skNotify" aria-label="الإشعارات">🔔<span id="skBellCount" class="sk-bell-count" hidden></span></button>
+      <span class="sk-user-name" id="skUserName"></span>
+      <span class="sk-role" id="skUserRole"></span>
+      <button class="sk-tab sk-logout" id="skLogout">خروج</button>
+    </div>
+  </div>
+</nav>
+
+<!-- شاشة الدخول -->
+<dialog id="skLogin" class="sk-login" aria-labelledby="skLoginTitle">
+  <div class="sk-login-prefs">
+    <button type="button" class="sk-pref-btn" data-set-lang="en">English</button>
+    <button type="button" class="sk-pref-btn" data-set-lang="ar">العربية</button>
+    <button type="button" class="sk-pref-btn" data-toggle-theme aria-label="ليلي / نهاري">◐</button>
+  </div>
+  <form id="skLoginForm" class="sk-login-card" autocomplete="on">
+    <img class="sk-login-logo" data-sk-logo alt="سكن جروب">
+    <h1 id="skLoginTitle">تسجيل الدخول</h1>
+    <p class="sk-muted">المالك يدخل باسم المستخدم وكلمة المرور اللي بعتهاله المهندس.</p>
+    <label>اسم المستخدم<input id="skLoginUser" name="username" autocomplete="username" dir="ltr" required></label>
+    <label>كلمة المرور<input id="skLoginPass" name="password" type="password" autocomplete="current-password" dir="ltr" required></label>
+    <p id="skLoginError" class="sk-error" role="alert" hidden></p>
+    <button class="sk-btn sk-btn-dark" type="submit">دخول</button>
+  </form>
+</dialog>
+
+<!-- مشاريع المالك (للمالك والمهندس) -->
+<dialog id="skOwner" class="sk-dialog sk-panel sk-wide" aria-labelledby="skOwnerTitle">
+  <div class="sk-head-row">
+    <div><span class="eyebrow" id="skOwnerEyebrow"></span><h2 id="skOwnerTitle">مشاريع المالك</h2></div>
+    <button class="icon-button" data-sk-close aria-label="إغلاق">×</button>
+  </div>
+  <label class="sk-inline sk-eng-only">المالك <select id="skOwnerPick"></select></label>
+  <div id="skOwnerList" class="sk-room-grid"></div>
+</dialog>
+
+<!-- المشاريع (للمهندس بس) -->
+<dialog id="skProjects" class="sk-dialog sk-panel sk-wide" aria-labelledby="skProjectsTitle">
+  <div class="sk-head-row">
+    <div><span class="eyebrow">لوحة المهندس</span><h2 id="skProjectsTitle">العملاء</h2></div>
+    <button class="icon-button" data-sk-close aria-label="إغلاق">×</button>
+  </div>
+  <div class="sk-toolbar">
+    <button class="sk-btn sk-btn-dark" id="skNewProject">+ مشروع جديد</button>
+    <button class="sk-btn" id="skNewOwner">+ عميل جديد</button>
+  </div>
+  <input type="search" id="skSearch" class="sk-search" placeholder="ابحث باسم العميل أو المشروع أو اسم المستخدم أو المهندس…" aria-label="بحث عن مشروع أو عميل">
+  <p id="skSearchCount" class="sk-muted" hidden></p>
+  <div id="skProjectList" class="sk-owner-groups"></div>
+</dialog>
+
+<!-- إضافة / تعديل مالك -->
+<dialog id="skOwnerForm" class="sk-dialog" aria-labelledby="skOFTitle">
+  <form id="skOwnerFormEl">
+    <div class="sk-head-row">
+      <div><span class="eyebrow">حساب العميل</span><h2 id="skOFTitle">مالك جديد</h2></div>
+      <button type="button" class="icon-button" data-sk-close aria-label="إغلاق">×</button>
+    </div>
+    <p class="sk-muted">المالك بيدخل بالحساب ده ويشوف كل مشاريعه، زي أكتر من غرفة دريسنج.</p>
+    <div class="sk-grid">
+      <label>اسم المالك<input id="skOName" maxlength="100" required></label>
+      <label>اسم المستخدم<input id="skOUser" dir="ltr" maxlength="30" autocomplete="off" placeholder="client01" required></label>
+      <label>كلمة المرور<input id="skOPass" dir="ltr" maxlength="60" autocomplete="new-password"><small id="skOPassHint" class="sk-muted"></small></label>
+    </div>
+    <label class="sk-full sk-admin-only">المهندس المسؤول عن المالك<select id="skOEngineer"></select></label>
+    <fieldset class="sk-perms sk-admin-only"><legend>صلاحيات المالك</legend>
+      <label><input type="checkbox" data-operm="edit"> يعدّل الاختيارات (من غيرها يتفرج بس)</label>
+      <label><input type="checkbox" data-operm="final"> يعتمد الاختيارات نهائي ويحفظ المقترح النهائي</label>
+      <label><input type="checkbox" data-operm="send"> يبعت التقرير للمهندس</label>
+    </fieldset>
+    <p id="skOwnerFormError" class="sk-error" role="alert" hidden></p>
+    <div class="sk-actions"><button type="button" class="sk-btn" data-sk-close>إلغاء</button><button class="sk-btn sk-btn-dark" type="submit">حفظ الحساب</button></div>
+  </form>
+</dialog>
+
+<!-- إضافة / تعديل مشروع -->
+<dialog id="skProjectForm" class="sk-dialog" aria-labelledby="skFormTitle">
+  <form id="skProjectFormEl">
+    <div class="sk-head-row">
+      <div><span class="eyebrow">مشروع</span><h2 id="skFormTitle">مشروع جديد</h2></div>
+      <button type="button" class="icon-button" data-sk-close aria-label="إغلاق">×</button>
+    </div>
+    <div class="sk-grid">
+      <label>اسم المشروع / الغرفة<input id="skFName" maxlength="100" placeholder="مثال: دريسنج الماستر" required></label>
+      <label>المالك<select id="skFOwner" required></select></label>
+    </div>
+    <label class="sk-full sk-admin-only">المهندس المسؤول عن المشروع<select id="skFEngineer"></select></label>
+    <label class="sk-full">مخطط المشروع
+      <span class="sk-plan-row"><select id="skFPlan"></select><button type="button" class="sk-btn" id="skFNewPlan">رفع مخطط جديد</button></span>
+    </label>
+    <p id="skFormError" class="sk-error" role="alert" hidden></p>
+    <div class="sk-actions"><button type="button" class="sk-btn" data-sk-close>إلغاء</button><button class="sk-btn sk-btn-dark" type="submit">حفظ المشروع</button></div>
+  </form>
+</dialog>
+
+<!-- بيانات دخول المالك بعد الحفظ -->
+<dialog id="skCreds" class="sk-dialog sk-narrow" aria-labelledby="skCredsTitle">
+  <div class="sk-head-row"><h2 id="skCredsTitle">بيانات دخول المالك</h2><button class="icon-button" data-sk-close aria-label="إغلاق">×</button></div>
+  <p class="sk-muted">ابعت البيانات دي للمالك. كلمة المرور مش هتظهر تاني، ولو نسيتها اعمل واحدة جديدة من «تعديل الحساب».</p>
+  <pre id="skCredsText" class="sk-creds"></pre>
+  <div class="sk-actions"><button class="sk-btn" id="skCopyCreds">نسخ</button><button class="sk-btn sk-btn-dark" data-sk-close>تمام</button></div>
+</dialog>
+
+<!-- سجل التعديلات -->
+<dialog id="skLog" class="sk-dialog sk-panel sk-wide" aria-labelledby="skLogTitle">
+  <div class="sk-head-row">
+    <div><span class="eyebrow">مين عدّل إيه وإمتى</span><h2 id="skLogTitle">سجل التعديلات</h2></div>
+    <button class="icon-button" data-sk-close aria-label="إغلاق">×</button>
+  </div>
+  <label class="sk-inline">المشروع <select id="skLogFilter"></select></label>
+  <div class="sk-table-wrap"><table class="sk-log-table"><thead><tr><th>التاريخ والوقت</th><th>المستخدم</th><th>المشروع</th><th>التعديل</th></tr></thead><tbody id="skLogRows"></tbody></table></div>
+</dialog>
+
+<!-- المستخدمين والصلاحيات (لمدير النظام بس) -->
+<dialog id="skUsers" class="sk-dialog sk-panel sk-wide" aria-labelledby="skUsersTitle">
+  <div class="sk-head-row">
+    <div><span class="eyebrow">مدير النظام</span><h2 id="skUsersTitle">المستخدمين والصلاحيات</h2></div>
+    <button class="icon-button" data-sk-close aria-label="إغلاق">×</button>
+  </div>
+  <div class="sk-toolbar">
+    <button class="sk-btn sk-btn-dark" id="skNewStaff">+ مهندس جديد</button>
+    <button class="sk-btn" id="skNewOwner2">+ مالك جديد</button>
+  </div>
+  <h3>المهندسين ومديري النظام</h3>
+  <div id="skStaffList" class="sk-user-list"></div>
+  <h3>الملّاك (العملاء)</h3>
+  <div id="skClientList" class="sk-user-list"></div>
+  <p id="skUsersMsg" class="sk-note" role="status" hidden></p>
+</dialog>
+
+<!-- إضافة / تعديل مهندس أو مدير -->
+<dialog id="skStaffForm" class="sk-dialog" aria-labelledby="skSFTitle">
+  <form id="skStaffFormEl">
+    <div class="sk-head-row">
+      <div><span class="eyebrow">حساب</span><h2 id="skSFTitle">مهندس جديد</h2></div>
+      <button type="button" class="icon-button" data-sk-close aria-label="إغلاق">×</button>
+    </div>
+    <div class="sk-grid">
+      <label>الاسم<input id="skSName" maxlength="60" required></label>
+      <label>اسم المستخدم<input id="skSUser" dir="ltr" maxlength="30" autocomplete="off" required></label>
+      <label>كلمة المرور<input id="skSPass" dir="ltr" autocomplete="new-password"><small id="skSPassHint" class="sk-muted"></small></label>
+      <label>نوع الحساب<select id="skSRole"><option value="engineer">مهندس</option><option value="admin">مدير النظام</option></select></label>
+    </div>
+    <fieldset class="sk-perms" id="skSPerms"><legend>صلاحيات المهندس</legend>
+      <label><input type="checkbox" data-sperm="manageOwners"> يضيف ويعدّل حسابات الملّاك</label>
+      <label><input type="checkbox" data-sperm="manageProjects"> يضيف ويعدّل المشاريع والمخططات</label>
+      <label><input type="checkbox" data-sperm="manageFiles"> يضيف ملفات للمشروع (مخططات وتصاميم ومحاضر)</label>
+      <label><input type="checkbox" data-sperm="deleteItems"> يحذف المشاريع والمخططات والملفات وحسابات الملّاك</label>
+      <label><input type="checkbox" data-sperm="viewLog"> يشوف سجل التعديلات</label>
+    </fieldset>
+    <p id="skStaffFormError" class="sk-error" role="alert" hidden></p>
+    <div class="sk-actions"><button type="button" class="sk-btn" data-sk-close>إلغاء</button><button class="sk-btn sk-btn-dark" type="submit">حفظ الحساب</button></div>
+  </form>
+</dialog>
+
+<!-- الإعدادات -->
+<dialog id="skSettings" class="sk-dialog sk-panel sk-narrow" aria-labelledby="skSettingsTitle">
+  <div class="sk-head-row"><h2 id="skSettingsTitle">الإعدادات</h2><button class="icon-button" data-sk-close aria-label="إغلاق">×</button></div>
+  <h3>لغة البرنامج</h3>
+  <div class="sk-seg" role="radiogroup" aria-label="لغة البرنامج">
+    <button class="sk-seg-btn" role="radio" data-set-lang="ar">العربية</button>
+    <button class="sk-seg-btn" role="radio" data-set-lang="en">English</button>
+  </div>
+  <h3>الثيم</h3>
+  <div class="sk-seg" role="radiogroup" aria-label="الثيم">
+    <button class="sk-seg-btn" role="radio" data-set-theme="light">☀ نهاري</button>
+    <button class="sk-seg-btn" role="radio" data-set-theme="dark">☾ ليلي</button>
+  </div>
+  <div class="sk-eng-only" id="skAdminTools">
+    <h3>الإدارة</h3>
+    <div class="sk-actions sk-admin-tools">
+      <button class="sk-btn" id="skOpenPlans">المخططات</button>
+      <button class="sk-btn" id="skOpenLog">سجل التعديلات</button>
+    </div>
+  </div>
+  <form id="skPassForm">
+    <h3>تغيير كلمة المرور بتاعتي</h3>
+    <label class="sk-pass-row"><input id="skNewPass" type="password" dir="ltr" autocomplete="new-password" required aria-label="كلمة المرور الجديدة" placeholder="كلمة المرور الجديدة"><button class="sk-btn sk-btn-dark" type="submit">تغيير</button></label>
+  </form>
+  <p id="skSettingsMsg" class="sk-note" role="status" hidden></p>
+</dialog>
+
+<!-- المقترحات -->
+<dialog id="skProposals" class="sk-dialog" aria-labelledby="skPropTitle">
+  <div class="sk-head-row">
+    <div><span class="eyebrow" id="skPropProject"></span><h2 id="skPropTitle">المقترحات</h2></div>
+    <button class="icon-button" data-sk-close aria-label="إغلاق">×</button>
+  </div>
+  <p class="sk-muted">احفظ اختياراتك الحالية كمقترح ١ أو مقترح ٢ عشان تقارن بينهم، ولما تستقر احفظها كمقترح نهائي.</p>
+  <div id="skPropList" class="sk-prop-list"></div>
+  <p id="skPropMsg" class="sk-note" role="status" hidden></p>
+</dialog>
+
+<!-- تقرير PDF -->
+<dialog id="skReport" class="sk-dialog sk-report-dialog" aria-labelledby="skReportTitle">
+  <div class="sk-head-row">
+    <div><span class="eyebrow">تقرير على ورق سكن جروب</span><h2 id="skReportTitle">تقرير الاختيارات</h2></div>
+    <button class="icon-button" data-sk-close aria-label="إغلاق">×</button>
+  </div>
+  <div class="sk-report-bar">
+    <div id="skReportSlots" class="sk-chips" role="radiogroup" aria-label="نسخة التقرير"></div>
+    <div class="sk-actions">
+      <button class="sk-btn sk-btn-dark" id="skPrintReport">حفظ PDF / طباعة</button>
+      <button class="sk-btn" id="skSendReport">إرسال التقرير للمهندس</button>
+    </div>
+  </div>
+  <p id="skReportMsg" class="sk-note" role="status" hidden></p>
+  <div class="sk-report-preview" id="skReportPreview"></div>
+</dialog>
+
+<!-- المخططات المرفوعة (تعديل وحذف) -->
+<dialog id="skPlans" class="sk-dialog sk-panel sk-wide" aria-labelledby="skPlansTitle">
+  <div class="sk-head-row">
+    <div><span class="eyebrow">المهندس بيرفع المخطط، والمالك بيختار عليه</span><h2 id="skPlansTitle">المخططات</h2></div>
+    <button class="icon-button" data-sk-close aria-label="إغلاق">×</button>
+  </div>
+  <div class="sk-toolbar"><button class="sk-btn sk-btn-dark" id="skUploadPlan">+ رفع مخطط جديد</button></div>
+  <div id="skPlanList" class="sk-plan-grid"></div>
+</dialog>
+
+<!-- ملفات المشروع المرجعية -->
+<dialog id="skFiles" class="sk-dialog sk-wide" aria-labelledby="skFilesTitle">
+  <div class="sk-head-row">
+    <div><span class="eyebrow" id="skFilesProject"></span><h2 id="skFilesTitle">ملفات المشروع</h2></div>
+    <button class="icon-button" data-sk-close aria-label="إغلاق">×</button>
+  </div>
+  <div class="sk-report-bar">
+    <div id="skFileCats" class="sk-chips" role="radiogroup" aria-label="نوع الملف"></div>
+    <div class="sk-actions sk-files-add"><button class="sk-btn sk-btn-dark" id="skAddFile">+ إضافة ملف</button><input type="file" id="skFileInput" multiple hidden></div>
+  </div>
+  <div id="skFileList" class="sk-file-list"></div>
+  <p id="skFilesMsg" class="sk-note" role="status" hidden></p>
+</dialog>
+
+<!-- تعليقات المشروع -->
+<dialog id="skComments" class="sk-dialog" aria-labelledby="skCommentsTitle">
+  <div class="sk-head-row">
+    <div><span class="eyebrow" id="skCommentsProject"></span><h2 id="skCommentsTitle">التعليقات</h2></div>
+    <button class="icon-button" data-sk-close aria-label="إغلاق">×</button>
+  </div>
+  <div id="skCommentList" class="sk-comment-list"></div>
+  <form id="skCommentForm" class="sk-comment-form">
+    <textarea id="skCommentText" rows="3" maxlength="2000" placeholder="اكتب تعليقك…" aria-label="اكتب تعليقك" required></textarea>
+    <button class="sk-btn sk-btn-dark" type="submit">إرسال</button>
+  </form>
+</dialog>
+
+<!-- الإشعارات -->
+<dialog id="skNotify" class="sk-dialog sk-panel" aria-labelledby="skNotifyTitle">
+  <div class="sk-head-row"><h2 id="skNotifyTitle">الإشعارات</h2><button class="icon-button" data-sk-close aria-label="إغلاق">×</button></div>
+  <div id="skNotifyList" class="sk-notify-list"></div>
+</dialog>
