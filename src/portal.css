@@ -420,3 +420,50 @@ body.sk-no-project .topbar .project-tag, body.sk-no-project #summaryTop, body.sk
   .editor-sidebar > * { flex: 0 0 min(300px, 82vw); max-height: 180px; overflow: auto; box-sizing: border-box; }
   .editor-sidebar > [hidden] { display: none; }
 }
+
+/* قايمة التقسيمات: التبويبات والمفضلة والتقسيم المخصص */
+.sk-type-tabs { display: flex; flex-wrap: wrap; gap: 6px; padding: 10px 10px 0; }
+.sk-type-tabs::-webkit-scrollbar { display: none; }
+.sk-type-tabs button { flex: 0 0 auto; border: 1px solid #ded9c9; background: #faf8f2; color: #4b4a42; border-radius: 999px; padding: 6px 12px; font: inherit; font-size: 13px; font-weight: 700; cursor: pointer; white-space: nowrap; }
+.sk-type-tabs button[aria-selected=true] { background: #2f4a47; border-color: #2f4a47; color: #fff; }
+.sk-custom-panel { display: grid; gap: 8px; padding: 10px 10px 0; }
+.sk-custom-panel label { display: grid; gap: 4px; font-size: 13px; font-weight: 700; }
+.sk-custom-panel input[type=text] { font: inherit; padding: 7px 9px; border: 1px solid #ded9c9; border-radius: 8px; }
+.sk-custom-file input { position: absolute; width: 1px; height: 1px; opacity: 0; }
+.sk-custom-file span { display: block; text-align: center; padding: 9px; border: 1.5px dashed #b49a55; border-radius: 10px; background: #fbf6e8; color: #6b5420; cursor: pointer; }
+.sk-custom-file:focus-within span { outline: 2px solid #b49a55; outline-offset: 2px; }
+.sk-custom-panel small { color: #77756b; font-size: 12px; }
+.sk-type-cell { position: relative; display: grid; }
+.sk-type-cell > .type-option { width: 100%; height: 100%; }
+.sk-fav { position: absolute; top: 4px; left: 4px; width: 30px; height: 30px; border-radius: 50%; border: 1px solid #ded9c9; background: #ffffffe6; color: #c9c4b4; font-size: 17px; line-height: 1; cursor: pointer; padding: 0; }
+.sk-fav.on { color: #e0a100; border-color: #e0a100; }
+.sk-type-empty { grid-column: 1 / -1; color: #77756b; text-align: center; padding: 14px 6px; margin: 0; }
+html[data-theme=dark] .sk-type-tabs button { background: #1e1e1e; border-color: #444; color: #ddd; }
+html[data-theme=dark] .sk-type-tabs button[aria-selected=true] { background: #c9a75a; border-color: #c9a75a; color: #111; }
+html[data-theme=dark] .sk-custom-panel input[type=text] { background: #1b1b1b; border-color: #444; color: #eee; }
+html[data-theme=dark] .sk-custom-file span { background: #2a2414; border-color: #c9a75a; color: #e8d39b; }
+html[data-theme=dark] .sk-fav { background: #222e; border-color: #555; color: #666; }
+html[data-theme=dark] .sk-fav.on { color: #ffc93c; border-color: #ffc93c; }
+
+/* صورة التقسيمة جنب البوكس المحدد على المخطط */
+.sk-thumb { cursor: pointer; }
+.sk-thumb-bg { fill: #fff; stroke: #d9822b; stroke-width: 2.5; filter: drop-shadow(0 2px 4px #0003); }
+.sk-thumb-dot { fill: #d9822b; }
+.sk-thumb-plus { fill: #fff; font-size: 14px; font-weight: 700; text-anchor: middle; }
+.sk-thumb:focus { outline: none; }
+.sk-thumb:focus .sk-thumb-bg { stroke-width: 4; }
+.sk-type-view { margin: 0; display: grid; gap: 10px; text-align: center; }
+.sk-type-view img { width: 100%; max-height: 62dvh; object-fit: contain; background: #fff; border-radius: 10px; border: 1px solid #e6e6de; }
+.sk-type-view figcaption b { margin-inline-end: 6px; }
+html[data-theme=dark] .sk-thumb-bg { fill: #1e1e1e; }
+
+/* نقط أركان بوكس الزاوية في المحرر */
+.sk-vertex { fill: #fff; stroke: #d9822b; stroke-width: 2; vector-effect: non-scaling-stroke; pointer-events: none; }
+.sk-vertex-hit { fill: transparent; cursor: move; }
+
+/* تراجع وإعادة في محرر المخطط */
+.sk-history { display: inline-flex; gap: 6px; align-items: center; }
+.sk-hist-btn { border: 1px solid #ded9c9; background: #fff; color: #2f4a47; border-radius: 8px; padding: 5px 11px; font: inherit; font-weight: 700; cursor: pointer; white-space: nowrap; }
+.sk-hist-btn span { font-size: 1.15em; }
+.sk-hist-btn:disabled { opacity: .4; cursor: default; }
+html[data-theme=dark] .sk-hist-btn { background: #1e1e1e; border-color: #444; color: #e8d39b; }

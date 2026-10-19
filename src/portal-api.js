@@ -261,7 +261,7 @@ window.SakanPortalAPI = (function () {
       const p = db.projects.find((x) => x.id === id);
       if (!p) return null;
       if (p.work && p.work.status === "approved") throw Error("الاختيارات معتمدة ومقفلة. اطلب من مدير النظام السماح بالتعديل.");
-      p.work = { selections: work.selections || {}, notes: work.notes || "", status: "draft", updatedAt: now(), updatedBy: work.by };
+      p.work = { selections: work.selections || {}, notes: work.notes || "", custom: work.custom || (p.work && p.work.custom) || [], status: "draft", updatedAt: now(), updatedBy: work.by };
       p.updatedAt = p.work.updatedAt;
       store(db);
       return publicProject(p, db);

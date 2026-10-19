@@ -125,6 +125,16 @@
     // مكان المسك أوسع شوية من المربع نفسه وشفاف، عشان يتمسك بالصباع
     const upp = unitPerPx(), side = Math.min(b.w, b.h);
     const r = Math.min(3.5 * upp, side / 8), hit = Math.max(r, Math.min(9 * upp, side / 4));
+    if (isCorner(b)) {
+      // بوكس الزاوية: نقطة على كل ركن من أركانه، وكل نقطة بتتسحب لوحدها (طول كل ضلع والعمق)
+      const g = make("g", {}, "sk-handles");
+      P.polygon(b, draft()).forEach(([hx, hy], i) => {
+        g.appendChild(make("circle", { cx: hx, cy: hy, r: Math.max(hit, 10 * upp), "data-vertex": i }, "sk-vertex-hit"));
+        g.appendChild(make("circle", { cx: hx, cy: hy, r: 4.5 * upp }, "sk-vertex"));
+      });
+      s.appendChild(g);
+      return;
+    }
     const [cx, cy] = center(b), g = make("g", b.angle ? { transform: `rotate(${b.angle} ${cx} ${cy})` } : {}, "sk-handles");
     const pos = side / upp < 48
       ? { nw: [0, 0], ne: [1, 0], se: [1, 1], sw: [0, 1] } // البوكس الصغير: الأركان بس
@@ -135,6 +145,27 @@
       g.appendChild(make("rect", { x: hx - r, y: hy - r, width: 2 * r, height: 2 * r, rx: r / 3 }, "sk-handle"));
     }
     s.appendChild(g);
+  }
+
+  /* ---------------- نقط أركان بوكس الزاوية ----------------
+     كل نقطة حرة: بتتحرك لوحدها وبيتغير الضلعين اللي ماسكينها بس، وباقي النقط مكانها.
+     النقط بتتحفظ في b.pts نسبةً للمستطيل اللي حوالين الشكل (من غير ميل)، والمستطيل بيتحسب من جديد بعد كل سحبة */
+  function cornerVertex(d, q) {
+    const { b } = d, a = rad(b), pts = d.pts0.slice(), n = pts.length, tol = 8 * unitPerPx();
+    // الضلع بيلزق مستقيم (أفقي أو رأسي) لو قريب من النقطة اللي جنبه، عشان الزوايا القايمة تتظبط بسهولة
+    if (!a && !d.free) for (const k of [pts[(d.i + n - 1) % n], pts[(d.i + 1) % n]]) {
+      if (Math.abs(q[0] - k[0]) <= tol) q = [k[0], q[1]];
+      if (Math.abs(q[1] - k[1]) <= tol) q = [q[0], k[1]];
+    }
+    pts[d.i] = q;
+    const [ox, oy] = d.c0, loc = pts.map(([X, Y]) => rotate([X - ox, Y - oy], -a));
+    const x0 = Math.min(...loc.map((p) => p[0])), x1 = Math.max(...loc.map((p) => p[0])), y0 = Math.min(...loc.map((p) => p[1])), y1 = Math.max(...loc.map((p) => p[1]));
+    const w = Math.max(x1 - x0, 4), h = Math.max(y1 - y0, 4), [cx, cy] = rotate([(x0 + x1) / 2, (y0 + y1) / 2], a);
+    Object.assign(b, { x: ox + cx - w / 2, y: oy + cy - h / 2, w, h,
+      pts: loc.map(([X, Y]) => [Math.round(((X - x0) / w) * 1e4) / 1e4, Math.round(((Y - y0) / h) * 1e4) / 1e4]) });
+    // العمق (للـ360° والمقاسات) أقرب عمق للشكل الجديد
+    const f = fitPoly(pts);
+    if (f.box && f.box.depth) b.depth = clamp(f.box.depth, 20, 150);
   }
 
   /* ---------------- سهم اتجاه فتح الخزانة ----------------
@@ -212,7 +243,7 @@
     if (e.target.closest("[data-cand]")) return; // الضغط على مستطيل مقترح بيضيفه (في click)
     const q = toSvg(e), handle = e.target.closest("[data-handle]"), boxEl = e.target.closest("[data-editor-box]");
     const box = (id) => draft().boxes.find((b) => b.id === id), wallPt = e.target.closest("[data-wall-pt]"), polyPt = e.target.closest("[data-poly-pt]");
-    const faceEl = e.target.closest("[data-face]");
+    const faceEl = e.target.closest("[data-face]"), vertexEl = e.target.closest("[data-vertex]");
     if (polyPt) {
       drag = { kind: "polypt", i: Number(polyPt.dataset.polyPt), start: q };
     } else if (faceEl && box(faceEl.dataset.face) && !(mode === "manual" && poly.length)) {
@@ -221,6 +252,9 @@
       drag = { kind: "points", start: q }; // وإحنا بنرسم، الضغط فوق بوكس تاني بيحط نقطة برضه
     } else if (wallPt) {
       drag = { kind: "wallpt", which: wallPt.dataset.wallPt, start: q };
+    } else if (vertexEl && box(ED.selected)) {
+      const b = box(ED.selected);
+      drag = { kind: "vertex", i: Number(vertexEl.dataset.vertex), b, pts0: P.polygon(b, draft()), c0: center(b), start: q };
     } else if (handle) {
       const b = box(ED.selected);
       drag = { kind: "resize", dir: handle.dataset.handle, b, o: { x: b.x, y: b.y, w: b.w, h: b.h }, start: q };
@@ -272,6 +306,10 @@
       const other = drag.which === "a" ? wall.b : wall.a;
       wall[drag.which] = other ? magnet(other, q, e) : q;
       paintWall(); renderPanel();
+    } else if (drag.kind === "vertex") {
+      drag.free = e.shiftKey;
+      cornerVertex(drag, e.shiftKey ? q : snapPoint(q, drag.b));
+      paintBox(drag.b); handles();
     } else if (drag.kind === "move" && drag.b.angle) {
       const { b, o } = drag;
       Object.assign(b, { x: o.x + q[0] - drag.start[0], y: o.y + q[1] - drag.start[1] });
@@ -518,7 +556,7 @@
     const dy = Math.max(...uv.filter((p) => p[0] >= w - tol && p[1] > tol).map((p) => p[1]).concat([0])) || h * 0.4;
     const dx = Math.max(...uv.filter((p) => p[1] >= h - tol && p[0] > tol).map((p) => p[0]).concat([0])) || w * 0.4;
     const sc = draft().scale, dep = (Math.min(dx, w * 0.9) + Math.min(dy, h * 0.9)) / 2;
-    Object.assign(box, { kind: n === 6 ? "lcorner" : "corner", face });
+    Object.assign(box, { kind: n === 6 ? "lcorner" : "corner", face, depthU: Math.round(dep * 100) / 100 });
     if (sc && sc.metersPerUnit) box.depth = Math.max(20, Math.round(dep * sc.metersPerUnit * 100));
     return { box, noScale: !(sc && sc.metersPerUnit) };
   }
@@ -668,7 +706,7 @@
             <button type="button" class="secondary" id="skAddAll" hidden>إضافة الكل</button>
           </div></div>
         <p class="sk-draw-msg" id="skDrawMsg" role="status" hidden></p>
-        <p class="sk-draw-keys">Ctrl+D تكرار البوكس · الأسهم للتحريك · Delete للحذف · Ctrl + العجلة أو إصبعين للتكبير</p>
+        <p class="sk-draw-keys">Ctrl+Z تراجع · Ctrl+Y إعادة · Ctrl+D تكرار البوكس · الأسهم للتحريك · Delete للحذف · Ctrl + العجلة أو إصبعين للتكبير</p>
       </section>`);
     $("boxEditorFields").querySelector(".box-fields-heading").insertAdjacentHTML("beforeend",
       `<button type="button" class="text-button" id="skDupBox">تكرار</button>`);
@@ -760,6 +798,7 @@
   function helpText() {
     if (!draft().image || ED.busy || ED.tool === "scale" || ED.first) return;
     const t = mode === "manual" && poly.length ? "اضغط على أركان الخزانة بالترتيب، وأغلق الشكل عند نقطة 1."
+      : draft().boxes.some((b) => b.id === ED.selected && isCorner(b)) ? "اسحب أي نقطة من نقاط بوكس الزاوية لتحريكها وحدها، فيتغير الضلعان المتصلان بها فقط."
       : mode === "wall" ? "حدد الحيطة، واكتب عروض الخزائن بالسنتيمتر."
       : mode === "auto" ? "ابحث عن الخزائن، أو ارسم تقريبيًا حول كل خزانة."
       : "اسحب لرسم بوكس، أو اضغط على أركان الخزانة نقطة نقطة.";
@@ -826,6 +865,7 @@
     }
     if (e.key === "Escape" && $("skBoxMenu")) { e.preventDefault(); e.stopPropagation(); closeMenu(); return;
     }
+    if ((e.ctrlKey || e.metaKey) && (e.key.toLowerCase() === "z" || e.key.toLowerCase() === "y")) { e.preventDefault(); undoRedo(e.key.toLowerCase() === "z" && !e.shiftKey); return; }
     const b = draft().boxes.find((q) => q.id === ED.selected);
     if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "d") { e.preventDefault(); duplicate(); return; }
     if (!b) return;
@@ -838,12 +878,54 @@
     clearTimeout(onKey.t); onKey.t = setTimeout(() => UI.updateEditor(), 400);
   }
 
+  /* ---------------- تراجع وإعادة ----------------
+     بعد كل رسم للمحرر بنحفظ نسخة من البوكسات والمقياس لو اتغيروا، و«تراجع» بيرجع للنسخة اللي قبلها */
+  let past = [], future = [], snap = "";
+  const state = () => { const d = draft(); return d ? JSON.stringify({ boxes: d.boxes, scale: d.scale || null }) : ""; };
+  function historyUI() {
+    if ($("skUndo") || !$("planZoom")) return;
+    const box = document.createElement("span");
+    box.className = "sk-history";
+    box.innerHTML = `<button type="button" id="skUndo" class="sk-hist-btn" title="تراجع (Ctrl+Z)" aria-label="تراجع"><span aria-hidden="true">↶</span> تراجع</button>`
+      + `<button type="button" id="skRedo" class="sk-hist-btn" title="إعادة (Ctrl+Y)" aria-label="إعادة"><span aria-hidden="true">↷</span> إعادة</button>`;
+    const zoom = $("planZoom").closest("label") || $("planZoom");
+    zoom.parentNode.insertBefore(box, zoom);
+    $("skUndo").onclick = () => undoRedo(true);
+    $("skRedo").onclick = () => undoRedo(false);
+  }
+  function commit() {
+    const now = state();
+    if (!now || now === snap) return;
+    if (snap) { past.push(snap); if (past.length > 100) past.shift(); future = []; }
+    snap = now;
+  }
+  function undoRedo(back) {
+    if (drag || !draft()) return;
+    commit();
+    const from = back ? past : future, to = back ? future : past;
+    if (!from.length) return;
+    to.push(snap);
+    snap = from.pop();
+    const v = JSON.parse(snap), d = draft();
+    d.boxes.splice(0, d.boxes.length, ...v.boxes);
+    if (v.scale) d.scale = v.scale; else delete d.scale;
+    if (!d.boxes.some((b) => b.id === ED.selected)) ED.selected = null;
+    closeMenu();
+    UI.updateEditor();
+  }
+  function paintHistory() {
+    if (!$("skUndo")) return;
+    $("skUndo").disabled = !past.length;
+    $("skRedo").disabled = !future.length;
+  }
+
   // مخطط جديد أو صورة جديدة: نبدأ من الأول بالطريقة اللي المهندس اختارها آخر مرة
   let lastKey = "";
   window.addEventListener("indesign:editor-render", () => {
     injectUI();
     const d = draft(), key = d ? d.id + "|" + (d.image ? d.image.length : 0) : "";
-    if (key !== lastKey) { lastKey = key; wall = { a: null, b: null }; poly = []; candidates = []; closeMenu(); if (ED.tool === "draw") ED.tool = "select"; }
+    if (key !== lastKey) { lastKey = key; wall = { a: null, b: null }; poly = []; candidates = []; closeMenu(); if (ED.tool === "draw") ED.tool = "select"; past = []; future = []; snap = ""; }
+    historyUI(); commit(); paintHistory();
     afterRender();
   });
   window.SakanPlanTools = { setMode, mode: () => mode, detect, fitToLines, duplicate, fitPoly };

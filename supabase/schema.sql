@@ -304,7 +304,11 @@ begin
     if p.doc->'work'->>'status' = 'approved' then perform sakan_err('الاختيارات معتمدة ومقفلة. اطلب من مدير النظام السماح بالتعديل.'); end if;
     d := args->'work';
     v := sakan_now();
-    p.doc := p.doc || jsonb_build_object('work', jsonb_build_object('selections', coalesce(d->'selections','{}'::jsonb), 'notes', coalesce(d->>'notes',''), 'status', 'draft', 'updatedAt', v, 'updatedBy', sakan_by(me)), 'updatedAt', v);
+    -- التقسيمات المخصصة (صور يرفعها المستخدم) بتتحفظ مع الاختيارات، بحد أقصى 60 تقسيمة و6 ميجا
+    if jsonb_typeof(d->'custom') = 'array' and (jsonb_array_length(d->'custom') > 60 or octet_length((d->'custom')::text) > 6000000) then perform sakan_err('التقسيمات المخصصة كثيرة أو صورها كبيرة جدًا.'); end if;
+    p.doc := p.doc || jsonb_build_object('work', jsonb_build_object('selections', coalesce(d->'selections','{}'::jsonb), 'notes', coalesce(d->>'notes',''),
+      'custom', case when jsonb_typeof(d->'custom') = 'array' then d->'custom' else coalesce(p.doc->'work'->'custom','[]'::jsonb) end,
+      'status', 'draft', 'updatedAt', v, 'updatedBy', sakan_by(me)), 'updatedAt', v);
   elsif op = 'approveWork' then
     if me->>'role' = 'client' and not sakan_can(me, 'final') then perform sakan_err('غير مسموح لك بالاعتماد.'); end if;
     p.doc := p.doc || jsonb_build_object('work', '{"selections":{},"notes":""}'::jsonb || coalesce(p.doc->'work','{}'::jsonb) || jsonb_build_object('status','approved','approvedAt',sakan_now(),'approvedBy',sakan_by(me)), 'updatedAt', sakan_now());

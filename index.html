@@ -431,6 +431,53 @@ body.sk-no-project .topbar .project-tag, body.sk-no-project #summaryTop, body.sk
   .editor-sidebar > [hidden] { display: none; }
 }
 
+/* قايمة التقسيمات: التبويبات والمفضلة والتقسيم المخصص */
+.sk-type-tabs { display: flex; flex-wrap: wrap; gap: 6px; padding: 10px 10px 0; }
+.sk-type-tabs::-webkit-scrollbar { display: none; }
+.sk-type-tabs button { flex: 0 0 auto; border: 1px solid #ded9c9; background: #faf8f2; color: #4b4a42; border-radius: 999px; padding: 6px 12px; font: inherit; font-size: 13px; font-weight: 700; cursor: pointer; white-space: nowrap; }
+.sk-type-tabs button[aria-selected=true] { background: #2f4a47; border-color: #2f4a47; color: #fff; }
+.sk-custom-panel { display: grid; gap: 8px; padding: 10px 10px 0; }
+.sk-custom-panel label { display: grid; gap: 4px; font-size: 13px; font-weight: 700; }
+.sk-custom-panel input[type=text] { font: inherit; padding: 7px 9px; border: 1px solid #ded9c9; border-radius: 8px; }
+.sk-custom-file input { position: absolute; width: 1px; height: 1px; opacity: 0; }
+.sk-custom-file span { display: block; text-align: center; padding: 9px; border: 1.5px dashed #b49a55; border-radius: 10px; background: #fbf6e8; color: #6b5420; cursor: pointer; }
+.sk-custom-file:focus-within span { outline: 2px solid #b49a55; outline-offset: 2px; }
+.sk-custom-panel small { color: #77756b; font-size: 12px; }
+.sk-type-cell { position: relative; display: grid; }
+.sk-type-cell > .type-option { width: 100%; height: 100%; }
+.sk-fav { position: absolute; top: 4px; left: 4px; width: 30px; height: 30px; border-radius: 50%; border: 1px solid #ded9c9; background: #ffffffe6; color: #c9c4b4; font-size: 17px; line-height: 1; cursor: pointer; padding: 0; }
+.sk-fav.on { color: #e0a100; border-color: #e0a100; }
+.sk-type-empty { grid-column: 1 / -1; color: #77756b; text-align: center; padding: 14px 6px; margin: 0; }
+html[data-theme=dark] .sk-type-tabs button { background: #1e1e1e; border-color: #444; color: #ddd; }
+html[data-theme=dark] .sk-type-tabs button[aria-selected=true] { background: #c9a75a; border-color: #c9a75a; color: #111; }
+html[data-theme=dark] .sk-custom-panel input[type=text] { background: #1b1b1b; border-color: #444; color: #eee; }
+html[data-theme=dark] .sk-custom-file span { background: #2a2414; border-color: #c9a75a; color: #e8d39b; }
+html[data-theme=dark] .sk-fav { background: #222e; border-color: #555; color: #666; }
+html[data-theme=dark] .sk-fav.on { color: #ffc93c; border-color: #ffc93c; }
+
+/* صورة التقسيمة جنب البوكس المحدد على المخطط */
+.sk-thumb { cursor: pointer; }
+.sk-thumb-bg { fill: #fff; stroke: #d9822b; stroke-width: 2.5; filter: drop-shadow(0 2px 4px #0003); }
+.sk-thumb-dot { fill: #d9822b; }
+.sk-thumb-plus { fill: #fff; font-size: 14px; font-weight: 700; text-anchor: middle; }
+.sk-thumb:focus { outline: none; }
+.sk-thumb:focus .sk-thumb-bg { stroke-width: 4; }
+.sk-type-view { margin: 0; display: grid; gap: 10px; text-align: center; }
+.sk-type-view img { width: 100%; max-height: 62dvh; object-fit: contain; background: #fff; border-radius: 10px; border: 1px solid #e6e6de; }
+.sk-type-view figcaption b { margin-inline-end: 6px; }
+html[data-theme=dark] .sk-thumb-bg { fill: #1e1e1e; }
+
+/* نقط أركان بوكس الزاوية في المحرر */
+.sk-vertex { fill: #fff; stroke: #d9822b; stroke-width: 2; vector-effect: non-scaling-stroke; pointer-events: none; }
+.sk-vertex-hit { fill: transparent; cursor: move; }
+
+/* تراجع وإعادة في محرر المخطط */
+.sk-history { display: inline-flex; gap: 6px; align-items: center; }
+.sk-hist-btn { border: 1px solid #ded9c9; background: #fff; color: #2f4a47; border-radius: 8px; padding: 5px 11px; font: inherit; font-weight: 700; cursor: pointer; white-space: nowrap; }
+.sk-hist-btn span { font-size: 1.15em; }
+.sk-hist-btn:disabled { opacity: .4; cursor: default; }
+html[data-theme=dark] .sk-hist-btn { background: #1e1e1e; border-color: #444; color: #e8d39b; }
+
 /* ===== الثيم الليلي (dark_theme.py) ===== */
 @media screen{
 html[data-theme=dark]{--cream:#27241f;--white:#171717;--ink:#b0cbca;--muted:#7b8982;--teal:#7cb2ae;--wood:#5f4b2f;--gold:#a48149;--line:#30302c;--shadow:0 12px 42px rgba(176,203,202,0.0314)}
@@ -715,6 +762,29 @@ html[data-theme=dark][data-theme=dark] .sk-box-menu b{color:#4f4f4f}
 html[data-theme=dark] body.sk-no-project .sk-no-project-card{border:1px solid var(--line);background:#171717}
 html[data-theme=dark] .sk-no-project-card p{color:var(--muted)}
 html[data-theme=dark][data-theme=dark] .sk-no-project-card{background:#d2d2d2;border-color:#bebebe}
+html[data-theme=dark] .sk-type-tabs button{border:1px solid #49422c;background:#23211a;color:#b3b2a9}
+html[data-theme=dark] .sk-type-tabs button[aria-selected=true]{background:#a6c7c3;border-color:#a6c7c3;color:#171717}
+html[data-theme=dark] .sk-custom-panel input[type=text]{border:1px solid #49422c}
+html[data-theme=dark] .sk-custom-file span{border:1.5px dashed #ab914c;background:#2a261a;color:#dac084}
+html[data-theme=dark] .sk-custom-file:focus-within span{outline:2px solid #ab914c}
+html[data-theme=dark] .sk-custom-panel small{color:#928f85}
+html[data-theme=dark] .sk-fav{border:1px solid #49422c;background:rgba(23,23,23,0.902);color:#58523f}
+html[data-theme=dark] .sk-fav.on{color:#cba84d;border-color:#cba84d}
+html[data-theme=dark] .sk-type-empty{color:#928f85}
+html[data-theme=dark][data-theme=dark] .sk-type-tabs button{background:#cfcfcf;border-color:#b0b0b0;color:#333333}
+html[data-theme=dark][data-theme=dark] .sk-type-tabs button[aria-selected=true]{background:#aa8738;border-color:#aa8738;color:#dadada}
+html[data-theme=dark][data-theme=dark] .sk-custom-panel input[type=text]{background:#d2d2d2;border-color:#b0b0b0;color:#252525}
+html[data-theme=dark][data-theme=dark] .sk-custom-file span{background:#e0d6bd;border-color:#aa8738;color:#725c21}
+html[data-theme=dark][data-theme=dark] .sk-fav{background:rgba(204,204,204,0.933);border-color:#a2a2a2;color:#949494}
+html[data-theme=dark][data-theme=dark] .sk-fav.on{color:#9f802e;border-color:#9f802e}
+html[data-theme=dark] .sk-thumb-bg{fill:#171717;stroke:#c27d38}
+html[data-theme=dark] .sk-thumb-dot{fill:#c27d38}
+html[data-theme=dark] .sk-thumb-plus{fill:#171717}
+html[data-theme=dark] .sk-type-view img{background:#171717;border:1px solid #31312c}
+html[data-theme=dark][data-theme=dark] .sk-thumb-bg{fill:#cfcfcf}
+html[data-theme=dark] .sk-vertex{fill:#171717;stroke:#c27d38}
+html[data-theme=dark] .sk-hist-btn{border:1px solid #49422c;background:#171717;color:#a6c7c3}
+html[data-theme=dark][data-theme=dark] .sk-hist-btn{background:#cfcfcf;border-color:#b0b0b0;color:#725c21}
 html[data-theme=dark] .sk-paper{--cream:#f5f2ec;--white:#fff;--ink:#293f3e;--muted:#75837c;--teal:#497c78;--wood:#d8c8b1;--gold:#b7955e;--line:#e7e7df;--shadow:0 12px 42px #293f3e08}
 html[data-theme=dark] .sk-paper body{background:var(--cream);color:var(--ink)}
 html[data-theme=dark] .sk-paper button:focus-visible,html[data-theme=dark] .sk-paper input:focus-visible,html[data-theme=dark] .sk-paper textarea:focus-visible,html[data-theme=dark] .sk-paper a:focus-visible{outline:3px solid #b7955e90}
@@ -903,7 +973,7 @@ html[data-theme=dark] .type-option img,html[data-theme=dark] .summary-row img,ht
 <main><section class="project-strip"><div><small>المخطط الحالي</small><b id="currentPlanName">غرفة ملابس الأستاذ طلال</b></div><div class="project-actions"><button class="primary" id="switchPlan">اختيار / رفع مخطط</button><button class="secondary" id="editPlan" hidden>تعديل البوكسات والمقياس</button><button class="secondary" id="exportProject" hidden>تحميل ملف المشروع ↓</button></div></section><section class="intro"><div><span class="eyebrow">من المخطط إلى مساحتك</span><h1>كل بوكس، على ذوقك.</h1><p>اضغط على الخزانة، شاهد التقسيمات المناسبة، واختر ما يناسب احتياجك.</p></div><div class="save-state"><span class="save-dot"></span><div>اختياراتك محفوظة هنا<small>على هذا الجهاز تلقائيًا</small></div></div></section>
 <div class="workspace"><section class="plan-card"><div class="card-heading"><div><h2 id="planTitle">غرفة ملابس الأستاذ طلال</h2><p id="planSubTitle">مخطط علوي · 9 بوكسات</p></div><span class="live-chip"><span></span>مخطط تفاعلي</span></div><div class="legend"><span><i class="swatch selected"></i>تم الاختيار</span><span><i class="swatch active"></i>البوكس الحالي</span><span><i class="swatch fixed"></i>وحدة ثابتة</span></div><div class="map-wrap" id="mapMount"></div><div class="plan-foot"><span id="planFootNote">الكورنرات B03 · B04 · B07 بواجهة مشطوفة.</span><button class="text-button" id="deskButton">شاهد المكتب السحب <span aria-hidden="true">↗</span></button></div></section>
 <aside class="choice-card" id="choicePanel" aria-label="اختيار التقسيمة"><div class="choice-heading"><span class="box-code" id="activeCode">B01</span><div><h2 id="activeName">خزانة مستقيمة</h2><p id="activeDims"></p></div><span class="box-step" id="activeStep">1 / 9</span></div><div class="progress-row"><span id="progressText">ابدأ باختيار أول تقسيمة</span><span class="count">0/9</span></div><div class="progress-track"><i id="progressBar"></i></div><div class="field-label">التقسيم الداخلي <span id="optionsCount">20 اختيارًا</span></div>
-<div class="picker"><button id="pickerToggle" class="picker-toggle" aria-haspopup="dialog" aria-expanded="false" aria-controls="pickerMenu"><span id="pickerLabel">استعرض التقسيمات بالصور</span><span class="chevron">⌄</span></button><div id="pickerMenu" class="picker-menu" hidden><div class="picker-search"><input id="typeSearch" type="search" placeholder="ابحث بالاسم أو رقم الـType…" aria-label="البحث في التقسيمات"><button id="pickerClose" class="icon-button" aria-label="إغلاق قائمة التايبات">×</button></div><div id="typeGrid" class="type-grid"></div><p class="picker-note">اضغط على صورة لمعاينتها، ثم اعتمد اختيارك.</p></div></div>
+<div class="picker"><button id="pickerToggle" class="picker-toggle" aria-haspopup="dialog" aria-expanded="false" aria-controls="pickerMenu"><span id="pickerLabel">استعرض التقسيمات بالصور</span><span class="chevron">⌄</span></button><div id="pickerMenu" class="picker-menu" hidden><div id="skTypeTabs" class="sk-type-tabs" role="tablist" aria-label="أقسام التقسيمات"><button type="button" role="tab" data-type-tab="div" aria-selected="true">التقسيمات</button><button type="button" role="tab" data-type-tab="dresser" aria-selected="false">تسريحة داخل الخزانة</button><button type="button" role="tab" data-type-tab="fav" aria-selected="false">المفضلة</button><button type="button" role="tab" data-type-tab="custom" aria-selected="false">تقسيم مخصص</button></div><div id="skCustomPanel" class="sk-custom-panel" hidden><label>اسم التقسيمة <input id="skCustomName" type="text" maxlength="60" placeholder="مثال: رفوف مع درج سفلي"></label><label class="sk-custom-file"><input id="skCustomFile" type="file" accept="image/*"><span>رفع صورة التقسيمة</span></label><small>تُحفظ التقسيمة المخصصة مع هذا المشروع وتظهر لهذا النوع من الخزائن.</small></div><div class="picker-search"><input id="typeSearch" type="search" placeholder="ابحث بالاسم أو رقم الـType…" aria-label="البحث في التقسيمات"><button id="pickerClose" class="icon-button" aria-label="إغلاق قائمة التايبات">×</button></div><div id="typeGrid" class="type-grid"></div><p class="picker-note">اضغط على صورة لمعاينتها، ثم اعتمد اختيارك.</p></div></div>
 <div id="typePreview" class="type-preview"></div><div id="typeCaption" class="type-caption"></div><div class="selection-actions"><button id="applyType" class="primary" disabled>اعتمد لهذه الخزانة <span>✓</span></button><button id="clearBox" class="text-button" hidden>مسح اختيار البوكس</button></div><div class="nav-boxes"><button id="prevBox" class="secondary">البوكس السابق</button><button id="nextBox" class="secondary">البوكس التالي ←</button></div><p class="fit-note">هذه الاختيارات لتحديد التوزيع الداخلي؛ المقاسات النهائية وإمكانية التنفيذ يراجعها المصمم.</p></aside></div>
 <section class="room-invite"><div><span class="eyebrow">شوف اختياراتك في مكانها</span><h2>ادخل غرفتك ولفّ فيها 360°</h2><p id="roomReady">أكمل اختيار 9 بوكسات لعرض الغرفة</p></div><button class="primary" id="viewRoom" disabled>استعرض غرفتك 360° <span>↗</span></button></section><section class="bottom-bar"><div><b id="completionLabel">جاهز لتخصيص مساحتك؟</b><p>راجع الاختيارات، ثم نزّل الملخص وأرسله للمصمم.</p></div><button class="primary" id="summaryBottom">مراجعة الاختيارات <span>←</span></button></section><p class="privacy-note">الاختيارات تُحفظ على جهازك، ولا تُرسل تلقائيًا لأي جهة.</p></main>
 <footer><span>سكن جروب <span class="footer-separator">/</span> تصميم التفاصيل التي تناسبك</span><button id="resetAll" class="text-button">بدء اختيارات جديدة</button></footer>
@@ -921,7 +991,7 @@ async function dbCall(mode,action){const db=await openDB();return new Promise((r
 async function list(){if(root.SakanPlanRemote)return root.SakanPlanRemote.list();let all=[];try{all=await dbCall('readonly',s=>s.getAll())}catch{}try{for(let i=0;i<localStorage.length;i++){let k=localStorage.key(i);if(k?.startsWith(FALL)){let p=JSON.parse(localStorage.getItem(k));if(p?.id)all.push(p)}}}catch{}for(const p of memory.values())all.push(p);let map=new Map();for(const p of all)if(!map.has(p.id)||Number(p.updated)>=Number(map.get(p.id).updated))map.set(p.id,p);return [...map.values()].sort((a,b)=>b.updated-a.updated)}
 async function put(p){if(root.SakanPlanRemote)return root.SakanPlanRemote.put(clone(p));let v=clone(p);v.updated=Date.now();memory.set(v.id,v);try{await dbCall('readwrite',s=>s.put(v));return true}catch{try{localStorage.setItem(FALL+v.id,JSON.stringify(v));return true}catch{return false}}}
 async function remove(id){if(root.SakanPlanRemote)return root.SakanPlanRemote.remove(id);memory.delete(id);try{await dbCall('readwrite',s=>s.delete(id))}catch{}try{localStorage.removeItem(FALL+id)}catch{}}
-function polygon(b,p){let q=polygon0(b,p),a=(b.angle||0)*Math.PI/180;if(!a)return q;let cx=b.x+b.w/2,cy=b.y+b.h/2,c=Math.cos(a),s=Math.sin(a);return q.map(([X,Y])=>[cx+(X-cx)*c-(Y-cy)*s,cy+(X-cx)*s+(Y-cy)*c])}function polygon0(b,p){let {x,y,w,h}=b;if(b.kind==='straight'||b.kind==='fixed')return[[x,y],[x+w,y],[x+w,y+h],[x,y+h]];let dep=p.scale?b.depth/100/p.scale.metersPerUnit:Math.min(w,h)*.6,dx=Math.min(dep,w*.9),dy=Math.min(dep,h*.9),q=b.kind==='lcorner'?[[0,0],[w,0],[w,dy],[dx,dy],[dx,h],[0,h]]:[[0,0],[w,0],[w,dy],[dx,h],[0,h]];return q.map(([a,c])=>[x+(['ne','se'].includes(b.face)?w-a:a),y+(['sw','se'].includes(b.face)?h-c:c)])}
+function polygon(b,p){let q=polygon0(b,p),a=(b.angle||0)*Math.PI/180;if(!a)return q;let cx=b.x+b.w/2,cy=b.y+b.h/2,c=Math.cos(a),s=Math.sin(a);return q.map(([X,Y])=>[cx+(X-cx)*c-(Y-cy)*s,cy+(X-cx)*s+(Y-cy)*c])}function polygon0(b,p){let {x,y,w,h}=b;if((b.kind==='corner'||b.kind==='lcorner')&&Array.isArray(b.pts)&&b.pts.length===(b.kind==='lcorner'?6:5))return b.pts.map(([u,v])=>[x+u*w,y+v*h]);if(b.kind==='straight'||b.kind==='fixed')return[[x,y],[x+w,y],[x+w,y+h],[x,y+h]];let dep=p.scale?b.depth/100/p.scale.metersPerUnit:(b.depthU||Math.min(w,h)*.6),dx=Math.min(dep,w*.9),dy=Math.min(dep,h*.9),q=b.kind==='lcorner'?[[0,0],[w,0],[w,dy],[dx,dy],[dx,h],[0,h]]:[[0,0],[w,0],[w,dy],[dx,h],[0,h]];return q.map(([a,c])=>[x+(['ne','se'].includes(b.face)?w-a:a),y+(['sw','se'].includes(b.face)?h-c:c)])}
 function svg(p,selections={},active=''){let height=1000*p.imageHeight/p.imageWidth,T=new Map(APP_DATA.types.map(t=>[t.id,t]));return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 ${height}" role="group" aria-label="${esc(p.title)}"><image href="${p.image}" width="1000" height="${height}" preserveAspectRatio="none"/>${p.boxes.map(b=>{let t=T.get(selections[b.id]),cx=b.x+b.w/2,cy=b.y+b.h/2,shape=polygon(b,p).map(q=>q.join(',')).join(' '),fixed=b.kind==='fixed';return `<g class="unit upload-unit ${b.id===active?'active':''} ${t?'chosen':''} ${fixed?'upload-fixed':''}" ${fixed?'data-fixed': 'data-box'}="${esc(b.id)}" role="button" tabindex="0" aria-label="${esc(b.id)} ${fixed?'وحدة ثابتة':t?esc(t.name):'اختر تقسيمة'}"><polygon class="cab" points="${shape}"/><rect class="badge" x="${cx-30}" y="${cy-16}" width="60" height="25" rx="5"/><text class="code" x="${cx}" y="${cy-3}">${esc(b.id)}</text><text class="choice" x="${cx}" y="${cy+22}">${fixed?'حسب التصميم':t?esc(t.label):'اختر تقسيمة'}</text></g>`}).join('')}</svg>`}
 function inside(p,poly){let yes=false;for(let i=0,j=poly.length-1;i<poly.length;j=i++){let a=poly[i],b=poly[j];if((a[1]>p[1])!==(b[1]>p[1])&&p[0]<(b[0]-a[0])*(p[1]-a[1])/(b[1]-a[1])+a[0])yes=!yes}return yes}
 function dist(p,a,b){let dx=b[0]-a[0],dy=b[1]-a[1],t=Math.max(0,Math.min(1,((p[0]-a[0])*dx+(p[1]-a[1])*dy)/(dx*dx+dy*dy)));return Math.hypot(p[0]-a[0]-t*dx,p[1]-a[1]-t*dy)}
@@ -929,11 +999,11 @@ function layout(p){if(p.builtin)return null;if(!p.scale)return null;let scale=p.
 root.PlanProjects={schema:SCHEMA,current:builtin,builtin,uid,validate,list,put,remove,svg,polygon,layout,escape:esc,clone,activeKey:ACTIVE,kindName:k=>({straight:'خزانة مستقيمة',corner:'كورنر بواجهة مشطوفة',lcorner:'كورنر L',fixed:'وحدة ثابتة'})[k]||'خزانة'};
 })(window);
 </script><script>(()=>{'use strict';const D=APP_DATA,$=id=>document.getElementById(id),K='indesign:'+D.project,T=new Map(D.types.map(t=>[t.id,t]));let S={},active='B01',draft=null,tt;let saved={};try{saved=JSON.parse(localStorage.getItem(K)||'{}')||{}}catch{}if(saved.catalogVersion===D.catalogVersion)for(const b of D.boxes){let t=T.get(Number(saved.selections?.[b.id]));if(t?.kind===b.kind)S[b.id]=t.id}$('clientName').value=saved.client||'العميل';$('clientNotes').value=saved.notes||'';$('brand').src=D.logo;$('deskPhoto').src=D.desk;
-const kindName=PlanProjects.kindName,total=()=>D.boxes.length,isCorner=b=>b.kind==='corner'||b.kind==='lcorner',boxDims=b=>isCorner(b)&&b.legA?`ضلعان ${fmt(b.legA)} × ${fmt(b.legB)} سم · عمق ${fmt(b.cornerDepth)} سم`:b.width?`عرض ${fmt(b.width)} سم · عمق ${fmt(b.depth)} سم`:'المقاسات حسب المخطط';const esc=s=>String(s).replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m])),fmt=n=>Number(n).toLocaleString('en-US',{maximumFractionDigits:2}),box=()=>D.boxes.find(b=>b.id===active),allowed=()=>D.types.filter(t=>t.kind===box().kind);function toast(s){$('toast').textContent=s;$('toast').classList.add('show');clearTimeout(tt);tt=setTimeout(()=>$('toast').classList.remove('show'),2600)}function save(){if(!PlanProjects.current.builtin)return;try{localStorage.setItem(K,JSON.stringify({catalogVersion:D.catalogVersion,selections:S,client:$('clientName').value,notes:$('clientNotes').value}))}catch{toast('تعذّر الحفظ التلقائي. نزّل الملخص للاحتفاظ باختياراتك.')}}
+const kindName=PlanProjects.kindName,total=()=>D.boxes.length,isCorner=b=>b.kind==='corner'||b.kind==='lcorner',boxDims=b=>isCorner(b)&&b.legA?`ضلعان ${fmt(b.legA)} × ${fmt(b.legB)} سم · عمق ${fmt(b.cornerDepth)} سم`:b.width?`عرض ${fmt(b.width)} سم · عمق ${fmt(b.depth)} سم`:'المقاسات حسب المخطط';const esc=s=>String(s).replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m])),fmt=n=>Number(n).toLocaleString('en-US',{maximumFractionDigits:2}),box=()=>D.boxes.find(b=>b.id===active),allowed=()=>D.types.filter(t=>t.kind===box().kind&&(t.cat!=='custom'||(window.skCustomIds||[]).includes(t.id)));function toast(s){$('toast').textContent=s;$('toast').classList.add('show');clearTimeout(tt);tt=setTimeout(()=>$('toast').classList.remove('show'),2600)}function save(){if(!PlanProjects.current.builtin)return;try{localStorage.setItem(K,JSON.stringify({catalogVersion:D.catalogVersion,selections:S,client:$('clientName').value,notes:$('clientNotes').value}))}catch{toast('تعذّر الحفظ التلقائي. نزّل الملخص للاحتفاظ باختياراتك.')}}
 const G={B01:{r:[0,197.34,60,44.66],c:[30,219.67]},B02:{r:[0,108,60,89.34],c:[30,152.67]},B03:{p:'0,0 100,0 100,60 60,100 0,100',c:[41,39]},B04:{p:'291,0 391,0 391,100 331,100 291,60',c:[351,39]},B05:{r:[331,108,60,117.34],c:[361,166.67]},B06:{r:[331,225.34,60,58.66],c:[361,254.67]},B07:{p:'331,292 391,292 391,392 291,392 291,332',c:[353,356]},B08:{r:[193.67,332,89.33,60],c:[238.335,362]},B09:{r:[149,332,44.67,60],c:[171.335,362]}};
 function svg(){if(!PlanProjects.current.builtin)return PlanProjects.svg(PlanProjects.current,S,active);return `<svg viewBox="-45 -37 480 467" role="group" aria-label="مخطط خزائن غرفة ملابس طلال"><path d="M0 -22H391 M0 -25V-19 M391 -25V-19" fill="none" stroke="#b8bfb3" stroke-width=".6"/><text x="195.5" y="-27" class="map-dim">391 cm</text><g fill="#e5e4dd" stroke="#afb7ad" stroke-width=".6"><rect x="0" y="100" width="60" height="8"/><rect x="0" y="242" width="60" height="8"/><rect x="331" y="100" width="60" height="8"/><rect x="331" y="284" width="60" height="8"/><rect x="141" y="332" width="8" height="60"/><rect x="283" y="332" width="8" height="60"/></g><g class="fixed-unit" role="button" tabindex="0" aria-label="أدراج الشباك والمكتب السحب" id="deskMap"><rect class="fixed-shape" x="100" y="0" width="191" height="60" fill="#e1e7dd" stroke="#899b8e" stroke-width=".8"/><path d="M100 -6H291" stroke="#497c78" stroke-width="2"/><text x="195.5" y="-11" class="map-label">الشباك</text><text x="195.5" y="24" class="map-label">أدراج + مكتب سحب</text><text x="195.5" y="43" class="map-dim">191 × 60 cm · ثابت</text><path d="M149 60V90H242V60" stroke="#8caaa0" stroke-width=".8" stroke-dasharray="3,3" fill="none"/><path d="M195 66V81 M190 76L195 81 200 76" stroke="#8caaa0" fill="none"/></g>${D.boxes.map(b=>{const g=G[b.id],[x,y]=g.c,t=T.get(S[b.id]);return `<g class="unit ${active===b.id?'active':''} ${t?'chosen':''}" data-box="${b.id}" role="button" tabindex="0" aria-pressed="${active===b.id}" aria-label="${b.id} ${b.kind==='corner'?'كورنر مشطوف':'خزانة مستقيمة'} ${t?t.name:'لم يتم الاختيار'}">${g.r?`<rect class="cab" x="${g.r[0]}" y="${g.r[1]}" width="${g.r[2]}" height="${g.r[3]}"/>`:`<polygon class="cab" points="${g.p}"/>`}<rect class="badge" x="${x-19}" y="${y-11}" width="38" height="19" rx="4"/><text class="code" x="${x}" y="${y-1}">${b.id}</text><text class="choice" x="${x}" y="${y+17}">${t?t.label:'اختَر تقسيمة'}</text>${g.r&&g.r[3]>70?`<text class="size" x="${x}" y="${y+32}">${fmt(b.width)} cm</text>`:''}</g>`}).join('')}<text x="105" y="311" class="map-label">مدخل الغرفة</text><path d="M105 341V323 M101 328L105 323 109 328" stroke="#b3bdb1" fill="none"/></svg>`}
 function map(){ $('mapMount').innerHTML=svg();document.querySelectorAll('[data-box]').forEach(el=>{el.onclick=()=>activate(el.dataset.box,true,true);el.onkeydown=e=>{if(['Enter',' '].includes(e.key)){e.preventDefault();activate(el.dataset.box,true,true)}}});document.querySelectorAll('[data-fixed]').forEach(el=>{el.onclick=()=>toast('وحدة ثابتة حسب التصميم، ولا تحتاج لاختيار Type.');el.onkeydown=e=>{if(['Enter',' '].includes(e.key)){e.preventDefault();el.onclick()}}});if($('deskMap'))$('deskMap').onclick=()=>dialog('deskDialog');if($('deskMap'))$('deskMap').onkeydown=e=>{if(['Enter',' '].includes(e.key)){e.preventDefault();dialog('deskDialog')}}}
-window.addEventListener('indesign:notice',e=>toast(e.detail));function progress(){let n=Object.keys(S).length;document.querySelectorAll('.count').forEach(el=>el.textContent=n+'/'+total());$('progressBar').style.width=n/total()*100+'%';$('progressText').textContent=n===total()?'كل البوكسات لها اختيارات':n?`باقي ${total()-n} بوكسات`:'ابدأ باختيار أول تقسيمة';$('completionLabel').textContent=n===total()?'اكتملت اختيارات مساحتك':n?`اخترت ${n} من ${total()} بوكسات`:'جاهز لتخصيص مساحتك؟';window.dispatchEvent(new CustomEvent('indesign:selection'))}function close(){ $('pickerMenu').hidden=true;$('pickerToggle').setAttribute('aria-expanded','false')}function options(){let q=$('typeSearch').value.trim().toLowerCase(),list=allowed().filter(t=>(t.label+' '+t.name+' '+t.id).toLowerCase().includes(q));$('typeGrid').innerHTML=list.map(t=>`<button class="type-option" data-type="${t.id}" aria-pressed="${draft===t.id}" aria-label="${t.label} ${t.name}"><img src="${t.image}" alt="${t.name}" loading="lazy"><b>${t.label}</b><span>${t.name}</span></button>`).join('')||'<p>لا توجد نتائج بهذا البحث.</p>';$('typeGrid').querySelectorAll('[data-type]').forEach(el=>el.onclick=()=>{draft=Number(el.dataset.type);close();preview();$('applyType').focus({preventScroll:true})})}function open(){ $('pickerMenu').hidden=false;$('pickerToggle').setAttribute('aria-expanded','true');$('typeSearch').value='';options()}
+window.addEventListener('indesign:notice',e=>toast(e.detail));function progress(){let n=Object.keys(S).length;document.querySelectorAll('.count').forEach(el=>el.textContent=n+'/'+total());$('progressBar').style.width=n/total()*100+'%';$('progressText').textContent=n===total()?'كل البوكسات لها اختيارات':n?`باقي ${total()-n} بوكسات`:'ابدأ باختيار أول تقسيمة';$('completionLabel').textContent=n===total()?'اكتملت اختيارات مساحتك':n?`اخترت ${n} من ${total()} بوكسات`:'جاهز لتخصيص مساحتك؟';window.dispatchEvent(new CustomEvent('indesign:selection'))}function close(){ $('pickerMenu').hidden=true;$('pickerToggle').setAttribute('aria-expanded','false')}function options(){let q=$('typeSearch').value.trim().toLowerCase(),cat=window.skTypeTab||'div',fav=window.skFavs||[],list=allowed().filter(t=>cat==='fav'?fav.includes(t.id):(t.cat||'div')===cat).filter(t=>(t.label+' '+t.name+' '+t.id).toLowerCase().includes(q));$('typeGrid').innerHTML=list.map(t=>`<div class="sk-type-cell"><button class="type-option" data-type="${t.id}" aria-pressed="${draft===t.id}" aria-label="${t.label} ${t.name}"><img src="${t.image}" alt="${t.name}" loading="lazy"><b>${t.label}</b><span>${t.name}</span></button><button type="button" class="sk-fav${fav.includes(t.id)?' on':''}" data-fav="${t.id}" aria-pressed="${fav.includes(t.id)}" aria-label="المفضلة" title="المفضلة">★</button></div>`).join('')||`<p class="sk-type-empty">${q?'لا توجد نتائج بهذا البحث.':({dresser:'لا توجد تسريحات مضافة بعد.',fav:'لا توجد تقسيمات في المفضلة بعد. اضغط النجمة على أي تقسيمة لإضافتها.',custom:'لا توجد تقسيمات مخصصة لهذه الخزانة بعد. ارفع صورة التقسيمة من الأعلى.'}[cat]||'لا توجد نتائج بهذا البحث.')}</p>`;$('typeGrid').querySelectorAll('[data-fav]').forEach(el=>el.onclick=e=>{e.stopPropagation();window.skToggleFav&&window.skToggleFav(Number(el.dataset.fav))});$('typeGrid').querySelectorAll('[data-type]').forEach(el=>el.onclick=()=>{draft=Number(el.dataset.type);close();preview();$('applyType').focus({preventScroll:true})})}function open(){ $('pickerMenu').hidden=false;$('pickerToggle').setAttribute('aria-expanded','true');$('typeSearch').value='';options()}
 function preview(){let t=T.get(draft);$('pickerLabel').textContent=t?t.label+' · '+t.name:'استعرض التقسيمات بالصور';$('typePreview').innerHTML=t?`<img src="${t.image}" alt="${t.name}">`:'<div class="empty-preview"><svg viewBox="0 0 80 110" aria-hidden="true"><rect x="12" y="5" width="56" height="98"/><path d="M12 26H68 M20 36H60 M40 36V42L27 51H53L40 42 M12 79H68 M12 91H68"/></svg><p>تخيّل ترتيبك من الداخل</p><small>افتح القائمة وشاهد الخيارات بالصور</small></div>';$('typeCaption').innerHTML=t?`<b>${t.label}</b>${esc(t.name)}`:'';$('applyType').disabled=!t||S[active]===draft;$('applyType').innerHTML=t&&S[active]===draft?'هذا اختيارك الحالي <span>✓</span>':'اعتمد لهذه الخزانة <span>✓</span>';$('clearBox').hidden=!S[active]}
 function activate(id,show=false,scroll=false){if(!D.boxes.some(b=>b.id===id))return;active=id;draft=S[id]??null;let b=box(),i=D.boxes.indexOf(b);$('activeCode').textContent=id;$('activeName').textContent=kindName(b.kind);$('activeDims').textContent=isCorner(b)?(PlanProjects.current.builtin?'ضلعان 100 × 100 سم · عمق 60 سم':boxDims(b)):boxDims(b);$('activeStep').textContent=`${i+1} / ${total()}`;$('optionsCount').textContent=`${allowed().length} اختيارات مناسبة`;$('prevBox').disabled=i===0;$('nextBox').disabled=i===total()-1;close();map();preview();progress();if(scroll&&matchMedia('(max-width:740px)').matches)$('choicePanel').scrollIntoView({behavior:'smooth',block:'start'});if(show)open()}
 $('pickerToggle').onclick=()=>$('pickerMenu').hidden?open():close();$('pickerClose').onclick=close;$('typeSearch').oninput=options;$('applyType').onclick=()=>{if(!allowed().some(t=>t.id===draft))return;S[active]=draft;save();map();preview();progress();toast(`تم حفظ اختيار ${active} — ${T.get(draft).label}`)};$('clearBox').onclick=()=>{delete S[active];draft=null;save();map();preview();progress();toast('تم مسح اختيار البوكس')};$('prevBox').onclick=()=>activate(D.boxes[Math.max(0,D.boxes.findIndex(b=>b.id===active)-1)].id);$('nextBox').onclick=()=>activate(D.boxes[Math.min(total()-1,D.boxes.findIndex(b=>b.id===active)+1)].id);document.addEventListener('click',e=>{if(!e.target.closest('.picker')&&!e.target.closest('[data-box]')&&!e.target.closest('[data-edit]'))close()});document.addEventListener('keydown',e=>{if(e.key==='Escape')close()});function dialog(id){close();$(id).showModal()}document.querySelectorAll('.close-dialog').forEach(el=>el.onclick=()=>el.closest('dialog').close());
@@ -942,7 +1012,7 @@ $('summaryTop').onclick=summary;$('summaryBottom').onclick=summary;$('deskButton
 function report(){return `<h1>سكن جروب / ${esc(D.title)}</h1><div class="print-meta"><b>العميل:</b> ${esc($('clientName').value||'العميل')}<br><b>التاريخ:</b> ${new Date().toLocaleDateString('ar-KW')}<br><b>المكتمل:</b> ${Object.keys(S).length} من ${total()}<br><b>مرجع الكتالوج:</b> <span dir="ltr">${D.catalogVersion}</span></div><div class="print-plan">${svg()}</div><table><thead><tr><th>البوكس</th><th>الخزانة</th><th>الاختيار</th><th>الصورة</th></tr></thead><tbody>${D.boxes.map(b=>{let t=T.get(S[b.id]);return `<tr><td dir="ltr">${b.id}</td><td>${esc(kindName(b.kind)+' · '+boxDims(b))}</td><td>${t?`<b dir="ltr">${t.label}</b><br>${esc(t.name)}`:'لم يتم الاختيار'}</td><td>${t?`<img src="${t.image}" alt="${t.name}">`:'—'}</td></tr>`}).join('')}</tbody></table><h3>ملاحظات للمصمم</h3><p style="white-space:pre-wrap">${esc($('clientNotes').value||'لا توجد ملاحظات.')}</p>${PlanProjects.current.builtin?'<p>وحدة الشباك: أدراج ومكتب سحب حسب التصميم المعتمد.</p>':(PlanProjects.current.boxes.some(b=>b.kind==='fixed')?'<p>الوحدات الثابتة حسب التصميم المرفق.</p>':'')}<p>الاختيارات لتحديد التوزيع؛ المقاسات والخلوص وإمكانية التنفيذ تراجع قبل الاعتماد.</p>`}
 $('printSummary').onclick=()=>{$('printArea').innerHTML=report();$('summaryDialog').close();window.print()};
 $('downloadSummary').onclick=()=>{save();let css=`body{font:14px Tahoma,Arial;background:#f5f2ec;color:#293f3e;margin:0;padding:25px;line-height:1.8}main{max-width:900px;margin:auto;background:white;padding:25px}h1{font-size:22px}.print-meta{background:#f5f2ec;padding:15px}.print-plan{text-align:center;height:360px}.print-plan svg{height:360px;max-width:100%}table{width:100%;border-collapse:collapse}td,th{padding:8px;border:1px solid #ddd;text-align:right}td img{height:115px;max-width:100px;object-fit:contain}tr{break-inside:avoid}.unit text{font:10px Arial;fill:#293f3e;text-anchor:middle;dominant-baseline:central}.unit .cab{fill:#f4ede2;stroke:#8a9990;stroke-width:1}.unit.chosen .cab{fill:#deebe2;stroke:#497c78}.unit .badge{fill:#fff;stroke:#acbbae}.unit .choice{font-size:7px;fill:#497c78}.unit .size{font-size:6px}.map-label,.map-dim{font:8px Tahoma;fill:#71857a;text-anchor:middle}button{background:#497c78;border:0;color:white;padding:10px 20px;border-radius:7px;margin-bottom:15px;cursor:pointer}@media print{body{background:white;padding:0}button{display:none}td img{height:85px}}@page{size:A4;margin:14mm}`,html=`<!doctype html><html lang="ar" dir="rtl"><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>ملخص اختيارات ${esc(D.title)}</title><style>${css}</style><main><button onclick="window.print()">طباعة / حفظ PDF</button>${report()}</main></html>`,u=URL.createObjectURL(new Blob([html],{type:'text/html;charset=utf-8'})),a=document.createElement('a');a.href=u;a.download='SakanGroup-Selections.html';a.click();setTimeout(()=>URL.revokeObjectURL(u),1000);toast('تم تنزيل الملخص. أرسله للمصمم بعد المراجعة.')};
-$('resetAll').onclick=()=>dialog('resetDialog');$('cancelReset').onclick=()=>$('resetDialog').close();$('confirmReset').onclick=()=>{S={};$('clientNotes').value='';save();$('resetDialog').close();activate(D.boxes[0].id);toast('تم بدء اختيارات جديدة')};activate('B01');window.INDESIGN_APP={getSelections:()=>({...S}),/* SAKAN-PORTAL */setState(sel,client,notes){S={};for(const b of D.boxes){let t=T.get(Number(sel?.[b.id]));if(t?.kind===b.kind)S[b.id]=t.id}if(client!=null)$('clientName').value=client;if(notes!=null)$('clientNotes').value=notes;save();activate(D.boxes.some(b=>b.id===active)?active:D.boxes[0].id)},withSelections(sel,fn){let keep=S;S={};for(const b of D.boxes){let t=T.get(Number(sel?.[b.id]));if(t?.kind===b.kind)S[b.id]=t.id}try{return fn()}finally{S=keep}},planSVG:()=>svg(),boxes:()=>D.boxes.map(b=>({id:b.id,kind:kindName(b.kind),dims:isCorner(b)&&PlanProjects.current.builtin?'ضلعان 100 × 100 سم · عمق 60 سم':boxDims(b),type:T.get(S[b.id])||null})),typeOf:id=>T.get(Number(id)),title:()=>D.title,focusBox:id=>activate(id,true,true),save,loadProject(p){close();if($('roomDialog').open)$('roomDialog').close();PlanProjects.current=p;D.project=p.id;D.title=p.title;D.catalogVersion=p.builtin?'TALAL-CHAMFERED-1.0':'INDESIGN-MULTI-1.0';D.boxes=p.builtin?PlanProjects.builtin.boxes:p.boxes.filter(b=>b.kind!=='fixed').map(b=>{let vertical=['east','west'].includes(b.face),s=p.scale?.metersPerUnit;return {...b,legA:s?b.w*s*100:null,legB:s?b.h*s*100:null,cornerDepth:b.depth,width:s?(vertical?b.h:b.w)*s*100:null,depth:s?(vertical?b.w:b.h)*s*100:null}});S={};let savedState=p;if(p.builtin){try{savedState=JSON.parse(localStorage.getItem(K)||'{}')||{}}catch{savedState={}}}for(const b of D.boxes){let t=T.get(Number(savedState.selections?.[b.id]));if(t?.kind===b.kind)S[b.id]=t.id}$('clientName').value=savedState.client||p.client||'';$('clientNotes').value=savedState.notes||'';$('planTitle').textContent=p.title;$('planSubTitle').textContent=`مخطط علوي · ${D.boxes.length} بوكسات للاختيار`;$('currentPlanName').textContent=p.title;$('planFootNote').textContent=p.builtin?'الكورنرات B03 · B04 · B07 بواجهة مشطوفة.':'اضغط على كود البوكس لاختيار تقسيمته. الوحدات الثابتة حسب التصميم.';$('deskButton').hidden=!p.builtin;$('editPlan').hidden=!!p.builtin;$('exportProject').hidden=!!p.builtin;activate(D.boxes[0].id);window.dispatchEvent(new CustomEvent('indesign:project'));}};window.IN_DESIGN_QA={getState:()=>({active,draft,selections:{...S}}),getAllowed:()=>allowed().map(t=>t.id)};
+$('resetAll').onclick=()=>dialog('resetDialog');$('cancelReset').onclick=()=>$('resetDialog').close();$('confirmReset').onclick=()=>{S={};$('clientNotes').value='';save();$('resetDialog').close();activate(D.boxes[0].id);toast('تم بدء اختيارات جديدة')};activate('B01');window.INDESIGN_APP={getSelections:()=>({...S}),/* SAKAN-PORTAL */setState(sel,client,notes){S={};for(const b of D.boxes){let t=T.get(Number(sel?.[b.id]));if(t?.kind===b.kind)S[b.id]=t.id}if(client!=null)$('clientName').value=client;if(notes!=null)$('clientNotes').value=notes;save();activate(D.boxes.some(b=>b.id===active)?active:D.boxes[0].id)},withSelections(sel,fn){let keep=S;S={};for(const b of D.boxes){let t=T.get(Number(sel?.[b.id]));if(t?.kind===b.kind)S[b.id]=t.id}try{return fn()}finally{S=keep}},planSVG:()=>svg(),boxes:()=>D.boxes.map(b=>({id:b.id,kind:kindName(b.kind),dims:isCorner(b)&&PlanProjects.current.builtin?'ضلعان 100 × 100 سم · عمق 60 سم':boxDims(b),type:T.get(S[b.id])||null})),typeOf:id=>T.get(Number(id)),title:()=>D.title,activeKind:()=>box().kind,addTypes(list){for(const t of list||[])if(!T.has(t.id)){D.types.push(t);T.set(t.id,t)}},pick(id){if(!allowed().some(t=>t.id===id))return;draft=id;close();preview();$('applyType').focus({preventScroll:true})},refreshTypes(){$('optionsCount').textContent=`${allowed().length} اختيارات مناسبة`;if(!$('pickerMenu').hidden)options()},focusBox:id=>activate(id,true,true),save,loadProject(p){close();if($('roomDialog').open)$('roomDialog').close();PlanProjects.current=p;D.project=p.id;D.title=p.title;D.catalogVersion=p.builtin?'TALAL-CHAMFERED-1.0':'INDESIGN-MULTI-1.0';D.boxes=p.builtin?PlanProjects.builtin.boxes:p.boxes.filter(b=>b.kind!=='fixed').map(b=>{let vertical=['east','west'].includes(b.face),s=p.scale?.metersPerUnit;return {...b,legA:s?b.w*s*100:null,legB:s?b.h*s*100:null,cornerDepth:b.depth,width:s?(vertical?b.h:b.w)*s*100:null,depth:s?(vertical?b.w:b.h)*s*100:null}});S={};let savedState=p;if(p.builtin){try{savedState=JSON.parse(localStorage.getItem(K)||'{}')||{}}catch{savedState={}}}for(const b of D.boxes){let t=T.get(Number(savedState.selections?.[b.id]));if(t?.kind===b.kind)S[b.id]=t.id}$('clientName').value=savedState.client||p.client||'';$('clientNotes').value=savedState.notes||'';$('planTitle').textContent=p.title;$('planSubTitle').textContent=`مخطط علوي · ${D.boxes.length} بوكسات للاختيار`;$('currentPlanName').textContent=p.title;$('planFootNote').textContent=p.builtin?'الكورنرات B03 · B04 · B07 بواجهة مشطوفة.':'اضغط على كود البوكس لاختيار تقسيمته. الوحدات الثابتة حسب التصميم.';$('deskButton').hidden=!p.builtin;$('editPlan').hidden=!!p.builtin;$('exportProject').hidden=!!p.builtin;activate(D.boxes[0].id);window.dispatchEvent(new CustomEvent('indesign:project'));}};window.IN_DESIGN_QA={getState:()=>({active,draft,selections:{...S}}),getAllowed:()=>allowed().map(t=>t.id)};
 })();
 </script><script>(function(root){'use strict';
 const C={wood:[.73,.62,.46],edge:[.68,.56,.40],back:[.60,.53,.42],shelf:[.80,.72,.59],drawer:[.76,.66,.51],metal:[.22,.29,.27],cloth:[[.46,.56,.53],[.75,.73,.66],[.86,.85,.78]],floor:[.48,.39,.29],wall:[.87,.85,.79]};
@@ -1204,6 +1274,13 @@ window.INDESIGN_PROJECTS_UI={boot,openEditor,editor:{get selected(){return selec
   <p class="sk-muted">أرسل هذه البيانات إلى المالك. لن تظهر كلمة المرور مرة أخرى، وإذا نسيتها فأنشئ واحدة جديدة من «تعديل الحساب».</p>
   <pre id="skCredsText" class="sk-creds"></pre>
   <div class="sk-actions"><button class="sk-btn" id="skCopyCreds">نسخ</button><button class="sk-btn sk-btn-dark" data-sk-close>حسنًا</button></div>
+</dialog>
+
+<!-- شكل التقسيمة المختارة للبوكس (من الصورة الصغيرة جنبه على المخطط) -->
+<dialog id="skTypeView" class="sk-dialog sk-narrow" aria-labelledby="skTypeViewTitle">
+  <div class="sk-head-row"><h2 id="skTypeViewTitle">شكل التقسيم</h2><button class="icon-button" data-sk-close aria-label="إغلاق">×</button></div>
+  <figure class="sk-type-view"><img id="skTypeViewImg" alt=""><figcaption id="skTypeViewCap"></figcaption></figure>
+  <div class="sk-actions"><button class="sk-btn" id="skTypeViewChange">تغيير التقسيمة</button><button class="sk-btn sk-btn-dark" data-sk-close>حسنًا</button></div>
 </dialog>
 
 <!-- سجل التعديلات -->
@@ -1532,7 +1609,20 @@ window.SakanI18n = (function () {
     "السهم على كل بوكس هو اتجاه فتح الخزانة: اسحبه أو اضغط عليه لتغييره. اضغط مطولًا على البوكس للحذف أو النسخ، واستخدم إصبعين للتكبير والتصغير.": "The arrow on each box is the cabinet opening direction: drag or tap it to change it. Long-press a box to delete or copy it, and use two fingers to zoom.",
     "رسم بالمقاسات (الحائط وعروض الخزائن)": "Draw by measurements (wall and cabinet widths)", "رجوع إلى الرسم اليدوي": "Back to manual drawing",
     "اسحب لرسم بوكس، أو اضغط على أركان الخزانة نقطة نقطة.": "Drag to draw a box, or tap the cabinet corners point by point.",
-    "Ctrl+D تكرار البوكس · الأسهم للتحريك · Delete للحذف · Ctrl + العجلة أو إصبعين للتكبير": "Ctrl+D duplicate · arrows move · Delete removes · Ctrl + wheel or two fingers zoom",
+    "اسحب أي نقطة من نقاط بوكس الزاوية لتحريكها وحدها، فيتغير الضلعان المتصلان بها فقط.": "Drag any corner-box point to move it on its own; only the two sides attached to it change.",
+    "أقسام التقسيمات": "Layout sections", "التقسيمات": "Layouts", "تسريحة داخل الخزانة": "Built-in dresser", "المفضلة": "Favourites", "تقسيم مخصص": "Custom layout",
+    "اسم التقسيمة": "Layout name", "مثال: رفوف مع درج سفلي": "e.g. Shelves with a bottom drawer", "رفع صورة التقسيمة": "Upload layout image",
+    "تُحفظ التقسيمة المخصصة مع هذا المشروع وتظهر لهذا النوع من الخزائن.": "The custom layout is saved with this project and shows for this cabinet type.",
+    "لا توجد تسريحات مضافة بعد.": "No dressers added yet.",
+    "لا توجد تقسيمات في المفضلة بعد. اضغط النجمة على أي تقسيمة لإضافتها.": "No favourite layouts yet. Tap the star on any layout to add it.",
+    "لا توجد تقسيمات مخصصة لهذه الخزانة بعد. ارفع صورة التقسيمة من الأعلى.": "No custom layouts for this cabinet yet. Upload the layout image above.",
+    "افتح مشروعًا أولًا لإضافة تقسيمة مخصصة.": "Open a project first to add a custom layout.",
+    "وصلت إلى الحد الأقصى للتقسيمات المخصصة في هذا المشروع (60).": "You've reached the custom layout limit for this project (60).",
+    "تعذّرت قراءة الصورة. اختر صورة بصيغة JPG أو PNG.": "Couldn't read the image. Choose a JPG or PNG image.",
+    "تقسيمة مخصصة": "Custom layout", "مخصص": "Custom",
+    "شكل التقسيم": "Layout view", "تغيير التقسيمة": "Change layout", "اضغط لعرض شكل التقسيم": "Tap to view the layout",
+    "Ctrl+Z تراجع · Ctrl+Y إعادة · Ctrl+D تكرار البوكس · الأسهم للتحريك · Delete للحذف · Ctrl + العجلة أو إصبعين للتكبير": "Ctrl+Z undo · Ctrl+Y redo · Ctrl+D duplicate · arrows move · Delete removes · Ctrl + wheel or two fingers zoom",
+    "تراجع": "Undo", "إعادة": "Redo", "تراجع (Ctrl+Z)": "Undo (Ctrl+Z)", "إعادة (Ctrl+Y)": "Redo (Ctrl+Y)",
     "اتجاه فتح الخزانة: اسحب السهم أو اضغط عليه لتغييره": "Opening direction: drag or tap the arrow to change it",
     "بالنقاط": "Points", "رسم بالنقاط": "Draw by points", "تم": "Done", "احذف آخر نقطة": "Remove last point", "ابدأ من الأول": "Start over",
     "اضغط على أركان الخزانة واحدًا تلو الآخر حولها. 4 نقاط للخزانة المستقيمة، 5 للكورنر المشطوف، 6 للكورنر حرف L. أغلق الشكل بالضغط على نقطة 1 أو «تم». يمكنك سحب أي نقطة وتحريكها قبل الانتهاء.": "Click the cabinet's corners one after another around it. 4 points for a straight cabinet, 5 for a chamfered corner, 6 for an L corner. Close the shape by clicking point 1 or «Done». You can drag any point before you finish.",
@@ -1661,6 +1751,10 @@ window.SakanI18n = (function () {
     [/^(\d+) من (\d+) اختيارات$/, "$1 of $2 choices"],
     [/^(\d+) من (\d+) بوكسات$/, "$1 of $2 boxes"],
     [/^صفحة (\d+) من (\d+)$/, "Page $1 of $2"],
+    [/^مخصص (\d+)$/, "Custom $1"],
+    [/^تقسيمة مخصصة (\d+)$/, "Custom layout $1"],
+    [/^شكل التقسيم · (.+)$/, "Layout view · $1"],
+    [/^عرض شكل التقسيم (.+)$/, "View layout $1"],
     [/^(\d+) اختيارات$/, "$1 choices"],
     [/^(\d+) بوكسات للاختيارات$/, "$1 boxes for choices"],
     [/^(\d+) وحدات محددة$/, "$1 units marked"],
@@ -2092,7 +2186,7 @@ window.SakanPortalAPI = (function () {
       const p = db.projects.find((x) => x.id === id);
       if (!p) return null;
       if (p.work && p.work.status === "approved") throw Error("الاختيارات معتمدة ومقفلة. اطلب من مدير النظام السماح بالتعديل.");
-      p.work = { selections: work.selections || {}, notes: work.notes || "", status: "draft", updatedAt: now(), updatedBy: work.by };
+      p.work = { selections: work.selections || {}, notes: work.notes || "", custom: work.custom || (p.work && p.work.custom) || [], status: "draft", updatedAt: now(), updatedBy: work.by };
       p.updatedAt = p.work.updatedAt;
       store(db);
       return publicProject(p, db);
@@ -2851,8 +2945,9 @@ window.SakanPortalAPI = (function () {
     project = p;          // لازم قبل activate عشان حدث indesign:project مايفصلش المشروع
     muted = true;
     await UI.activate(plan);
+    useCustom(p.work && p.work.custom);   // قبل setState عشان الاختيارات المخصصة تتعرف
     APP.setState(p.work && p.work.selections, p.ownerName, p.work ? p.work.notes : "");
-    saved = { selections: APP.getSelections(), notes: $("clientNotes").value };
+    saved = { selections: APP.getSelections(), notes: $("clientNotes").value, custom: custom.length };
     dirty = false;
     muted = false;
     try { localStorage.setItem(lastKey(), p.id); } catch (e) {}
@@ -2871,8 +2966,47 @@ window.SakanPortalAPI = (function () {
       project = null;
       setTimeout(() => openProjectForm(form), 0);
     }
-    if (project && P.current.id !== project.planId) { project = null; updateChrome(); saveSession(); }
+    if (project && P.current.id !== project.planId) { project = null; useCustom([]); updateChrome(); saveSession(); }
   });
+
+  /* ---------------- التقسيمات المخصصة: صور بيرفعها المستخدم للمشروع ----------------
+     بتتحفظ مع الاختيارات (work.custom)، وكل واحدة تايب رقمه مميز وبيظهر بس في تبويب «تقسيم مخصص» */
+  let custom = [];
+  const cleanName = (v) => String(v || "").replace(/[<>"'&`]/g, "").trim().slice(0, 60);
+  function useCustom(list) {
+    custom = (Array.isArray(list) ? list : []).filter((t) => t && Number.isFinite(t.id) && /^data:image\/(jpeg|png|webp);base64,[A-Za-z0-9+/=]+$/.test(t.image || ""))
+      .map((t) => ({ id: t.id, label: cleanName(t.label) || "مخصص", name: cleanName(t.name) || "تقسيمة مخصصة", kind: t.kind, image: t.image, cat: "custom" }));
+    APP.addTypes(custom);
+    window.skCustomIds = custom.map((t) => t.id);
+    APP.refreshTypes();
+  }
+  function shrink(file) {
+    return new Promise((res, rej) => {
+      const url = URL.createObjectURL(file), im = new Image();
+      im.onload = () => {
+        const k = Math.min(1, 900 / Math.max(im.width, im.height)), c = document.createElement("canvas");
+        c.width = Math.max(1, Math.round(im.width * k)); c.height = Math.max(1, Math.round(im.height * k));
+        const g = c.getContext("2d");
+        g.fillStyle = "#fff"; g.fillRect(0, 0, c.width, c.height); g.drawImage(im, 0, 0, c.width, c.height);
+        URL.revokeObjectURL(url);
+        res(c.toDataURL("image/jpeg", 0.82));
+      };
+      im.onerror = () => { URL.revokeObjectURL(url); rej(Error("تعذّرت قراءة الصورة. اختر صورة بصيغة JPG أو PNG.")); };
+      im.src = url;
+    });
+  }
+  async function addCustom(file) {
+    if (!project) return alert("افتح مشروعًا أولًا لإضافة تقسيمة مخصصة.");
+    if (approved()) return alert("الاختيارات معتمدة ومقفلة. اطلب من مدير النظام السماح بالتعديل.");
+    if (custom.length >= 60) return alert("وصلت إلى الحد الأقصى للتقسيمات المخصصة في هذا المشروع (60).");
+    let image;
+    try { image = await shrink(file); } catch (e) { return alert(e.message); }
+    const n = custom.length + 1, t = { id: Date.now(), label: "مخصص " + n, name: cleanName($("skCustomName").value) || "تقسيمة مخصصة " + n, kind: APP.activeKind(), image, cat: "custom" };
+    useCustom(custom.concat([t]));
+    $("skCustomName").value = "";
+    APP.pick(t.id);
+    checkDirty();
+  }
 
   /* ---------------- تسجيل كل تعديل ---------------- */
   function describeChanges(a, b) {
@@ -2886,7 +3020,7 @@ window.SakanPortalAPI = (function () {
   const sameSel = (a, b) => JSON.stringify(Object.entries(a).sort()) === JSON.stringify(Object.entries(b).sort());
   function checkDirty() {
     if (muted || !project || !user) return;
-    dirty = !sameSel(saved.selections, APP.getSelections()) || saved.notes !== $("clientNotes").value;
+    dirty = !sameSel(saved.selections, APP.getSelections()) || saved.notes !== $("clientNotes").value || saved.custom !== custom.length;
     updateWorkbar();
   }
   window.addEventListener("indesign:selection", checkDirty);
@@ -2899,11 +3033,11 @@ window.SakanPortalAPI = (function () {
     const sel = APP.getSelections(), notes = $("clientNotes").value;
     const changes = describeChanges(saved.selections, sel);
     try {
-      project = await API.saveWork(project.id, { selections: sel, notes, by: by() });
+      project = await API.saveWork(project.id, { selections: sel, notes, custom, by: by() });
     } catch (e) { alert(e.message); return false; }
     if (changes.length) await log("تعديل الاختيارات", changes.join("، "));
     if (notes !== saved.notes) await log("تعديل الملاحظات", notes.trim().length > 80 ? notes.trim().slice(0, 80) + "…" : notes.trim() || "مسح الملاحظات");
-    saved = { selections: sel, notes };
+    saved = { selections: sel, notes, custom: custom.length };
     dirty = false;
     updateWorkbar();
     notice("تم حفظ الاختيارات كمسودة.");
@@ -3772,6 +3906,75 @@ window.SakanPortalAPI = (function () {
     window.addEventListener("indesign:project", () => { z = 1; tx = ty = 0; apply(); });
   })();
 
+  /* ---------------- قايمة التقسيمات: التبويبات والمفضلة ----------------
+     المفضلة متخزنة على الجهاز نفسه، عشان كل مستخدم يوصل للتقسيمات اللي بيستعملها كتير */
+  (function typeTabs() {
+    const FAV = "sakan-fav-types";
+    try { window.skFavs = (JSON.parse(localStorage.getItem(FAV) || "[]") || []).filter(Number.isFinite); } catch (e) { window.skFavs = []; }
+    const refresh = () => $("typeSearch").dispatchEvent(new Event("input"));
+    window.skToggleFav = (id) => {
+      const f = window.skFavs, i = f.indexOf(id);
+      if (i < 0) f.push(id); else f.splice(i, 1);
+      try { localStorage.setItem(FAV, JSON.stringify(f)); } catch (e) {}
+      refresh();
+    };
+    function setTab(cat) {
+      window.skTypeTab = cat;
+      document.querySelectorAll("[data-type-tab]").forEach((b) => b.setAttribute("aria-selected", String(b.dataset.typeTab === cat)));
+      $("skCustomPanel").hidden = cat !== "custom";
+      refresh();
+    }
+    $("skTypeTabs").addEventListener("click", (e) => { const b = e.target.closest("[data-type-tab]"); if (b) setTab(b.dataset.typeTab); });
+    $("skCustomFile").addEventListener("change", (e) => {
+      const f = e.target.files && e.target.files[0];
+      e.target.value = "";
+      if (f) addCustom(f);
+    });
+  })();
+
+  /* صورة صغيرة للتقسيمة المختارة جنب البوكس المحدد على المخطط، والضغط عليها يعرض الشكل كبير.
+     المخطط بيترسم من جديد مع كل اختيار، فالصورة بتتضاف بعد كل رسم */
+  (function mapThumb() {
+    const mount = $("mapMount");
+    if (!mount) return;
+    const NS = "http://www.w3.org/2000/svg";
+    let shown = null;
+    function paint() {
+      const s = mount.querySelector("svg"), u = s && s.querySelector(".unit.active[data-box]");
+      if (!u || s.querySelector(".sk-thumb")) return;
+      const t = APP.typeOf(APP.getSelections()[u.dataset.box]);
+      if (!t) return;
+      const vb = s.viewBox.baseVal, bb = u.getBBox(), sz = Math.max(56, Math.min(96, vb.width * 0.08)), gap = 8;
+      let x = bb.x + bb.width + gap;
+      if (x + sz > vb.width) x = bb.x - sz - gap;
+      x = Math.max(0, Math.min(vb.width - sz, x));
+      const y = Math.max(0, Math.min(vb.height - sz, bb.y + bb.height / 2 - sz / 2));
+      const g = document.createElementNS(NS, "g"), el = (n, a) => { const e = document.createElementNS(NS, n); for (const k in a) e.setAttribute(k, a[k]); g.appendChild(e); return e; };
+      g.setAttribute("class", "sk-thumb"); g.setAttribute("role", "button"); g.setAttribute("tabindex", "0");
+      g.setAttribute("aria-label", "عرض شكل التقسيم " + t.label);
+      el("rect", { x, y, width: sz, height: sz, rx: 7, class: "sk-thumb-bg" });
+      el("image", { x: x + 4, y: y + 4, width: sz - 8, height: sz - 8, preserveAspectRatio: "xMidYMid meet", href: t.image });
+      el("circle", { cx: x + sz - 2, cy: y + 2, r: 9, class: "sk-thumb-dot" });
+      const plus = el("text", { x: x + sz - 2, y: y + 6, class: "sk-thumb-plus" }); plus.textContent = "+";
+      const tip = document.createElementNS(NS, "title"); tip.textContent = "اضغط لعرض شكل التقسيم"; g.appendChild(tip);
+      const go = (e) => { e.stopPropagation(); e.preventDefault(); view(u.dataset.box, t); };
+      g.addEventListener("click", go);
+      g.addEventListener("keydown", (e) => { if (e.key === "Enter" || e.key === " ") go(e); });
+      s.appendChild(g);
+    }
+    function view(id, t) {
+      shown = id;
+      $("skTypeViewTitle").textContent = "شكل التقسيم · " + id;
+      $("skTypeViewImg").src = t.image; $("skTypeViewImg").alt = t.name;
+      $("skTypeViewCap").innerHTML = `<b dir="ltr">${esc(t.label)}</b> ${esc(t.name)}`;
+      $("skTypeViewChange").hidden = approved();
+      open("skTypeView");
+    }
+    $("skTypeViewChange").onclick = () => { close("skTypeView"); if (shown) APP.focusBox(shown); };
+    new MutationObserver(paint).observe(mount, { childList: true });
+    paint();
+  })();
+
   // المالك مايقدرش يفتح مكتبة المخططات الأصلية حتى لو حاول
   $("projectsDialog").addEventListener("toggle", () => {
     if ($("projectsDialog").open && (!user || user.role === "client")) $("projectsDialog").close();
@@ -3907,6 +4110,16 @@ window.SakanPortalAPI = (function () {
     // مكان المسك أوسع شوية من المربع نفسه وشفاف، عشان يتمسك بالصباع
     const upp = unitPerPx(), side = Math.min(b.w, b.h);
     const r = Math.min(3.5 * upp, side / 8), hit = Math.max(r, Math.min(9 * upp, side / 4));
+    if (isCorner(b)) {
+      // بوكس الزاوية: نقطة على كل ركن من أركانه، وكل نقطة بتتسحب لوحدها (طول كل ضلع والعمق)
+      const g = make("g", {}, "sk-handles");
+      P.polygon(b, draft()).forEach(([hx, hy], i) => {
+        g.appendChild(make("circle", { cx: hx, cy: hy, r: Math.max(hit, 10 * upp), "data-vertex": i }, "sk-vertex-hit"));
+        g.appendChild(make("circle", { cx: hx, cy: hy, r: 4.5 * upp }, "sk-vertex"));
+      });
+      s.appendChild(g);
+      return;
+    }
     const [cx, cy] = center(b), g = make("g", b.angle ? { transform: `rotate(${b.angle} ${cx} ${cy})` } : {}, "sk-handles");
     const pos = side / upp < 48
       ? { nw: [0, 0], ne: [1, 0], se: [1, 1], sw: [0, 1] } // البوكس الصغير: الأركان بس
@@ -3917,6 +4130,27 @@ window.SakanPortalAPI = (function () {
       g.appendChild(make("rect", { x: hx - r, y: hy - r, width: 2 * r, height: 2 * r, rx: r / 3 }, "sk-handle"));
     }
     s.appendChild(g);
+  }
+
+  /* ---------------- نقط أركان بوكس الزاوية ----------------
+     كل نقطة حرة: بتتحرك لوحدها وبيتغير الضلعين اللي ماسكينها بس، وباقي النقط مكانها.
+     النقط بتتحفظ في b.pts نسبةً للمستطيل اللي حوالين الشكل (من غير ميل)، والمستطيل بيتحسب من جديد بعد كل سحبة */
+  function cornerVertex(d, q) {
+    const { b } = d, a = rad(b), pts = d.pts0.slice(), n = pts.length, tol = 8 * unitPerPx();
+    // الضلع بيلزق مستقيم (أفقي أو رأسي) لو قريب من النقطة اللي جنبه، عشان الزوايا القايمة تتظبط بسهولة
+    if (!a && !d.free) for (const k of [pts[(d.i + n - 1) % n], pts[(d.i + 1) % n]]) {
+      if (Math.abs(q[0] - k[0]) <= tol) q = [k[0], q[1]];
+      if (Math.abs(q[1] - k[1]) <= tol) q = [q[0], k[1]];
+    }
+    pts[d.i] = q;
+    const [ox, oy] = d.c0, loc = pts.map(([X, Y]) => rotate([X - ox, Y - oy], -a));
+    const x0 = Math.min(...loc.map((p) => p[0])), x1 = Math.max(...loc.map((p) => p[0])), y0 = Math.min(...loc.map((p) => p[1])), y1 = Math.max(...loc.map((p) => p[1]));
+    const w = Math.max(x1 - x0, 4), h = Math.max(y1 - y0, 4), [cx, cy] = rotate([(x0 + x1) / 2, (y0 + y1) / 2], a);
+    Object.assign(b, { x: ox + cx - w / 2, y: oy + cy - h / 2, w, h,
+      pts: loc.map(([X, Y]) => [Math.round(((X - x0) / w) * 1e4) / 1e4, Math.round(((Y - y0) / h) * 1e4) / 1e4]) });
+    // العمق (للـ360° والمقاسات) أقرب عمق للشكل الجديد
+    const f = fitPoly(pts);
+    if (f.box && f.box.depth) b.depth = clamp(f.box.depth, 20, 150);
   }
 
   /* ---------------- سهم اتجاه فتح الخزانة ----------------
@@ -3994,7 +4228,7 @@ window.SakanPortalAPI = (function () {
     if (e.target.closest("[data-cand]")) return; // الضغط على مستطيل مقترح بيضيفه (في click)
     const q = toSvg(e), handle = e.target.closest("[data-handle]"), boxEl = e.target.closest("[data-editor-box]");
     const box = (id) => draft().boxes.find((b) => b.id === id), wallPt = e.target.closest("[data-wall-pt]"), polyPt = e.target.closest("[data-poly-pt]");
-    const faceEl = e.target.closest("[data-face]");
+    const faceEl = e.target.closest("[data-face]"), vertexEl = e.target.closest("[data-vertex]");
     if (polyPt) {
       drag = { kind: "polypt", i: Number(polyPt.dataset.polyPt), start: q };
     } else if (faceEl && box(faceEl.dataset.face) && !(mode === "manual" && poly.length)) {
@@ -4003,6 +4237,9 @@ window.SakanPortalAPI = (function () {
       drag = { kind: "points", start: q }; // وإحنا بنرسم، الضغط فوق بوكس تاني بيحط نقطة برضه
     } else if (wallPt) {
       drag = { kind: "wallpt", which: wallPt.dataset.wallPt, start: q };
+    } else if (vertexEl && box(ED.selected)) {
+      const b = box(ED.selected);
+      drag = { kind: "vertex", i: Number(vertexEl.dataset.vertex), b, pts0: P.polygon(b, draft()), c0: center(b), start: q };
     } else if (handle) {
       const b = box(ED.selected);
       drag = { kind: "resize", dir: handle.dataset.handle, b, o: { x: b.x, y: b.y, w: b.w, h: b.h }, start: q };
@@ -4054,6 +4291,10 @@ window.SakanPortalAPI = (function () {
       const other = drag.which === "a" ? wall.b : wall.a;
       wall[drag.which] = other ? magnet(other, q, e) : q;
       paintWall(); renderPanel();
+    } else if (drag.kind === "vertex") {
+      drag.free = e.shiftKey;
+      cornerVertex(drag, e.shiftKey ? q : snapPoint(q, drag.b));
+      paintBox(drag.b); handles();
     } else if (drag.kind === "move" && drag.b.angle) {
       const { b, o } = drag;
       Object.assign(b, { x: o.x + q[0] - drag.start[0], y: o.y + q[1] - drag.start[1] });
@@ -4300,7 +4541,7 @@ window.SakanPortalAPI = (function () {
     const dy = Math.max(...uv.filter((p) => p[0] >= w - tol && p[1] > tol).map((p) => p[1]).concat([0])) || h * 0.4;
     const dx = Math.max(...uv.filter((p) => p[1] >= h - tol && p[0] > tol).map((p) => p[0]).concat([0])) || w * 0.4;
     const sc = draft().scale, dep = (Math.min(dx, w * 0.9) + Math.min(dy, h * 0.9)) / 2;
-    Object.assign(box, { kind: n === 6 ? "lcorner" : "corner", face });
+    Object.assign(box, { kind: n === 6 ? "lcorner" : "corner", face, depthU: Math.round(dep * 100) / 100 });
     if (sc && sc.metersPerUnit) box.depth = Math.max(20, Math.round(dep * sc.metersPerUnit * 100));
     return { box, noScale: !(sc && sc.metersPerUnit) };
   }
@@ -4450,7 +4691,7 @@ window.SakanPortalAPI = (function () {
             <button type="button" class="secondary" id="skAddAll" hidden>إضافة الكل</button>
           </div></div>
         <p class="sk-draw-msg" id="skDrawMsg" role="status" hidden></p>
-        <p class="sk-draw-keys">Ctrl+D تكرار البوكس · الأسهم للتحريك · Delete للحذف · Ctrl + العجلة أو إصبعين للتكبير</p>
+        <p class="sk-draw-keys">Ctrl+Z تراجع · Ctrl+Y إعادة · Ctrl+D تكرار البوكس · الأسهم للتحريك · Delete للحذف · Ctrl + العجلة أو إصبعين للتكبير</p>
       </section>`);
     $("boxEditorFields").querySelector(".box-fields-heading").insertAdjacentHTML("beforeend",
       `<button type="button" class="text-button" id="skDupBox">تكرار</button>`);
@@ -4542,6 +4783,7 @@ window.SakanPortalAPI = (function () {
   function helpText() {
     if (!draft().image || ED.busy || ED.tool === "scale" || ED.first) return;
     const t = mode === "manual" && poly.length ? "اضغط على أركان الخزانة بالترتيب، وأغلق الشكل عند نقطة 1."
+      : draft().boxes.some((b) => b.id === ED.selected && isCorner(b)) ? "اسحب أي نقطة من نقاط بوكس الزاوية لتحريكها وحدها، فيتغير الضلعان المتصلان بها فقط."
       : mode === "wall" ? "حدد الحيطة، واكتب عروض الخزائن بالسنتيمتر."
       : mode === "auto" ? "ابحث عن الخزائن، أو ارسم تقريبيًا حول كل خزانة."
       : "اسحب لرسم بوكس، أو اضغط على أركان الخزانة نقطة نقطة.";
@@ -4608,6 +4850,7 @@ window.SakanPortalAPI = (function () {
     }
     if (e.key === "Escape" && $("skBoxMenu")) { e.preventDefault(); e.stopPropagation(); closeMenu(); return;
     }
+    if ((e.ctrlKey || e.metaKey) && (e.key.toLowerCase() === "z" || e.key.toLowerCase() === "y")) { e.preventDefault(); undoRedo(e.key.toLowerCase() === "z" && !e.shiftKey); return; }
     const b = draft().boxes.find((q) => q.id === ED.selected);
     if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "d") { e.preventDefault(); duplicate(); return; }
     if (!b) return;
@@ -4620,12 +4863,54 @@ window.SakanPortalAPI = (function () {
     clearTimeout(onKey.t); onKey.t = setTimeout(() => UI.updateEditor(), 400);
   }
 
+  /* ---------------- تراجع وإعادة ----------------
+     بعد كل رسم للمحرر بنحفظ نسخة من البوكسات والمقياس لو اتغيروا، و«تراجع» بيرجع للنسخة اللي قبلها */
+  let past = [], future = [], snap = "";
+  const state = () => { const d = draft(); return d ? JSON.stringify({ boxes: d.boxes, scale: d.scale || null }) : ""; };
+  function historyUI() {
+    if ($("skUndo") || !$("planZoom")) return;
+    const box = document.createElement("span");
+    box.className = "sk-history";
+    box.innerHTML = `<button type="button" id="skUndo" class="sk-hist-btn" title="تراجع (Ctrl+Z)" aria-label="تراجع"><span aria-hidden="true">↶</span> تراجع</button>`
+      + `<button type="button" id="skRedo" class="sk-hist-btn" title="إعادة (Ctrl+Y)" aria-label="إعادة"><span aria-hidden="true">↷</span> إعادة</button>`;
+    const zoom = $("planZoom").closest("label") || $("planZoom");
+    zoom.parentNode.insertBefore(box, zoom);
+    $("skUndo").onclick = () => undoRedo(true);
+    $("skRedo").onclick = () => undoRedo(false);
+  }
+  function commit() {
+    const now = state();
+    if (!now || now === snap) return;
+    if (snap) { past.push(snap); if (past.length > 100) past.shift(); future = []; }
+    snap = now;
+  }
+  function undoRedo(back) {
+    if (drag || !draft()) return;
+    commit();
+    const from = back ? past : future, to = back ? future : past;
+    if (!from.length) return;
+    to.push(snap);
+    snap = from.pop();
+    const v = JSON.parse(snap), d = draft();
+    d.boxes.splice(0, d.boxes.length, ...v.boxes);
+    if (v.scale) d.scale = v.scale; else delete d.scale;
+    if (!d.boxes.some((b) => b.id === ED.selected)) ED.selected = null;
+    closeMenu();
+    UI.updateEditor();
+  }
+  function paintHistory() {
+    if (!$("skUndo")) return;
+    $("skUndo").disabled = !past.length;
+    $("skRedo").disabled = !future.length;
+  }
+
   // مخطط جديد أو صورة جديدة: نبدأ من الأول بالطريقة اللي المهندس اختارها آخر مرة
   let lastKey = "";
   window.addEventListener("indesign:editor-render", () => {
     injectUI();
     const d = draft(), key = d ? d.id + "|" + (d.image ? d.image.length : 0) : "";
-    if (key !== lastKey) { lastKey = key; wall = { a: null, b: null }; poly = []; candidates = []; closeMenu(); if (ED.tool === "draw") ED.tool = "select"; }
+    if (key !== lastKey) { lastKey = key; wall = { a: null, b: null }; poly = []; candidates = []; closeMenu(); if (ED.tool === "draw") ED.tool = "select"; past = []; future = []; snap = ""; }
+    historyUI(); commit(); paintHistory();
     afterRender();
   });
   window.SakanPlanTools = { setMode, mode: () => mode, detect, fitToLines, duplicate, fitPoly };

@@ -375,8 +375,9 @@
     project = p;          // لازم قبل activate عشان حدث indesign:project مايفصلش المشروع
     muted = true;
     await UI.activate(plan);
+    useCustom(p.work && p.work.custom);   // قبل setState عشان الاختيارات المخصصة تتعرف
     APP.setState(p.work && p.work.selections, p.ownerName, p.work ? p.work.notes : "");
-    saved = { selections: APP.getSelections(), notes: $("clientNotes").value };
+    saved = { selections: APP.getSelections(), notes: $("clientNotes").value, custom: custom.length };
     dirty = false;
     muted = false;
     try { localStorage.setItem(lastKey(), p.id); } catch (e) {}
@@ -395,8 +396,47 @@
       project = null;
       setTimeout(() => openProjectForm(form), 0);
     }
-    if (project && P.current.id !== project.planId) { project = null; updateChrome(); saveSession(); }
+    if (project && P.current.id !== project.planId) { project = null; useCustom([]); updateChrome(); saveSession(); }
   });
+
+  /* ---------------- التقسيمات المخصصة: صور بيرفعها المستخدم للمشروع ----------------
+     بتتحفظ مع الاختيارات (work.custom)، وكل واحدة تايب رقمه مميز وبيظهر بس في تبويب «تقسيم مخصص» */
+  let custom = [];
+  const cleanName = (v) => String(v || "").replace(/[<>"'&`]/g, "").trim().slice(0, 60);
+  function useCustom(list) {
+    custom = (Array.isArray(list) ? list : []).filter((t) => t && Number.isFinite(t.id) && /^data:image\/(jpeg|png|webp);base64,[A-Za-z0-9+/=]+$/.test(t.image || ""))
+      .map((t) => ({ id: t.id, label: cleanName(t.label) || "مخصص", name: cleanName(t.name) || "تقسيمة مخصصة", kind: t.kind, image: t.image, cat: "custom" }));
+    APP.addTypes(custom);
+    window.skCustomIds = custom.map((t) => t.id);
+    APP.refreshTypes();
+  }
+  function shrink(file) {
+    return new Promise((res, rej) => {
+      const url = URL.createObjectURL(file), im = new Image();
+      im.onload = () => {
+        const k = Math.min(1, 900 / Math.max(im.width, im.height)), c = document.createElement("canvas");
+        c.width = Math.max(1, Math.round(im.width * k)); c.height = Math.max(1, Math.round(im.height * k));
+        const g = c.getContext("2d");
+        g.fillStyle = "#fff"; g.fillRect(0, 0, c.width, c.height); g.drawImage(im, 0, 0, c.width, c.height);
+        URL.revokeObjectURL(url);
+        res(c.toDataURL("image/jpeg", 0.82));
+      };
+      im.onerror = () => { URL.revokeObjectURL(url); rej(Error("تعذّرت قراءة الصورة. اختر صورة بصيغة JPG أو PNG.")); };
+      im.src = url;
+    });
+  }
+  async function addCustom(file) {
+    if (!project) return alert("افتح مشروعًا أولًا لإضافة تقسيمة مخصصة.");
+    if (approved()) return alert("الاختيارات معتمدة ومقفلة. اطلب من مدير النظام السماح بالتعديل.");
+    if (custom.length >= 60) return alert("وصلت إلى الحد الأقصى للتقسيمات المخصصة في هذا المشروع (60).");
+    let image;
+    try { image = await shrink(file); } catch (e) { return alert(e.message); }
+    const n = custom.length + 1, t = { id: Date.now(), label: "مخصص " + n, name: cleanName($("skCustomName").value) || "تقسيمة مخصصة " + n, kind: APP.activeKind(), image, cat: "custom" };
+    useCustom(custom.concat([t]));
+    $("skCustomName").value = "";
+    APP.pick(t.id);
+    checkDirty();
+  }
 
   /* ---------------- تسجيل كل تعديل ---------------- */
   function describeChanges(a, b) {
@@ -410,7 +450,7 @@
   const sameSel = (a, b) => JSON.stringify(Object.entries(a).sort()) === JSON.stringify(Object.entries(b).sort());
   function checkDirty() {
     if (muted || !project || !user) return;
-    dirty = !sameSel(saved.selections, APP.getSelections()) || saved.notes !== $("clientNotes").value;
+    dirty = !sameSel(saved.selections, APP.getSelections()) || saved.notes !== $("clientNotes").value || saved.custom !== custom.length;
     updateWorkbar();
   }
   window.addEventListener("indesign:selection", checkDirty);
@@ -423,11 +463,11 @@
     const sel = APP.getSelections(), notes = $("clientNotes").value;
     const changes = describeChanges(saved.selections, sel);
     try {
-      project = await API.saveWork(project.id, { selections: sel, notes, by: by() });
+      project = await API.saveWork(project.id, { selections: sel, notes, custom, by: by() });
     } catch (e) { alert(e.message); return false; }
     if (changes.length) await log("تعديل الاختيارات", changes.join("، "));
     if (notes !== saved.notes) await log("تعديل الملاحظات", notes.trim().length > 80 ? notes.trim().slice(0, 80) + "…" : notes.trim() || "مسح الملاحظات");
-    saved = { selections: sel, notes };
+    saved = { selections: sel, notes, custom: custom.length };
     dirty = false;
     updateWorkbar();
     notice("تم حفظ الاختيارات كمسودة.");
@@ -1294,6 +1334,75 @@
     wrap.addEventListener("touchend", end);
     wrap.addEventListener("touchcancel", end);
     window.addEventListener("indesign:project", () => { z = 1; tx = ty = 0; apply(); });
+  })();
+
+  /* ---------------- قايمة التقسيمات: التبويبات والمفضلة ----------------
+     المفضلة متخزنة على الجهاز نفسه، عشان كل مستخدم يوصل للتقسيمات اللي بيستعملها كتير */
+  (function typeTabs() {
+    const FAV = "sakan-fav-types";
+    try { window.skFavs = (JSON.parse(localStorage.getItem(FAV) || "[]") || []).filter(Number.isFinite); } catch (e) { window.skFavs = []; }
+    const refresh = () => $("typeSearch").dispatchEvent(new Event("input"));
+    window.skToggleFav = (id) => {
+      const f = window.skFavs, i = f.indexOf(id);
+      if (i < 0) f.push(id); else f.splice(i, 1);
+      try { localStorage.setItem(FAV, JSON.stringify(f)); } catch (e) {}
+      refresh();
+    };
+    function setTab(cat) {
+      window.skTypeTab = cat;
+      document.querySelectorAll("[data-type-tab]").forEach((b) => b.setAttribute("aria-selected", String(b.dataset.typeTab === cat)));
+      $("skCustomPanel").hidden = cat !== "custom";
+      refresh();
+    }
+    $("skTypeTabs").addEventListener("click", (e) => { const b = e.target.closest("[data-type-tab]"); if (b) setTab(b.dataset.typeTab); });
+    $("skCustomFile").addEventListener("change", (e) => {
+      const f = e.target.files && e.target.files[0];
+      e.target.value = "";
+      if (f) addCustom(f);
+    });
+  })();
+
+  /* صورة صغيرة للتقسيمة المختارة جنب البوكس المحدد على المخطط، والضغط عليها يعرض الشكل كبير.
+     المخطط بيترسم من جديد مع كل اختيار، فالصورة بتتضاف بعد كل رسم */
+  (function mapThumb() {
+    const mount = $("mapMount");
+    if (!mount) return;
+    const NS = "http://www.w3.org/2000/svg";
+    let shown = null;
+    function paint() {
+      const s = mount.querySelector("svg"), u = s && s.querySelector(".unit.active[data-box]");
+      if (!u || s.querySelector(".sk-thumb")) return;
+      const t = APP.typeOf(APP.getSelections()[u.dataset.box]);
+      if (!t) return;
+      const vb = s.viewBox.baseVal, bb = u.getBBox(), sz = Math.max(56, Math.min(96, vb.width * 0.08)), gap = 8;
+      let x = bb.x + bb.width + gap;
+      if (x + sz > vb.width) x = bb.x - sz - gap;
+      x = Math.max(0, Math.min(vb.width - sz, x));
+      const y = Math.max(0, Math.min(vb.height - sz, bb.y + bb.height / 2 - sz / 2));
+      const g = document.createElementNS(NS, "g"), el = (n, a) => { const e = document.createElementNS(NS, n); for (const k in a) e.setAttribute(k, a[k]); g.appendChild(e); return e; };
+      g.setAttribute("class", "sk-thumb"); g.setAttribute("role", "button"); g.setAttribute("tabindex", "0");
+      g.setAttribute("aria-label", "عرض شكل التقسيم " + t.label);
+      el("rect", { x, y, width: sz, height: sz, rx: 7, class: "sk-thumb-bg" });
+      el("image", { x: x + 4, y: y + 4, width: sz - 8, height: sz - 8, preserveAspectRatio: "xMidYMid meet", href: t.image });
+      el("circle", { cx: x + sz - 2, cy: y + 2, r: 9, class: "sk-thumb-dot" });
+      const plus = el("text", { x: x + sz - 2, y: y + 6, class: "sk-thumb-plus" }); plus.textContent = "+";
+      const tip = document.createElementNS(NS, "title"); tip.textContent = "اضغط لعرض شكل التقسيم"; g.appendChild(tip);
+      const go = (e) => { e.stopPropagation(); e.preventDefault(); view(u.dataset.box, t); };
+      g.addEventListener("click", go);
+      g.addEventListener("keydown", (e) => { if (e.key === "Enter" || e.key === " ") go(e); });
+      s.appendChild(g);
+    }
+    function view(id, t) {
+      shown = id;
+      $("skTypeViewTitle").textContent = "شكل التقسيم · " + id;
+      $("skTypeViewImg").src = t.image; $("skTypeViewImg").alt = t.name;
+      $("skTypeViewCap").innerHTML = `<b dir="ltr">${esc(t.label)}</b> ${esc(t.name)}`;
+      $("skTypeViewChange").hidden = approved();
+      open("skTypeView");
+    }
+    $("skTypeViewChange").onclick = () => { close("skTypeView"); if (shown) APP.focusBox(shown); };
+    new MutationObserver(paint).observe(mount, { childList: true });
+    paint();
   })();
 
   // المالك مايقدرش يفتح مكتبة المخططات الأصلية حتى لو حاول
