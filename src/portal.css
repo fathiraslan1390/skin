@@ -126,10 +126,10 @@ body.sk-role-client #exportProject { display: none !important; }
 .sk-report-preview { margin-top: 16px; background: #e9e6df; border-radius: 12px; padding: 12px; overflow: hidden; }
 
 /* ورقة A4: 210mm = 794px على الشاشة */
-.sk-paper { width: 794px; min-height: 1123px; margin: 0 auto; background: #fff; color: #1d2b2a; padding: 46px 52px 36px; box-shadow: 0 2px 14px #0002;
+.sk-paper { width: 794px; height: 1123px; box-sizing: border-box; overflow: hidden; margin: 0 auto; background: #fff; color: #1d2b2a; padding: 46px 52px 36px; box-shadow: 0 2px 14px #0002;
   font: 12px/1.75 Tahoma, Arial, sans-serif; display: flex; flex-direction: column; }
 .sk-paper-head { display: flex; justify-content: space-between; align-items: center; gap: 20px; padding-bottom: 16px; border-bottom: 2px solid #111; }
-.sk-paper-head img { width: 150px; height: auto; }
+.sk-paper-head img { width: 150px; height: 72px; object-fit: contain; }
 .sk-paper-title { text-align: start; }
 .sk-paper-title h1 { font-size: 20px; margin: 0 0 2px; font-weight: 700; }
 .sk-paper-title span { font-size: 11px; color: #6b7671; letter-spacing: .5px; }
@@ -153,11 +153,19 @@ body.sk-role-client #exportProject { display: none !important; }
 .sk-paper-notes p { margin: 0; white-space: pre-wrap; border: 1px solid #e1e3dd; border-radius: 6px; padding: 10px 12px; min-height: 48px; }
 .sk-paper-sign { display: grid; grid-template-columns: 1fr 1fr; gap: 40px; margin-top: 34px; break-inside: avoid; }
 .sk-paper-sign div { border-top: 1px solid #999; padding-top: 6px; text-align: center; color: #6b7671; font-size: 11px; height: 54px; }
+.sk-paper-body { flex: 1; min-height: 0; overflow: hidden; padding-top: 2px; }
+.sk-paper-body > .sk-paper-table:first-child { margin-top: 16px; }
+.sk-page-no { white-space: nowrap; color: #1d2b2a; }
+/* مكان قياس الصفحات قبل ما تتعرض (portal.js: buildReport) */
+.sk-report-lab { position: absolute; top: 0; left: -10000px; width: 794px; visibility: hidden; pointer-events: none; }
+.sk-report-preview .sk-paper + .sk-paper { margin-top: 16px; }
 .sk-paper-foot { width: 100%; box-sizing: border-box; margin-top: auto; padding-top: 18px; border-top: 1px solid #d9dcd5; display: flex; justify-content: space-between; gap: 16px; font-size: 10px; color: #6b7671; }
 
 @media print {
   html[dir=ltr] #printArea { direction: ltr; }
-  #printArea .sk-paper { width: auto; min-height: 0; padding: 0; box-shadow: none; zoom: 1 !important; }
+  /* الصفحة 794×1123 بكسل، بنصغّرها على قد مساحة الطباعة جوه هوامش A4 (14 مم) */
+  #printArea .sk-paper { box-shadow: none; zoom: .86 !important; margin: 0 auto; break-after: page; }
+  #printArea .sk-paper:last-child { break-after: auto; }
   #printArea .sk-paper h1 { font-size: 20px; }
   #printArea .sk-paper td, #printArea .sk-paper th { border-left: 0; border-right: 0; text-align: start; }
   #printArea .sk-paper-table td { border-bottom: 1px solid #e1e3dd; border-top: 0; }
@@ -363,6 +371,37 @@ html[dir=rtl] .sk-finish > .room-invite, html[dir=rtl] .sk-finish > .bottom-bar 
 .sk-cand { fill: #2f8a5522; stroke: #2f8a55; stroke-width: 2; stroke-dasharray: 6 3; vector-effect: non-scaling-stroke; cursor: copy; }
 .sk-cand:hover { fill: #2f8a5555; }
 #editorCanvas svg .edit-region, #editorCanvas svg .sk-handle-hit, #editorCanvas svg .sk-wall-hit { touch-action: none; }
+/* صباع واحد للرسم، وصباعين للتكبير والتحريك (plan-editor-plus.js: pinchZoom) */
+.editor-canvas-scroll, #editorCanvas { touch-action: none; -webkit-touch-callout: none; -webkit-user-select: none; user-select: none; }
+/* «+ إضافة بوكس» القديم (ضغطتين على ركنين) اتغنى عنه بالرسم اليدوي */
+.sk-draw-modes + #drawBox { display: none; }
+.sk-wall-open { width: 100%; margin-top: 10px; }
+
+/* سهم اتجاه فتح الخزانة */
+.sk-face { cursor: grab; }
+.sk-face-line { stroke: #d9822b; stroke-width: 2.5; stroke-linecap: round; vector-effect: non-scaling-stroke; pointer-events: none; }
+.sk-face-head { fill: #d9822b; pointer-events: none; }
+.sk-face.selected .sk-face-line { stroke: #b4561a; }
+.sk-face.selected .sk-face-head { fill: #b4561a; }
+.sk-face-hit { fill: transparent; pointer-events: all; touch-action: none; }
+
+/* قايمة الضغطة المطوّلة على البوكس */
+.sk-box-menu { position: fixed; z-index: 50; display: flex; align-items: center; gap: 8px; padding: 8px 10px; background: #fff; border: 1px solid #ddd; border-radius: 12px; box-shadow: 0 6px 24px #0003; font-size: 13px; }
+.sk-box-menu b { font-size: 12px; color: #555; }
+
+/* حذف بالأحمر، وتكرار / نسخ بالأخضر */
+#removeEditorBox, #skPolyUndo, .sk-btn-del { background: #fdecea !important; border: 1.5px solid #c62828 !important; color: #b71c1c !important; border-radius: 8px; padding: 5px 14px; font: inherit; font-weight: 700; cursor: pointer; }
+#skDupBox, .sk-btn-copy { background: #e8f5e9 !important; border: 1.5px solid #2e7d32 !important; color: #1b5e20 !important; border-radius: 8px; padding: 5px 14px; font: inherit; font-weight: 700; cursor: pointer; }
+.box-fields-heading { gap: 6px; flex-wrap: wrap; }
+html[data-theme=dark] #removeEditorBox, html[data-theme=dark] #skPolyUndo, html[data-theme=dark] .sk-btn-del { background: #3a1513 !important; border-color: #ef5350 !important; color: #ff8a80 !important; }
+html[data-theme=dark] #skDupBox, html[data-theme=dark] .sk-btn-copy { background: #132a16 !important; border-color: #66bb6a !important; color: #a5d6a7 !important; }
+html[data-theme=dark] .sk-box-menu { background: #1e1e1e; border-color: #444; }
+html[data-theme=dark] .sk-box-menu b { color: #bbb; }
+
+/* تكبير مخطط الاختيارات بصباعين */
+#mapMount { touch-action: pan-x pan-y; }
+#mapMount > svg { transform: translate(var(--sk-tx, 0px), var(--sk-ty, 0px)) scale(var(--sk-z, 1)); transform-origin: 0 0; }
+#mapMount.sk-zoomed { overflow: hidden; }
 html[dir=ltr] .editor-sidebar, html[dir=ltr] .editor-bottom { direction: ltr; text-align: left; }
 
 /* مفيش مشروع مفتوح: رسالة بدل المخطط التجريبي */
@@ -375,3 +414,9 @@ html[data-theme=dark] .sk-no-project-card { background: #1b1b1b; border-color: #
 body.sk-no-project .topbar .project-tag, body.sk-no-project #summaryTop, body.sk-no-project #resetAll { display: none !important; }
 /* الاختيارات بقت بتتحفظ على السيرفر مع المشروع، فالجملة دي مابقتش صح */
 .privacy-note { display: none !important; }
+
+/* الموبايل: أقسام الشريط الجانبي للمحرر جنب بعض بعرض مقروء، وبتتسحب بالعرض */
+@media (max-width: 760px) and (min-height: 601px) {
+  .editor-sidebar > * { flex: 0 0 min(300px, 82vw); max-height: 180px; overflow: auto; box-sizing: border-box; }
+  .editor-sidebar > [hidden] { display: none; }
+}

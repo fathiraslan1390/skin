@@ -930,7 +930,9 @@
     return `SG-${d.getFullYear()}${pad(d.getMonth() + 1)}${pad(d.getDate())}-${project.id.replace(/[^a-z0-9]/gi, "").slice(-4).toUpperCase()}-${slot === "current" ? "C" : slot.toUpperCase()}`;
   }
 
-  function buildReport(slot) {
+  /* التقرير بيتقسم صفحات A4 بإيدينا (مش بالمتصفح)، عشان كل صفحة يبقى فيها
+     لوجو سكن فوق على اليمين ورقم الصفحة تحت، في المعاينة وفي الـ PDF وعلى كل المتصفحات. */
+  function reportParts(slot) {
     const v = versionData(slot);
     const d = new Date();
     const { plan, boxes } = APP.withSelections(v.selections, () => ({
@@ -939,12 +941,13 @@
     }));
     const done = boxes.filter((b) => b.type).length;
     const savedLine = slot === "current" ? "" : `<div><dt>تاريخ الحفظ</dt><dd>${fmtDate(v.savedAt)} · ${esc(v.savedBy.name)}</dd></div>`;
-    return `<article class="sk-paper">
-      <header class="sk-paper-head">
+    return {
+      head: `<header class="sk-paper-head">
         <img src="${APP_DATA.logo}" alt="سكن جروب">
         <div class="sk-paper-title"><h1>تقرير اختيارات الخزائن</h1><span dir="ltr">${reportNumber(slot)}</span></div>
-      </header>
-      <dl class="sk-paper-meta">
+      </header>`,
+      foot: (i, n) => `<footer class="sk-paper-foot"><span>سكن جروب · SAKAN GROUP</span><span>الاختيارات لتحديد التوزيع؛ المقاسات والخلوص وإمكانية التنفيذ تراجع قبل الاعتماد.</span><b class="sk-page-no">صفحة ${i} من ${n}</b></footer>`,
+      intro: [`<dl class="sk-paper-meta">
         <div><dt>المشروع</dt><dd>${esc(project.name)}</dd></div>
         <div><dt>المالك</dt><dd>${esc(project.ownerName)}</dd></div>
         <div><dt>النسخة</dt><dd class="sk-paper-version ${slot}">${slot === "current" ? "الاختيارات الحالية" : SLOTS[slot]}</dd></div>
@@ -953,21 +956,73 @@
         <div><dt>الوقت</dt><dd>${fmtTime(d)}</dd></div>
         <div><dt>المكتمل</dt><dd>${done} من ${boxes.length} بوكسات</dd></div>
         ${savedLine}
-      </dl>
-      <section class="sk-paper-plan">${plan}</section>
-      <table class="sk-paper-table">
-        <thead><tr><th>البوكس</th><th>الخزانة والمقاس</th><th>التقسيمة المختارة</th><th>الصورة</th></tr></thead>
-        <tbody>${boxes.map((b) => `<tr>
+      </dl>`, `<section class="sk-paper-plan">${plan}</section>`],
+      thead: `<thead><tr><th>البوكس</th><th>الخزانة والمقاس</th><th>التقسيمة المختارة</th><th>الصورة</th></tr></thead>`,
+      rows: boxes.map((b) => `<tr>
           <td dir="ltr" class="sk-code">${esc(b.id)}</td>
           <td>${esc(b.kind)}<br><small>${esc(b.dims)}</small></td>
           <td>${b.type ? `<b dir="ltr">${esc(b.type.label)}</b><br>${esc(b.type.name)}` : '<span class="sk-pending">لم يتم الاختيار</span>'}</td>
           <td>${b.type ? `<img src="${b.type.image}" alt="">` : "—"}</td>
-        </tr>`).join("")}</tbody>
-      </table>
-      <section class="sk-paper-notes"><h3>ملاحظات</h3><p>${esc(v.notes || "لا توجد ملاحظات.")}</p></section>
-      <section class="sk-paper-sign"><div><span>توقيع المالك</span></div><div><span>اعتماد المهندس</span></div></section>
-      <footer class="sk-paper-foot"><span>سكن جروب · SAKAN GROUP</span><span>الاختيارات لتحديد التوزيع؛ المقاسات والخلوص وإمكانية التنفيذ تراجع قبل الاعتماد.</span></footer>
-    </article>`;
+        </tr>`),
+      outro: [`<section class="sk-paper-notes"><h3>ملاحظات</h3><p>${esc(v.notes || "لا توجد ملاحظات.")}</p></section>`,
+        `<section class="sk-paper-sign"><div><span>توقيع المالك</span></div><div><span>اعتماد المهندس</span></div></section>`],
+    };
+  }
+
+  // بيرص أجزاء التقرير في صفحات ثابتة المقاس: لو الجزء مادخلش الصفحة بيروح للي بعدها
+  function buildReport(slot, target) {
+    const r = reportParts(slot);
+    const lab = document.createElement("div");
+    lab.className = "sk-report-lab";
+    document.body.appendChild(lab);
+    const pages = [];
+    let body, tbody;
+    const newPage = () => {
+      const page = document.createElement("article");
+      page.className = "sk-paper";
+      page.innerHTML = r.head + '<div class="sk-paper-body"></div>' + r.foot(1, 1);
+      lab.appendChild(page);
+      pages.push(page);
+      body = page.querySelector(".sk-paper-body");
+      tbody = null;
+    };
+    const fits = () => body.scrollHeight <= body.clientHeight + 1;
+    const put = (el, parent) => {
+      parent.appendChild(el);
+      if (fits() || parent.children.length === 1 && body.children.length <= 1) return;
+      el.remove();
+      newPage();
+      put(el, body);
+    };
+    const table = () => {
+      if (tbody) return tbody;
+      const t = document.createElement("table");
+      t.className = "sk-paper-table";
+      t.innerHTML = r.thead + "<tbody></tbody>";
+      body.appendChild(t);
+      tbody = t.tBodies[0];
+      return tbody;
+    };
+    const frag = (html) => { const tpl = document.createElement("template"); tpl.innerHTML = html.trim(); return tpl.content.firstChild; };
+    newPage();
+    r.intro.forEach((h) => put(frag(h), body));
+    r.rows.forEach((h) => {
+      const tpl = document.createElement("template");
+      tpl.innerHTML = "<table><tbody>" + h + "</tbody></table>";
+      const tr = tpl.content.querySelector("tr");
+      const tb = table();
+      tb.appendChild(tr);
+      if (fits() || tb.children.length === 1) return;
+      tr.remove();
+      if (!tb.children.length) tb.closest("table").remove();
+      newPage();
+      table().appendChild(tr);
+    });
+    tbody = null;
+    r.outro.forEach((h) => put(frag(h), body));
+    pages.forEach((p, i) => (p.querySelector(".sk-page-no").textContent = `صفحة ${i + 1} من ${pages.length}`));
+    target.replaceChildren(...pages);
+    lab.remove();
   }
 
   function openReport(slot) {
@@ -987,20 +1042,19 @@
       return `<button class="sk-chip-btn" role="radio" aria-checked="${k === reportSlot}" data-slot="${k}" ${ok ? "" : "disabled"}>${name}</button>`;
     }).join("");
     $("skReportSlots").querySelectorAll("[data-slot]").forEach((b) => (b.onclick = () => { reportSlot = b.dataset.slot; renderReport(); fitPreview(); }));
-    $("skReportPreview").innerHTML = buildReport(reportSlot);
+    buildReport(reportSlot, $("skReportPreview"));
   }
 
   // المعاينة ورقة A4 بمقاسها الحقيقي، بنصغّرها على قد النافذة
   function fitPreview() {
-    const box = $("skReportPreview"), paper = box.querySelector(".sk-paper");
-    if (!paper) return;
+    const box = $("skReportPreview"), papers = box.querySelectorAll(".sk-paper");
     const z = Math.min(1, (box.clientWidth - 24) / 794);
-    paper.style.zoom = z > 0 ? z : 1;
+    papers.forEach((p) => (p.style.zoom = z > 0 ? z : 1));
   }
   window.addEventListener("resize", () => $("skReport").open && fitPreview());
 
   $("skPrintReport").onclick = async () => {
-    $("printArea").innerHTML = buildReport(reportSlot);
+    buildReport(reportSlot, $("printArea"));
     document.body.classList.add("sk-printing");
     const label = reportSlot === "current" ? "الاختيارات الحالية" : SLOTS[reportSlot];
     const oldTitle = document.title;
@@ -1201,6 +1255,46 @@
     if (u) { user = u; await enter(s.projectId, false); }
     else showLogin();
   }
+
+  /* تكبير وتصغير المخطط بصباعين على الموبايل، زي الصور: الفتح يكبّر والضم يصغّر،
+     وتحريك الصباعين مع بعض يحرّك المخطط. الصباع الواحد يفضل للسكرول واختيار البوكسات.
+     التكبير متخزن في متغيرات CSS على #mapMount، عشان المخطط بيترسم من جديد مع كل اختيار. */
+  (function mapPinch() {
+    const wrap = $("mapMount");
+    if (!wrap) return;
+    let z = 1, tx = 0, ty = 0, p = null;
+    const svg = () => wrap.querySelector("svg");
+    const mid = (t) => [(t[0].clientX + t[1].clientX) / 2, (t[0].clientY + t[1].clientY) / 2];
+    const dist = (t) => Math.hypot(t[0].clientX - t[1].clientX, t[0].clientY - t[1].clientY) || 1;
+    const apply = () => {
+      wrap.style.setProperty("--sk-z", z); wrap.style.setProperty("--sk-tx", tx + "px"); wrap.style.setProperty("--sk-ty", ty + "px");
+      wrap.classList.toggle("sk-zoomed", z > 1);
+    };
+    wrap.addEventListener("touchstart", (e) => {
+      const s = svg();
+      if (e.touches.length !== 2 || !s) return;
+      const r = s.getBoundingClientRect();
+      p = { d: dist(e.touches), z, ox: r.left - tx, oy: r.top - ty, w: r.width / z, h: r.height / z };
+      const m = mid(e.touches);
+      p.u = (m[0] - p.ox - tx) / z; p.v = (m[1] - p.oy - ty) / z;   // نقطة المخطط اللي تحت الصباعين
+    }, { passive: true });
+    wrap.addEventListener("touchmove", (e) => {
+      if (!p || e.touches.length !== 2) return;
+      e.preventDefault();
+      const m = mid(e.touches);
+      z = Math.min(4, Math.max(1, p.z * dist(e.touches) / p.d));
+      tx = Math.min(0, Math.max(p.w * (1 - z), m[0] - p.ox - p.u * z));
+      ty = Math.min(0, Math.max(p.h * (1 - z), m[1] - p.oy - p.v * z));
+      apply();
+    }, { passive: false });
+    const end = (e) => {
+      if (e.touches.length < 2) p = null;
+      if (!e.touches.length && z < 1.05) { z = 1; tx = ty = 0; apply(); }
+    };
+    wrap.addEventListener("touchend", end);
+    wrap.addEventListener("touchcancel", end);
+    window.addEventListener("indesign:project", () => { z = 1; tx = ty = 0; apply(); });
+  })();
 
   // المالك مايقدرش يفتح مكتبة المخططات الأصلية حتى لو حاول
   $("projectsDialog").addEventListener("toggle", () => {

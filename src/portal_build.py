@@ -56,6 +56,8 @@ import dark_theme
 css = open(pdir + '/portal.css').read()
 app_css = '\n'.join(re.findall(r'<style>(.*?)</style>', h, re.S))
 dark = dark_theme.dark_css(app_css, css)   # الثيم الليلي متولّد من ألوان البرنامج نفسه
+# أيقونة الشاشة الرئيسية للموبايل (الملفات في icons/ و manifest.webmanifest جنب index.html على GitHub)
+sub('<meta name="theme-color"', '<link rel="apple-touch-icon" href="icons/icon-180.png"><link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png"><link rel="manifest" href="manifest.webmanifest"><meta name="apple-mobile-web-app-title" content="سكن جروب"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="mobile-web-app-capable" content="yes"><meta name="theme-color"')
 sub("</head>", "<style>\n" + css + "\n/* ===== الثيم الليلي (dark_theme.py) ===== */\n" + dark + "</style>\n</head>")
 html = open(pdir + '/portal.html').read()
 # لو فيه config.json (رابط Supabase ومفتاحه العام) البرنامج بيشتغل على السيرفر، وإلا على الجهاز بس

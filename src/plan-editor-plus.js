@@ -1,9 +1,10 @@
 /* أدوات رسم البوكسات في محرر المخطط (SakanPlanTools)
- * طرق الرسم التلاتة، والمهندس بيختار منهم وقت الرسم:
- * - «سحب»: يسحب مستطيل مرة واحدة، ويحرّك البوكس أو يكبّره من أركانه، والبوكس بيلزق في اللي جنبه.
- * - «بالمقاسات»: يحدد الحائط بخط، ويكتب عروض الخزائن بالسنتي، فتترص لوحدها بالمقاس الحقيقي.
- * - «تلقائي»: البرنامج يدور على مستطيلات الخزائن في الصورة، أو يرسم تقريبي والبرنامج يظبطه على خطوط المخطط.
- * وفي كل الطرق: تكرار البوكس (Ctrl+D)، تحريك بالأسهم، حذف بـ Delete، وتكبير بـ Ctrl + عجلة الماوس.
+ * طريقتين للرسم:
+ * - «رسم يدوي»: البرنامج بيفهم من الحركة. ضغطة ورفع = نقطة (4 نقط خزانة مستقيمة، 5 كورنر مشطوف، 6 كورنر L)،
+ *   وضغط وسحب من غير رفع = بوكس مستطيل. وجواه زرار «بالمقاسات»: يحدد الحائط بخط ويكتب عروض الخزائن.
+ * - «رسم تلقائي»: البرنامج يدور على مستطيلات الخزائن في الصورة، أو يرسم تقريبي والبرنامج يظبطه على خطوط المخطط.
+ * وفي كل الطرق: سهم على كل بوكس لاتجاه فتح الخزانة (يتلف بالسحب أو بالضغط)، ضغطة مطوّلة على البوكس = حذف/نسخ،
+ * تكبير وتصغير بصباعين، تكرار البوكس (Ctrl+D)، تحريك بالأسهم، حذف بـ Delete، وتكبير بـ Ctrl + عجلة الماوس.
  * بيعتمد على INDESIGN_PROJECTS_UI.editor اللي portal_build.py بيضيفه للمحرر.
  */
 (() => {
@@ -11,15 +12,16 @@
   const UI = window.INDESIGN_PROJECTS_UI, ED = UI && UI.editor, P = window.PlanProjects;
   if (!ED || !P) return;
   const $ = (id) => document.getElementById(id);
-  const MODES = { drag: "سحب", points: "بالنقاط", wall: "بالمقاسات", auto: "تلقائي" };
-  let mode = "drag";
-  try { mode = localStorage.getItem("sakan:drawMode") || "drag"; } catch (e) {}
-  if (!MODES[mode]) mode = "drag";
+  const MODES = { manual: "رسم يدوي", auto: "رسم تلقائي" };
+  // «بالمقاسات» جوه الرسم اليدوي، و«سحب» و«بالنقاط» القدام بقوا الرسم اليدوي
+  const modeOf = (m) => (m === "auto" || m === "wall" ? m : "manual");
+  let mode = "manual";
+  try { mode = modeOf(localStorage.getItem("sakan:drawMode")); } catch (e) {}
 
-  let drag = null, suppressClick = false;
+  let drag = null, suppressClick = false, pinching = false;
   let wall = { a: null, b: null };   // خط الحائط في وضع «بالمقاسات»
   let candidates = [];                // مستطيلات لقاها الوضع «التلقائي»
-  let poly = [];                      // نقاط حدود الخزانة في وضع «بالنقاط»
+  let poly = [];                      // نقاط حدود الخزانة في الرسم اليدوي (ضغطة ورفع)
   let pixels = null;                  // كاش صورة المخطط للتحليل
 
   const draft = () => UI.getDraft();
@@ -106,6 +108,7 @@
     const r = g.querySelector("rect"), t = g.querySelector("text");
     r.setAttribute("x", cx - 29); r.setAttribute("y", cy - 14);
     t.setAttribute("x", cx); t.setAttribute("y", cy + 3);
+    paintFaces();
   }
   function guides(xs, ys) {
     const s = svgEl(); if (!s) return;
@@ -134,17 +137,87 @@
     s.appendChild(g);
   }
 
+  /* ---------------- سهم اتجاه فتح الخزانة ----------------
+     المستقيمة: face هي ناحية الواجهة، فالسهم ناحيتها. الكورنر: face مكان الركنة المغلقة، فالسهم عكسها */
+  const FACE_DIR = { south: [0, 1], north: [0, -1], east: [1, 0], west: [-1, 0], nw: [1, 1], ne: [-1, 1], se: [-1, -1], sw: [1, -1] };
+  const isCorner = (b) => b.kind === "corner" || b.kind === "lcorner";
+  function faceDir(b) {
+    const d = FACE_DIR[b.face] || (isCorner(b) ? FACE_DIR.nw : FACE_DIR.south);
+    return isCorner(b) && d[0] * d[1] === 0 ? FACE_DIR.nw : !isCorner(b) && d[0] * d[1] !== 0 ? FACE_DIR.south : d;
+  }
+  function paintFaces() {
+    const s = svgEl(); if (!s) return;
+    s.querySelectorAll(".sk-faces").forEach((el) => el.remove());
+    const all = make("g", {}, "sk-faces"), upp = unitPerPx();
+    for (const b of draft().boxes) {
+      const [cx, cy] = center(b), [dx, dy] = faceDir(b), n = Math.hypot(dx, dy), ux = dx / n, uy = dy / n;
+      const k = isCorner(b) ? 0.5 : 1, gap = 5 * upp, sx = cx + dx * (b.w / 2) * k + ux * gap, sy = cy + dy * (b.h / 2) * k + uy * gap;
+      const L = 24 * upp, hw = 6 * upp, ex = sx + ux * L, ey = sy + uy * L;
+      const g = make("g", Object.assign({ "data-face": b.id }, b.angle ? { transform: `rotate(${b.angle} ${cx} ${cy})` } : {}), "sk-face" + (b.id === ED.selected ? " selected" : ""));
+      g.appendChild(make("line", { x1: sx, y1: sy, x2: ex - ux * hw, y2: ey - uy * hw }, "sk-face-line"));
+      g.appendChild(make("polygon", { points: [[ex, ey], [ex - ux * 2 * hw - uy * hw, ey - uy * 2 * hw + ux * hw], [ex - ux * 2 * hw + uy * hw, ey - uy * 2 * hw - ux * hw]].map((q) => q.join(",")).join(" ") }, "sk-face-head"));
+      g.appendChild(make("circle", { cx: ex - ux * hw, cy: ey - uy * hw, r: 13 * upp }, "sk-face-hit"));
+      const title = make("title", {}); title.textContent = "اتجاه فتح الخزانة: اسحب السهم أو اضغط عليه لتغييره"; g.appendChild(title);
+      all.appendChild(g);
+    }
+    s.appendChild(all);
+  }
+  // الاتجاه من مكان الصباع حوالين نص البوكس، على اتجاه البوكس نفسه لو مايل
+  function faceFromPoint(b, q) {
+    const [cx, cy] = center(b), [vx, vy] = rotate([q[0] - cx, q[1] - cy], -rad(b));
+    if (isCorner(b)) return vx >= 0 ? (vy >= 0 ? "nw" : "sw") : (vy >= 0 ? "ne" : "se");
+    return Math.abs(vx) > Math.abs(vy) ? (vx > 0 ? "east" : "west") : (vy > 0 ? "south" : "north");
+  }
+  // الضغط على السهم بيلفه ربع لفة مع عقارب الساعة
+  function nextFace(b) {
+    const order = isCorner(b) ? ["sw", "nw", "ne", "se"] : ["north", "east", "south", "west"];
+    const i = order.indexOf(b.face);
+    return order[(i + 1) % order.length];
+  }
+
+  /* ---------------- ضغطة مطوّلة على البوكس: حذف / نسخ ---------------- */
+  function closeMenu() { const m = $("skBoxMenu"); if (m) m.remove(); }
+  function boxMenu(id, x, y) {
+    closeMenu();
+    if (!draft().boxes.some((b) => b.id === id)) return;
+    ED.selected = id; ED.tool = "select";
+    UI.updateEditor();
+    const m = document.createElement("div");
+    m.id = "skBoxMenu"; m.className = "sk-box-menu"; m.setAttribute("role", "menu");
+    m.innerHTML = `<b dir="ltr">${id}</b><button type="button" role="menuitem" class="sk-btn-del" data-act="del">حذف</button><button type="button" role="menuitem" class="sk-btn-copy" data-act="copy">نسخ</button>`;
+    $("planEditorDialog").appendChild(m);
+    const r = m.getBoundingClientRect();
+    m.style.left = clamp(x - r.width / 2, 8, innerWidth - r.width - 8) + "px";
+    m.style.top = clamp(y - r.height - 14, 8, innerHeight - r.height - 8) + "px";
+    m.onclick = (e) => {
+      const act = e.target.dataset && e.target.dataset.act; if (!act) return;
+      closeMenu();
+      if (act === "del") $("removeEditorBox").click(); else duplicate();
+    };
+  }
+
+  function cancelDrag() {
+    if (drag) clearTimeout(drag.lp);
+    drag = null;
+    const s = svgEl();
+    if (s) s.querySelectorAll(".sk-preview, .sk-guide").forEach((el) => el.remove());
+  }
+
   /* ---------------- السحب: رسم / تحريك / تكبير / خط الحائط / رسم تقريبي ---------------- */
   function onDown(e) {
     suppressClick = false; // لو click قديم ماوصلش، مايبلعش الضغطة الجديدة
-    if (!ready() || e.button !== 0 || ED.tool === "scale" || ED.first) return;
+    if (!e.target.closest || !e.target.closest("#skBoxMenu")) closeMenu();
+    if (pinching || !ready() || e.button !== 0 || ED.tool === "scale" || ED.first) return;
     const s = svgEl(); if (!s || !s.contains(e.target)) return;
     if (e.target.closest("[data-cand]")) return; // الضغط على مستطيل مقترح بيضيفه (في click)
     const q = toSvg(e), handle = e.target.closest("[data-handle]"), boxEl = e.target.closest("[data-editor-box]");
     const box = (id) => draft().boxes.find((b) => b.id === id), wallPt = e.target.closest("[data-wall-pt]"), polyPt = e.target.closest("[data-poly-pt]");
+    const faceEl = e.target.closest("[data-face]");
     if (polyPt) {
       drag = { kind: "polypt", i: Number(polyPt.dataset.polyPt), start: q };
-    } else if (mode === "points" && poly.length) {
+    } else if (faceEl && box(faceEl.dataset.face) && !(mode === "manual" && poly.length)) {
+      drag = { kind: "face", b: box(faceEl.dataset.face), start: q };
+    } else if (mode === "manual" && poly.length) {
       drag = { kind: "points", start: q }; // وإحنا بنرسم، الضغط فوق بوكس تاني بيحط نقطة برضه
     } else if (wallPt) {
       drag = { kind: "wallpt", which: wallPt.dataset.wallPt, start: q };
@@ -154,16 +227,17 @@
     } else if (boxEl && !(mode === "wall" && wall.a && !wall.b)) {
       const b = box(boxEl.dataset.editorBox);
       drag = { kind: "move", b, o: { x: b.x, y: b.y, w: b.w, h: b.h }, start: q, select: true };
+      // ضغطة مطوّلة من غير تحريك: قايمة حذف / نسخ
+      const d = drag, px = [e.clientX, e.clientY];
+      drag.lp = setTimeout(() => { if (drag !== d || d.moved) return; drag = null; suppressClick = true; boxMenu(b.id, px[0], px[1]); }, 550);
     } else if (mode === "wall" && wall.b) {
       return; // الحائط متحددة: اللمس في مكان فاضي مايحرّكهاش، والتظبيط بمسك النقطة نفسها
-    } else if (mode === "points") {
-      drag = { kind: "points", start: q };
-    } else if (e.pointerType === "touch" && mode !== "wall") {
-      return; // باللمس، السحب على مكان فاضي بيحرّك الصفحة، والرسم بضغطتين على ركنين
+    } else if (mode === "manual") {
+      drag = { kind: "manual", start: snapPoint(q), raw: q }; // ضغطة ورفع = نقطة، سحب = بوكس
     } else if (mode === "wall") {
       drag = { kind: "wall", start: q };
     } else {
-      drag = { kind: mode === "auto" ? "rough" : "draw", start: snapPoint(q) };
+      drag = { kind: "rough", start: q };
     }
     drag.moved = false;
     drag.px = [e.clientX, e.clientY];
@@ -175,8 +249,13 @@
     if (!drag.moved && Math.hypot(e.clientX - drag.px[0], e.clientY - drag.px[1]) < 5) return;
     if (!drag.moved) { try { svgEl().setPointerCapture(drag.pointer); } catch (err) {} } // الضغطة من غير سحب تفضل click عادي
     drag.moved = true;
+    clearTimeout(drag.lp);
+    if (drag.kind === "manual") drag.kind = "draw";
     const q = toSvg(e), s = svgEl(), tol = 8 * unitPerPx();
-    if (drag.kind === "draw" || drag.kind === "rough") {
+    if (drag.kind === "face") {
+      const f = faceFromPoint(drag.b, q);
+      if (f !== drag.b.face) { drag.b.face = f; paintFaces(); }
+    } else if (drag.kind === "draw" || drag.kind === "rough") {
       const c = drag.kind === "draw" ? snapPoint(q) : q, a = drag.start;
       let r = s.querySelector(".sk-preview");
       if (!r) { r = make("rect", {}, "sk-preview" + (drag.kind === "rough" ? " rough" : "")); s.appendChild(r); }
@@ -232,11 +311,24 @@
   function onUp(e) {
     const d = drag; drag = null;
     if (!d) return;
+    clearTimeout(d.lp);
     const s = svgEl();
     if (s) { s.querySelectorAll(".sk-preview, .sk-guide").forEach((el) => el.remove()); try { s.releasePointerCapture(e.pointerId); } catch (err) {} }
     if (d.kind === "polypt") {
       suppressClick = true;
       if (!d.moved && d.i === 0 && poly.length >= 3) finishPoly(); // الضغط على نقطة 1 بيقفل الشكل
+      return;
+    }
+    if (d.kind === "face") {
+      suppressClick = true;
+      if (!d.moved) d.b.face = nextFace(d.b);
+      ED.selected = d.b.id; ED.tool = "select";
+      UI.updateEditor();
+      return;
+    }
+    if (d.kind === "manual") { // ضغطة من غير سحب: أول نقطة في شكل الخزانة
+      suppressClick = true;
+      poly.push(d.raw); paintPoly(); renderPanel(); say("");
       return;
     }
     if (d.kind === "points") {
@@ -371,7 +463,7 @@
   function paintPoly() {
     const s = svgEl(); if (!s) return;
     s.querySelectorAll(".sk-poly").forEach((el) => el.remove());
-    if (mode !== "points" || !poly.length) return;
+    if (mode !== "manual" || !poly.length) return;
     const g = make("g", {}, "sk-poly"), upp = unitPerPx(), pts = poly.map((q) => q.join(",")).join(" ");
     if (poly.length >= 3) g.appendChild(make("polygon", { points: pts }, "sk-poly-fill"));
     g.appendChild(make("polyline", { points: pts }, "sk-wall-line"));
@@ -546,16 +638,17 @@
       </div>`);
     document.querySelector(".editor-sidebar").insertAdjacentHTML("afterbegin",
       `<section class="sk-draw-panel" id="skDrawPanel">
-        <div data-for="drag"><b>رسم بالسحب</b>
-          <p>اسحب على المخطط من ركن الخزانة إلى الركن المقابل. اسحب البوكس لتحريكه، ومن المربعات الصغيرة لتكبيره. يلتصق البوكس تلقائيًا بحواف البوكسات المجاورة.</p></div>
-        <div data-for="points"><b>رسم بالنقاط</b>
-          <p>اضغط على أركان الخزانة واحدًا تلو الآخر حولها. 4 نقاط للخزانة المستقيمة، 5 للكورنر المشطوف، 6 للكورنر حرف L. أغلق الشكل بالضغط على نقطة 1 أو «تم». يمكنك سحب أي نقطة وتحريكها قبل الانتهاء.</p>
+        <div data-for="manual"><b>رسم يدوي</b>
+          <p><b>بالسحب:</b> ضع إصبعك على ركن الخزانة واسحب إلى الركن المقابل دون أن ترفعه، فيُرسم البوكس.</p>
+          <p><b>بالنقاط:</b> اضغط على أركان الخزانة واحدًا تلو الآخر حولها. 4 نقاط للخزانة المستقيمة، 5 للكورنر المشطوف، 6 للكورنر حرف L. أغلق الشكل بالضغط على نقطة 1 أو «تم».</p>
+          <p>السهم على كل بوكس هو اتجاه فتح الخزانة: اسحبه أو اضغط عليه لتغييره. اضغط مطولًا على البوكس للحذف أو النسخ، واستخدم إصبعين للتكبير والتصغير.</p>
           <p class="sk-wall-info" id="skPolyInfo" hidden></p>
-          <div class="sk-auto-actions">
+          <div class="sk-auto-actions" id="skPolyActions" hidden>
             <button type="button" class="primary" id="skPolyDone">تم</button>
             <button type="button" class="secondary" id="skPolyUndo">احذف آخر نقطة</button>
             <button type="button" class="text-button" id="skPolyClear">ابدأ من الأول</button>
-          </div></div>
+          </div>
+          <button type="button" class="secondary sk-wall-open" id="skWallOpen">رسم بالمقاسات (الحائط وعروض الخزائن)</button></div>
         <div data-for="wall"><b>رسم بالمقاسات</b>
           <p id="skWallHint">اضغط على بداية الحائط ونهايته (أو اسحب عليه) على الخط الذي ستُركّب عليه الخزائن.</p>
           <p class="sk-wall-info" id="skWallInfo" dir="auto" hidden></p>
@@ -566,7 +659,8 @@
             <div class="sk-wall-side"><span>جهة الخزائن:</span><button type="button" id="skWallSide" data-side="1"></button></div>
             <button type="button" class="primary" id="skWallApply">رص البوكسات</button>
             <button type="button" class="text-button" id="skWallReset">ارسم الحائط من جديد</button>
-          </div></div>
+          </div>
+          <button type="button" class="text-button" id="skWallBack">رجوع إلى الرسم اليدوي</button></div>
         <div data-for="auto"><b>رسم تلقائي</b>
           <p>«ابحث عن الخزائن» يحدد المستطيلات التي تشبه الخزائن، واضغط على أيٍّ منها لإضافته. أو ارسم تقريبيًا حول الخزانة، وسيضبط البرنامج البوكس على خطوط المخطط.</p>
           <div class="sk-auto-actions">
@@ -574,7 +668,7 @@
             <button type="button" class="secondary" id="skAddAll" hidden>إضافة الكل</button>
           </div></div>
         <p class="sk-draw-msg" id="skDrawMsg" role="status" hidden></p>
-        <p class="sk-draw-keys">Ctrl+D تكرار البوكس · الأسهم للتحريك · Delete للحذف · Ctrl + العجلة للتكبير</p>
+        <p class="sk-draw-keys">Ctrl+D تكرار البوكس · الأسهم للتحريك · Delete للحذف · Ctrl + العجلة أو إصبعين للتكبير</p>
       </section>`);
     $("boxEditorFields").querySelector(".box-fields-heading").insertAdjacentHTML("beforeend",
       `<button type="button" class="text-button" id="skDupBox">تكرار</button>`);
@@ -588,6 +682,8 @@
     };
 
     document.querySelectorAll("[data-draw-mode]").forEach((b) => (b.onclick = () => setMode(b.dataset.drawMode)));
+    $("skWallOpen").onclick = () => setMode("wall");
+    $("skWallBack").onclick = () => setMode("manual");
     $("skWallSide").onclick = () => { $("skWallSide").dataset.side = $("skWallSide").dataset.side === "1" ? "2" : "1"; renderPanel(); paintWall(); };
     for (const id of ["skWallLen", "skWallWidths", "skWallDepth"]) $(id).oninput = () => { paintWall(); say(""); };
     $("skWallWidths").onkeydown = (e) => { if (e.key === "Enter") applyWall(); };
@@ -604,12 +700,23 @@
     canvas.addEventListener("pointerdown", onDown);
     canvas.addEventListener("pointermove", onMove);
     canvas.addEventListener("pointerup", onUp);
-    canvas.addEventListener("pointercancel", () => { drag = null; });
+    canvas.addEventListener("pointercancel", cancelDrag);
+    // كليك يمين (أو الضغطة المطوّلة على أندرويد) على بوكس: نفس قايمة حذف / نسخ
+    canvas.addEventListener("contextmenu", (e) => {
+      const el = e.target.closest && e.target.closest("[data-editor-box]");
+      e.preventDefault();
+      if (!el || $("skBoxMenu")) return;
+      cancelDrag(); suppressClick = true;
+      boxMenu(el.dataset.editorBox, e.clientX, e.clientY);
+    });
+    document.addEventListener("pointerdown", (e) => { if ($("skBoxMenu") && !e.target.closest("#skBoxMenu") && !canvas.contains(e.target)) closeMenu(); });
+    pinchZoom(document.querySelector(".editor-canvas-scroll"));
+    $("planZoom").step = "0.01"; // التكبير بالصباعين يبقى ناعم مش على درجات
     canvas.addEventListener("click", (e) => {
       if (suppressClick) { suppressClick = false; e.stopPropagation(); return; }
       const cand = e.target.closest && e.target.closest("[data-cand]");
       if (cand) { e.stopPropagation(); addCandidate(Number(cand.dataset.cand)); return; }
-      if ((mode === "wall" || mode === "points") && !e.target.closest("[data-editor-box]")) e.stopPropagation();
+      if ((mode === "wall" || mode === "manual") && !e.target.closest("[data-editor-box]")) e.stopPropagation();
     }, true);
     document.querySelector(".editor-canvas-scroll").addEventListener("wheel", (e) => {
       if (!e.ctrlKey && !e.metaKey) return;
@@ -622,16 +729,16 @@
     document.addEventListener("keydown", onKey);
   }
   function setMode(m) {
-    mode = m;
-    try { localStorage.setItem("sakan:drawMode", m); } catch (e) {}
+    mode = modeOf(m);
+    try { localStorage.setItem("sakan:drawMode", mode); } catch (e) {}
     wall = { a: null, b: null }; poly = [];
-    if (m !== "auto") candidates = [];
-    ED.tool = m === "drag" ? "draw" : "select";
+    if (mode !== "auto") candidates = [];
+    ED.tool = "select";
     say("");
     UI.updateEditor();
   }
   function renderPanel() {
-    document.querySelectorAll("[data-draw-mode]").forEach((b) => b.setAttribute("aria-checked", b.dataset.drawMode === mode));
+    document.querySelectorAll("[data-draw-mode]").forEach((b) => b.setAttribute("aria-checked", b.dataset.drawMode === (mode === "wall" ? "manual" : mode)));
     document.querySelectorAll("#skDrawPanel [data-for]").forEach((el) => (el.hidden = el.dataset.for !== mode));
     $("skWallForm").hidden = !wall.b;
     $("skWallHint").textContent = wall.b ? "اسحب النقطة 1 أو 2 لضبط الحائط، واكتب المقاسات." : wall.a ? "اضغط على نهاية الحائط (نقطة 2)." : "اضغط على بداية الحائط ونهايته (أو اسحب عليه) على الخط الذي ستُركّب عليه الخزائن.";
@@ -645,25 +752,55 @@
     const kinds = { 4: "خزانة مستقيمة", 5: "كورنر مشطوف", 6: "كورنر حرف L" };
     $("skPolyInfo").hidden = !poly.length;
     $("skPolyInfo").textContent = `${poly.length} نقاط` + (kinds[poly.length] ? ` · ${kinds[poly.length]}` : "");
-    $("skPolyDone").disabled = poly.length < 4; $("skPolyUndo").disabled = !poly.length; $("skPolyClear").hidden = !poly.length;
+    $("skPolyActions").hidden = !poly.length;
+    $("skPolyDone").disabled = poly.length < 4; $("skPolyUndo").disabled = !poly.length;
     $("skAddAll").hidden = !candidates.length;
     $("skAddAll").textContent = `إضافة الكل (${candidates.length})`;
   }
   function helpText() {
     if (!draft().image || ED.busy || ED.tool === "scale" || ED.first) return;
-    const t = mode === "points" ? "اضغط على أركان الخزانة بالترتيب، وأغلق الشكل عند نقطة 1."
+    const t = mode === "manual" && poly.length ? "اضغط على أركان الخزانة بالترتيب، وأغلق الشكل عند نقطة 1."
       : mode === "wall" ? "حدد الحيطة، واكتب عروض الخزائن بالسنتيمتر."
       : mode === "auto" ? "ابحث عن الخزائن، أو ارسم تقريبيًا حول كل خزانة."
-      : "اسحب لرسم بوكس. اسحب البوكس لتحريكه، ومن أركانه لتكبيره.";
+      : "اسحب لرسم بوكس، أو اضغط على أركان الخزانة نقطة نقطة.";
     $("editorHelp").textContent = t;
   }
   function afterRender() {
     if (!draft() || !$("skDrawModes")) return;
     renderPanel();
     if (!draft().image) return;
-    handles(); paintWall(); paintPoly(); paintCandidates(); helpText();
+    paintFaces(); handles(); paintWall(); paintPoly(); paintCandidates(); helpText();
     const b = draft().boxes.find((q) => q.id === ED.selected), ang = $("skBoxAngle");
     if (b && ang && document.activeElement !== ang) ang.value = b.angle ? b.angle : "";
+  }
+
+  /* ---------------- تكبير وتصغير بصباعين ----------------
+     زي الصور على الموبايل: الفتح يكبّر والضم يصغّر حوالين النقطة اللي بين الصباعين،
+     وتحريك الصباعين مع بعض بيحرّك المخطط. صباع واحد للرسم بس. */
+  function pinchZoom(sc) {
+    if (!sc) return;
+    let p = null;
+    const mid = (t) => [(t[0].clientX + t[1].clientX) / 2, (t[0].clientY + t[1].clientY) / 2];
+    const dist = (t) => Math.hypot(t[0].clientX - t[1].clientX, t[0].clientY - t[1].clientY) || 1;
+    sc.addEventListener("touchstart", (e) => {
+      if (e.touches.length < 2) return;
+      pinching = true; cancelDrag();
+      const c = $("editorCanvas").getBoundingClientRect(), m = mid(e.touches);
+      p = { d: dist(e.touches), z: Number($("planZoom").value), u: (m[0] - c.left) / c.width, v: (m[1] - c.top) / c.height };
+    }, { passive: true });
+    sc.addEventListener("touchmove", (e) => {
+      if (!p || e.touches.length < 2) return;
+      e.preventDefault();
+      const z = $("planZoom"), m = mid(e.touches);
+      const nz = clamp(p.z * dist(e.touches) / p.d, Number(z.min), Number(z.max));
+      if (Math.abs(nz - Number(z.value)) > 0.005) { z.value = nz; z.dispatchEvent(new Event("input")); }
+      const c = $("editorCanvas").getBoundingClientRect();
+      sc.scrollLeft += c.left + p.u * c.width - m[0];
+      sc.scrollTop += c.top + p.v * c.height - m[1];
+    }, { passive: false });
+    const end = (e) => { if (e.touches.length < 2) p = null; if (!e.touches.length) { pinching = false; afterRender(); } };
+    sc.addEventListener("touchend", end);
+    sc.addEventListener("touchcancel", end);
   }
 
   /* ---------------- تكرار وكيبورد ---------------- */
@@ -682,10 +819,12 @@
   function onKey(e) {
     if (!$("planEditorDialog").open || !draft() || !draft().image) return;
     if (/^(INPUT|SELECT|TEXTAREA)$/.test(e.target.tagName)) return;
-    if (mode === "points" && poly.length) {
+    if (mode === "manual" && poly.length) {
       if (e.key === "Enter") { e.preventDefault(); finishPoly(); return; }
       if (e.key === "Backspace" || e.key === "Delete") { e.preventDefault(); poly.pop(); paintPoly(); renderPanel(); return; }
       if (e.key === "Escape") { e.preventDefault(); e.stopPropagation(); poly = []; say(""); paintPoly(); renderPanel(); return; }
+    }
+    if (e.key === "Escape" && $("skBoxMenu")) { e.preventDefault(); e.stopPropagation(); closeMenu(); return;
     }
     const b = draft().boxes.find((q) => q.id === ED.selected);
     if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "d") { e.preventDefault(); duplicate(); return; }
@@ -704,7 +843,7 @@
   window.addEventListener("indesign:editor-render", () => {
     injectUI();
     const d = draft(), key = d ? d.id + "|" + (d.image ? d.image.length : 0) : "";
-    if (key !== lastKey) { lastKey = key; wall = { a: null, b: null }; poly = []; candidates = []; if (mode !== "drag" && ED.tool === "draw") ED.tool = "select"; }
+    if (key !== lastKey) { lastKey = key; wall = { a: null, b: null }; poly = []; candidates = []; closeMenu(); if (ED.tool === "draw") ED.tool = "select"; }
     afterRender();
   });
   window.SakanPlanTools = { setMode, mode: () => mode, detect, fitToLines, duplicate, fitPoly };
