@@ -585,6 +585,18 @@ svg .sk-mark-ed .sk-mark-dot { r: 7; cursor: move; }
 /* الأزرار العادية رمادي */
 .project-strip .project-actions button:not([hidden]), .sk-strip-tabs button, .sk-workbar-actions .sk-btn:not([hidden]) { background: #e6e6e3 !important; border-color: #e6e6e3 !important; }
 .project-strip .project-actions button:not([hidden]):hover, .sk-strip-tabs button:hover, .sk-workbar-actions .sk-btn:not([hidden]):hover { background: #d9d9d5 !important; border-color: #d9d9d5 !important; }
+/* شاشة التقرير: من غير تبويبات النسخ، والأزرار جنب بعض بنفس الحجم */
+#skReportSlots { display: none !important; }
+.sk-report-bar { display: block; }
+.sk-report-bar .sk-actions { display: grid !important; grid-template-columns: repeat(auto-fit, minmax(0, 1fr)); gap: 8px; width: 100%; margin: 0; }
+.sk-report-bar .sk-actions .sk-btn:not([hidden]) { display: flex; align-items: center; justify-content: center; width: 100%; min-height: 40px; margin: 0; padding: 6px 8px; font-size: 13px; border-radius: 10px;
+  background: #e6e6e3; border: 1px solid #e6e6e3; color: #1d2b2a; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.sk-report-bar .sk-actions .sk-btn:not([hidden]):hover { background: #d9d9d5; border-color: #d9d9d5; }
+.sk-report-bar .sk-actions #skShareReport { background: #2e8b57; border-color: #2e8b57; color: #fff; }
+.sk-report-bar .sk-actions #skShareReport:hover { background: #267447; }
+.sk-report-bar .sk-actions [hidden] { display: none !important; }
+.sk-report-bar .sk-actions { max-width: 460px; }
+.sk-report-bar .sk-actions .sk-btn:not([hidden]) { min-height: 34px; padding: 4px 8px; font-size: 12.5px; border-radius: 9px; }
 
 /* ===== الثيم الليلي (dark_theme.py) ===== */
 @media screen{
@@ -945,6 +957,10 @@ html[data-theme=dark] .sk-strip-tabs #skReportBtn{background:#6bce96 !important;
 html[data-theme=dark] .sk-strip-tabs #skReportBtn:hover{background:#7dd5a2 !important}
 html[data-theme=dark] .project-strip .project-actions button:not([hidden]),html[data-theme=dark] .sk-strip-tabs button,html[data-theme=dark] .sk-workbar-actions .sk-btn:not([hidden]){background:#2e2e2c !important;border-color:#2e2e2c !important}
 html[data-theme=dark] .project-strip .project-actions button:not([hidden]):hover,html[data-theme=dark] .sk-strip-tabs button:hover,html[data-theme=dark] .sk-workbar-actions .sk-btn:not([hidden]):hover{background:#3b3b35 !important;border-color:#3b3b35 !important}
+html[data-theme=dark] .sk-report-bar .sk-actions .sk-btn:not([hidden]){background:#2e2e2c;border:1px solid #2e2e2c;color:#c0d5d3}
+html[data-theme=dark] .sk-report-bar .sk-actions .sk-btn:not([hidden]):hover{background:#3b3b35;border-color:#3b3b35}
+html[data-theme=dark] .sk-report-bar .sk-actions #skShareReport{background:#6bce96;border-color:#6bce96;color:#171717}
+html[data-theme=dark] .sk-report-bar .sk-actions #skShareReport:hover{background:#7dd5a2}
 html[data-theme=dark] .sk-paper{--cream:#f5f2ec;--white:#fff;--ink:#293f3e;--muted:#75837c;--teal:#497c78;--wood:#d8c8b1;--gold:#b7955e;--line:#e7e7df;--shadow:0 12px 42px #293f3e08}
 html[data-theme=dark] .sk-paper body{background:var(--cream);color:var(--ink)}
 html[data-theme=dark] .sk-paper button:focus-visible,html[data-theme=dark] .sk-paper input:focus-visible,html[data-theme=dark] .sk-paper textarea:focus-visible,html[data-theme=dark] .sk-paper a:focus-visible{outline:3px solid #b7955e90}
@@ -1542,8 +1558,8 @@ window.INDESIGN_PROJECTS_UI={boot,openEditor,editor:{get selected(){return selec
   <div class="sk-report-bar">
     <div id="skReportSlots" class="sk-chips" role="radiogroup" aria-label="نسخة التقرير"></div>
     <div class="sk-actions">
-      <button class="sk-btn sk-btn-dark" id="skDownloadReport">تنزيل PDF</button>
       <button class="sk-btn sk-wa-btn" id="skShareReport">مشاركة واتساب</button>
+      <button class="sk-btn" id="skDownloadReport">تنزيل PDF</button>
       <button class="sk-btn" id="skPrintReport">طباعة</button>
       <button class="sk-btn" id="skSendReport">إرسال التقرير للمهندس</button>
     </div>

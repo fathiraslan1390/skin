@@ -575,3 +575,15 @@ svg .sk-mark-ed .sk-mark-dot { r: 7; cursor: move; }
 /* الأزرار العادية رمادي */
 .project-strip .project-actions button:not([hidden]), .sk-strip-tabs button, .sk-workbar-actions .sk-btn:not([hidden]) { background: #e6e6e3 !important; border-color: #e6e6e3 !important; }
 .project-strip .project-actions button:not([hidden]):hover, .sk-strip-tabs button:hover, .sk-workbar-actions .sk-btn:not([hidden]):hover { background: #d9d9d5 !important; border-color: #d9d9d5 !important; }
+/* شاشة التقرير: من غير تبويبات النسخ، والأزرار جنب بعض بنفس الحجم */
+#skReportSlots { display: none !important; }
+.sk-report-bar { display: block; }
+.sk-report-bar .sk-actions { display: grid !important; grid-template-columns: repeat(auto-fit, minmax(0, 1fr)); gap: 8px; width: 100%; margin: 0; }
+.sk-report-bar .sk-actions .sk-btn:not([hidden]) { display: flex; align-items: center; justify-content: center; width: 100%; min-height: 40px; margin: 0; padding: 6px 8px; font-size: 13px; border-radius: 10px;
+  background: #e6e6e3; border: 1px solid #e6e6e3; color: #1d2b2a; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.sk-report-bar .sk-actions .sk-btn:not([hidden]):hover { background: #d9d9d5; border-color: #d9d9d5; }
+.sk-report-bar .sk-actions #skShareReport { background: #2e8b57; border-color: #2e8b57; color: #fff; }
+.sk-report-bar .sk-actions #skShareReport:hover { background: #267447; }
+.sk-report-bar .sk-actions [hidden] { display: none !important; }
+.sk-report-bar .sk-actions { max-width: 460px; }
+.sk-report-bar .sk-actions .sk-btn:not([hidden]) { min-height: 34px; padding: 4px 8px; font-size: 12.5px; border-radius: 9px; }
