@@ -130,7 +130,7 @@
     if ($("skProjects").open) renderProjects();
     if ($("skLog").open) renderLog();
     if ($("skProposals").open) renderProposals();
-    if ($("skReport").open) { renderReport(); fitPreview(); }
+    if ($("skReport").open) renderReport();
   }
 
   /* ---------------- شريط الأدوات الأسود ---------------- */
@@ -970,99 +970,185 @@
     return `SG-${d.getFullYear()}${pad(d.getMonth() + 1)}${pad(d.getDate())}-${project.id.replace(/[^a-z0-9]/gi, "").slice(-4).toUpperCase()}-${slot === "current" ? "C" : slot.toUpperCase()}`;
   }
 
-  /* التقرير بيتقسم صفحات A4 بإيدينا (مش بالمتصفح)، عشان كل صفحة يبقى فيها
-     لوجو سكن فوق على اليمين ورقم الصفحة تحت، في المعاينة وفي الـ PDF وعلى كل المتصفحات. */
-  function reportParts(slot) {
+  /* التقرير بنفس شكل تقرير الاختيارات المعتمد: صفحة المسقط المرقّم، ثم ملخص البوكسات المختارة،
+     ثم أشكال التقسيمات المختارة فقط، ثم التقسيمات المخصصة، ثم صور التصميم المرفوعة من المهندس.
+     الصفحات A4 بتتقسم بإيدينا عشان المعاينة والـ PDF يطلعوا زي بعض. */
+  const designCache = new Map();   // id الملف ← صور جاهزة (data URL)
+  function shrinkTo(src, max) {
+    return new Promise((res, rej) => {
+      const im = new Image();
+      im.onload = () => {
+        const k = Math.min(1, max / Math.max(im.width, im.height)), c = document.createElement("canvas");
+        c.width = Math.max(1, Math.round(im.width * k)); c.height = Math.max(1, Math.round(im.height * k));
+        const g = c.getContext("2d");
+        g.fillStyle = "#fff"; g.fillRect(0, 0, c.width, c.height); g.drawImage(im, 0, 0, c.width, c.height);
+        res({ src: c.toDataURL("image/jpeg", 0.84), w: c.width, h: c.height });
+      };
+      im.onerror = () => rej(Error("bad image"));
+      im.src = src;
+    });
+  }
+  async function pdfImages(blob, limit) {
+    if (!Promise.withResolvers) Promise.withResolvers = () => { let resolve, reject; const promise = new Promise((a, b) => { resolve = a; reject = b; }); return { promise, resolve, reject }; };
+    if (!Promise.try) Promise.try = (fn, ...args) => new Promise((resolve) => resolve(fn(...args)));
+    const engine = await window.loadPlanPDF();
+    const doc = await engine.getDocument({ data: new Uint8Array(await blob.arrayBuffer()), useSystemFonts: true, isEvalSupported: false }).promise;
+    const out = [];
+    try {
+      for (let i = 1; i <= Math.min(doc.numPages, limit); i++) {
+        const page = await doc.getPage(i), v0 = page.getViewport({ scale: 1 });
+        const vp = page.getViewport({ scale: Math.min(3, 1400 / Math.max(v0.width, v0.height)) });
+        const c = document.createElement("canvas");
+        c.width = Math.round(vp.width); c.height = Math.round(vp.height);
+        const g = c.getContext("2d");
+        g.fillStyle = "#fff"; g.fillRect(0, 0, c.width, c.height);
+        await page.render({ canvasContext: g, viewport: vp }).promise;
+        out.push({ src: c.toDataURL("image/jpeg", 0.84), w: c.width, h: c.height });
+      }
+    } finally { doc.destroy(); }
+    return out;
+  }
+  async function designImages() {
+    let files = [];
+    try { files = (await API.listFiles(project.id)).filter((f) => f.category === "designs"); } catch (e) { return []; }
+    const out = [];
+    for (const f of files) {
+      if (out.length >= 8) break;
+      if (!/^image\//.test(f.type) && !/pdf/.test(f.type)) continue;
+      if (!designCache.has(f.id)) {
+        try {
+          const blob = await API.getFile(f.id);
+          if (/pdf/.test(f.type)) designCache.set(f.id, await pdfImages(blob, 4));
+          else {
+            const u = URL.createObjectURL(blob);
+            try { designCache.set(f.id, [await shrinkTo(u, 1400)]); } finally { URL.revokeObjectURL(u); }
+          }
+        } catch (e) { designCache.set(f.id, []); }
+      }
+      designCache.get(f.id).forEach((im) => out.length < 8 && out.push({ ...im, name: f.name }));
+    }
+    return out;
+  }
+
+  async function reportSections(slot) {
     const v = versionData(slot);
     const d = new Date();
     const { plan, boxes } = APP.withSelections(v.selections, () => ({
       plan: APP.planSVG().replace(/(class="unit[^"]*?)\sactive\b/g, "$1"),   // من غير تحديد البوكس المفتوح
       boxes: APP.boxes(),
     }));
-    const done = boxes.filter((b) => b.type).length;
-    const savedLine = slot === "current" ? "" : `<div><dt>تاريخ الحفظ</dt><dd>${fmtDate(v.savedAt)} · ${esc(v.savedBy.name)}</dd></div>`;
-    return {
-      head: `<header class="sk-paper-head">
+    const chosen = boxes.filter((b) => b.type);
+    const version = slot === "current" ? "الاختيارات الحالية" : SLOTS[slot];
+    const planName = project.planTitle || APP.title();
+    const head = (title, ...lines) => `<header class="sk-paper-head sk-rep-head">
+        <div class="sk-rep-title"><h1>${title}</h1>${lines.filter(Boolean).map((l) => `<p>${l}</p>`).join("")}</div>
         <img src="${APP_DATA.logo}" alt="سكن جروب">
-        <div class="sk-paper-title"><h1>تقرير اختيارات الخزائن</h1><span dir="ltr">${reportNumber(slot)}</span></div>
-      </header>`,
-      foot: (i, n) => `<footer class="sk-paper-foot"><span>سكن جروب · SAKAN GROUP</span><span>الاختيارات لتحديد التوزيع؛ المقاسات والخلوص وإمكانية التنفيذ تراجع قبل الاعتماد.</span><b class="sk-page-no">صفحة ${i} من ${n}</b></footer>`,
-      intro: [`<dl class="sk-paper-meta">
-        <div><dt>المشروع</dt><dd>${esc(project.name)}</dd></div>
-        <div><dt>المالك</dt><dd>${esc(project.ownerName)}</dd></div>
-        <div><dt>النسخة</dt><dd class="sk-paper-version ${slot}">${slot === "current" ? "الاختيارات الحالية" : SLOTS[slot]}</dd></div>
-        <div><dt>المخطط</dt><dd>${esc(project.planTitle || APP.title())}</dd></div>
-        <div><dt>التاريخ</dt><dd>${fmtDay(d)}</dd></div>
-        <div><dt>الوقت</dt><dd>${fmtTime(d)}</dd></div>
-        <div><dt>المكتمل</dt><dd>${done} من ${boxes.length} بوكسات</dd></div>
-        ${savedLine}
-      </dl>`, `<section class="sk-paper-plan">${plan}</section>`],
-      thead: `<thead><tr><th>البوكس</th><th>الخزانة والمقاس</th><th>التقسيمة المختارة</th><th>الصورة</th></tr></thead>`,
-      rows: boxes.map((b) => `<tr>
-          <td dir="ltr" class="sk-code">${esc(b.id)}</td>
-          <td>${esc(b.kind)}<br><small>${esc(b.dims)}</small></td>
-          <td>${b.type ? `<b dir="ltr">${esc(b.type.label)}</b><br>${esc(b.type.name)}` : '<span class="sk-pending">لم يتم الاختيار</span>'}</td>
-          <td>${b.type ? `<img src="${b.type.image}" alt="">` : "—"}</td>
-        </tr>`),
-      outro: [`<section class="sk-paper-notes"><h3>ملاحظات</h3><p>${esc(v.notes || "لا توجد ملاحظات.")}</p></section>`,
-        `<section class="sk-paper-sign"><div><span>توقيع المالك</span></div><div><span>اعتماد المهندس</span></div></section>`],
-    };
+      </header>`;
+    const boxList = (t) => chosen.filter((b) => b.type.id === t.id).map((b) => b.id);
+    const sections = [];
+
+    // ١) المسقط المرقّم وسجل البوكسات المختارة
+    sections.push({
+      head: head("اختيارات العميل للتقسيمات", `${esc(project.name)} / ${esc(planName)} / <span dir="ltr">${reportNumber(slot)}</span>`),
+      units: [`<section class="sk-rep-panel sk-rep-plan">
+          <h2>${esc(project.name)}</h2>
+          <p class="sk-rep-caps">المسقط المرقّم / اختيارات العميل</p>
+          <p class="sk-rep-small"><span>${esc(version)}</span> · <span>${fmtDay(d)}</span> · <span>${chosen.length} من ${boxes.length} بوكسات</span></p>
+          <div class="sk-rep-plan-svg">${plan}</div>
+        </section>`,
+        `<section class="sk-rep-reg">
+          <h3>سجل البوكسات المختارة / العرض × العمق (سم)</h3>
+          ${chosen.length ? `<div class="sk-rep-reg-grid">${chosen.map((b) => `<div><b dir="ltr">${esc(b.id)}</b><span>${esc(b.kind)}</span><span dir="auto" class="sk-rep-type">${esc(b.type.label)}</span><small>${esc(b.dims)}</small></div>`).join("")}</div>`
+            : `<p class="sk-rep-small">لم يتم اختيار أي تقسيمة بعد.</p>`}
+        </section>`],
+    });
+
+    // ٢) ملخص الاختيارات: كارت لكل بوكس مختار
+    sections.push({
+      head: head("ملخص اختيارات الخزائن", `${esc(project.name)} — ${esc(project.ownerName)}`, `<span>${esc(version)}</span> &nbsp;|&nbsp; <span>${fmtDay(d)}</span>`),
+      units: chosen.map((b) => `<article class="sk-rep-card">
+          <div class="sk-rep-id" dir="ltr">${esc(b.id)}</div>
+          <div class="sk-rep-card-text"><b>${esc(b.kind)}</b><span>${esc(b.dims)}</span><strong dir="auto">${esc(b.type.label)}</strong><small>${esc(b.type.name)}</small></div>
+          <img src="${b.type.image}" alt="">
+        </article>`).concat([`<section class="sk-rep-notes"><h3>ملاحظات العميل</h3><p>${esc(v.notes || "لا توجد ملاحظات إضافية.")}</p>
+          <p class="sk-rep-disclaimer">الاختيارات مسجلة حسب رقم البوكس، وتُراجع المقاسات والفتحات والإكسسوارات قبل التنفيذ.</p></section>`]),
+    });
+
+    // ٣) أشكال التقسيمات المختارة فقط (من غير المخصصة)، كل صف ٤ أشكال
+    const types = [...new Map(chosen.filter((b) => b.type.cat !== "custom").map((b) => [b.type.id, b.type])).values()];
+    if (types.length) {
+      const rows = [];
+      for (let i = 0; i < types.length; i += 4) rows.push(types.slice(i, i + 4));
+      sections.push({
+        head: head("أشكال التقسيمات الداخلية", "الأشكال المختارة فقط / واجهات أمامية"),
+        units: rows.map((row) => `<div class="sk-rep-types">${row.map((t) => `<figure>
+            <img src="${t.image}" alt="">
+            <figcaption><b dir="auto">${esc(t.label)}</b><span>${esc(t.name)}</span><small dir="ltr">${boxList(t).join(" + ")}</small></figcaption>
+          </figure>`).join("")}${"<figure></figure>".repeat(4 - row.length)}</div>`).concat([`<p class="sk-rep-disclaimer">أشكال توضيحية؛ تُؤكد مقاسات الوحدات والإكسسوارات النهائية قبل التصنيع.</p>`]),
+      });
+    }
+
+    // ٤) كل تقسيمة مخصصة في صفحة لوحدها بصورة كبيرة
+    const customs = [...new Map(chosen.filter((b) => b.type.cat === "custom").map((b) => [b.type.id, b.type])).values()];
+    customs.forEach((t) => sections.push({
+      head: head("أشكال التقسيمات الداخلية", `<span>مقترح المشروع</span> / <span dir="ltr">${boxList(t).join(" + ")}</span>`),
+      units: [`<section class="sk-rep-panel sk-rep-custom">
+          <h2 dir="auto">${esc(t.label)}</h2>
+          <p class="sk-rep-caps">${esc(t.name)}</p>
+          <img src="${t.image}" alt="">
+        </section>`],
+    }));
+
+    // ٥) صور التصميم المرفوعة في ملفات المشروع (تصاميم)
+    const imgs = await designImages();
+    if (imgs.length) {
+      const rows = [];
+      for (let i = 0; i < imgs.length; i += 2) rows.push(imgs.slice(i, i + 2));
+      sections.push({
+        head: head("مراجع التصميم", "للاسترشاد بالشكل فقط؛ ترقيم البوكسات والتقسيمات الداخلية حسب المخطط وسجل الاختيارات."),
+        units: rows.map((row) => `<div class="sk-rep-designs${row.length === 1 ? " one" : ""}">${row.map((im) => `<img src="${im.src}" alt="">`).join("")}</div>`),
+      });
+    }
+    return sections;
   }
 
-  // بيرص أجزاء التقرير في صفحات ثابتة المقاس: لو الجزء مادخلش الصفحة بيروح للي بعدها
-  function buildReport(slot, target) {
-    const r = reportParts(slot);
+  const reportFoot = (i, n) => `<footer class="sk-paper-foot"><span>سكن جروب · SAKAN GROUP</span><b class="sk-page-no">صفحة ${i} من ${n}</b></footer>`;
+  let reportRun = 0;
+  // بيرص كل قسم من أول صفحة جديدة، ولو الجزء مادخلش الصفحة بيروح للي بعدها
+  async function buildReport(slot, target) {
+    const run = ++reportRun;
+    const sections = await reportSections(slot);
+    if (run !== reportRun) return false;
     const lab = document.createElement("div");
     lab.className = "sk-report-lab";
     document.body.appendChild(lab);
     const pages = [];
-    let body, tbody;
-    const newPage = () => {
+    let body;
+    const newPage = (head) => {
       const page = document.createElement("article");
-      page.className = "sk-paper";
-      page.innerHTML = r.head + '<div class="sk-paper-body"></div>' + r.foot(1, 1);
+      page.className = "sk-paper sk-rep";
+      page.innerHTML = head + '<div class="sk-paper-body"></div>' + reportFoot(1, 1);
       lab.appendChild(page);
       pages.push(page);
       body = page.querySelector(".sk-paper-body");
-      tbody = null;
     };
     const fits = () => body.scrollHeight <= body.clientHeight + 1;
-    const put = (el, parent) => {
-      parent.appendChild(el);
-      if (fits() || parent.children.length === 1 && body.children.length <= 1) return;
-      el.remove();
-      newPage();
-      put(el, body);
-    };
-    const table = () => {
-      if (tbody) return tbody;
-      const t = document.createElement("table");
-      t.className = "sk-paper-table";
-      t.innerHTML = r.thead + "<tbody></tbody>";
-      body.appendChild(t);
-      tbody = t.tBodies[0];
-      return tbody;
-    };
     const frag = (html) => { const tpl = document.createElement("template"); tpl.innerHTML = html.trim(); return tpl.content.firstChild; };
-    newPage();
-    r.intro.forEach((h) => put(frag(h), body));
-    r.rows.forEach((h) => {
-      const tpl = document.createElement("template");
-      tpl.innerHTML = "<table><tbody>" + h + "</tbody></table>";
-      const tr = tpl.content.querySelector("tr");
-      const tb = table();
-      tb.appendChild(tr);
-      if (fits() || tb.children.length === 1) return;
-      tr.remove();
-      if (!tb.children.length) tb.closest("table").remove();
-      newPage();
-      table().appendChild(tr);
+    sections.forEach((s) => {
+      newPage(s.head);
+      s.units.forEach((h) => {
+        const el = frag(h);
+        body.appendChild(el);
+        if (fits() || body.children.length === 1) return;
+        el.remove();
+        newPage(s.head);
+        body.appendChild(el);
+      });
     });
-    tbody = null;
-    r.outro.forEach((h) => put(frag(h), body));
     pages.forEach((p, i) => (p.querySelector(".sk-page-no").textContent = `صفحة ${i + 1} من ${pages.length}`));
     target.replaceChildren(...pages);
     lab.remove();
+    return true;
   }
 
   function openReport(slot) {
@@ -1070,19 +1156,20 @@
     reportSlot = slot && versionData(slot) ? slot : "current";
     say("skReportMsg", "");
     $("skSendReport").hidden = user.role !== "client" || !can("send");
-    renderReport();
     open("skReport");
-    fitPreview();
+    renderReport();
   }
 
-  function renderReport() {
+  async function renderReport() {
     const slots = [["current", "الاختيارات الحالية"], ...Object.entries(SLOTS)];
     $("skReportSlots").innerHTML = slots.map(([k, name]) => {
       const ok = !!versionData(k);
       return `<button class="sk-chip-btn" role="radio" aria-checked="${k === reportSlot}" data-slot="${k}" ${ok ? "" : "disabled"}>${name}</button>`;
     }).join("");
-    $("skReportSlots").querySelectorAll("[data-slot]").forEach((b) => (b.onclick = () => { reportSlot = b.dataset.slot; renderReport(); fitPreview(); }));
-    buildReport(reportSlot, $("skReportPreview"));
+    $("skReportSlots").querySelectorAll("[data-slot]").forEach((b) => (b.onclick = () => { reportSlot = b.dataset.slot; renderReport(); }));
+    const box = $("skReportPreview");
+    if (!box.querySelector(".sk-paper")) box.innerHTML = '<p class="sk-muted sk-rep-wait">جارٍ تجهيز التقرير…</p>';
+    if (await buildReport(reportSlot, box)) fitPreview();
   }
 
   // المعاينة ورقة A4 بمقاسها الحقيقي، بنصغّرها على قد النافذة
@@ -1093,13 +1180,157 @@
   }
   window.addEventListener("resize", () => $("skReport").open && fitPreview());
 
+  /* تنزيل PDF مباشرة (من غير نافذة الطباعة): كل صفحة بتتحول لصورة وبنكتب ملف PDF صغير بإيدينا.
+     ده بيشتغل على الموبايل وجوه التطبيقات اللي مفيهاش طباعة. */
+  function makePDF(imgs) {
+    const parts = [], offs = [];
+    let len = 0;
+    const add = (x) => { const b = typeof x === "string" ? Uint8Array.from(x, (c) => c.charCodeAt(0)) : x; parts.push(b); len += b.length; };
+    const obj = (n, body, stream) => {
+      offs[n] = len;
+      add(`${n} 0 obj\n${body}\n`);
+      if (stream) { add("stream\n"); add(stream); add("\nendstream\n"); }
+      add("endobj\n");
+    };
+    const W = 595.28, H = 841.89, n = imgs.length;
+    add("%PDF-1.4\n%\xE2\xE3\xCF\xD3\n");
+    obj(1, "<< /Type /Catalog /Pages 2 0 R >>");
+    obj(2, `<< /Type /Pages /Kids [${imgs.map((_, i) => `${3 + i * 3} 0 R`).join(" ")}] /Count ${n} >>`);
+    imgs.forEach((im, i) => {
+      const p = 3 + i * 3, draw = `q ${W} 0 0 ${H} 0 0 cm /Im0 Do Q`;
+      obj(p, `<< /Type /Page /Parent 2 0 R /MediaBox [0 0 ${W} ${H}] /Resources << /XObject << /Im0 ${p + 2} 0 R >> >> /Contents ${p + 1} 0 R >>`);
+      obj(p + 1, `<< /Length ${draw.length} >>`, draw);
+      obj(p + 2, `<< /Type /XObject /Subtype /Image /Width ${im.w} /Height ${im.h} /ColorSpace /DeviceRGB /BitsPerComponent 8 /Filter /DCTDecode /Length ${im.data.length} >>`, im.data);
+    });
+    const xref = len, count = 3 + n * 3;
+    add(`xref\n0 ${count}\n0000000000 65535 f \n` + offs.slice(1).map((o) => String(o).padStart(10, "0") + " 00000 n \n").join(""));
+    add(`trailer\n<< /Size ${count} /Root 1 0 R >>\nstartxref\n${xref}\n%%EOF`);
+    return new Blob(parts, { type: "application/pdf" });
+  }
+  async function reportPDF() {
+    const stage = document.createElement("div");
+    stage.className = "sk-pdf-stage";
+    stage.setAttribute("dir", document.documentElement.getAttribute("dir") || "rtl");
+    document.body.appendChild(stage);
+    try {
+      await buildReport(reportSlot, stage);
+      await Promise.all([...stage.querySelectorAll("img")].map((im) => im.complete || new Promise((r) => { im.onload = im.onerror = r; })));
+      await flattenForPDF(stage);
+      const imgs = [];
+      for (const pg of stage.querySelectorAll(".sk-paper")) {
+        const c = await window.html2canvas(pg, { scale: 2, backgroundColor: "#f4f1ea", logging: false, scrollX: 0, scrollY: 0, windowWidth: 1200 });
+        const b64 = c.toDataURL("image/jpeg", 0.88).split(",")[1];
+        const bin = atob(b64), data = new Uint8Array(bin.length);
+        for (let i = 0; i < bin.length; i++) data[i] = bin.charCodeAt(i);
+        imgs.push({ w: c.width, h: c.height, data });
+      }
+      return makePDF(imgs);
+    } finally { stage.remove(); }
+  }
+  // html2canvas مش بيرسم صور SVG ولا رسم المخطط مظبوط، فبنحولهم صور PNG بالمتصفح نفسه قبل التصوير
+  const PDF_PROPS = ["fill", "fill-opacity", "stroke", "stroke-width", "stroke-dasharray", "stroke-opacity", "opacity", "display", "visibility", "font-family", "font-size", "font-weight", "text-anchor", "dominant-baseline", "paint-order", "stroke-linejoin"];
+  const toPNG = (src, w, h) => new Promise((res) => {
+    const im = new Image();
+    im.onload = () => {
+      const c = document.createElement("canvas");
+      c.width = Math.max(1, Math.round(w * 2)); c.height = Math.max(1, Math.round(h * 2));
+      try { c.getContext("2d").drawImage(im, 0, 0, c.width, c.height); res(c.toDataURL("image/png")); } catch (e) { res(null); }
+    };
+    im.onerror = () => res(null);
+    im.src = src;
+  });
+  async function flattenForPDF(root) {
+    for (const im of root.querySelectorAll('img[src^="data:image/svg"]')) {
+      const r = im.getBoundingClientRect(), k = Math.min(r.width / (im.naturalWidth || r.width), r.height / (im.naturalHeight || r.height));
+      const w = (im.naturalWidth || r.width) * k, h = (im.naturalHeight || r.height) * k;
+      const png = w && h && await toPNG(im.src, w * 1.5, h * 1.5);
+      if (png) im.src = png;
+    }
+    for (const svg of root.querySelectorAll(".sk-paper svg")) {
+      if (svg.parentElement.closest("svg")) continue;
+      const r = svg.getBoundingClientRect();
+      if (!r.width || !r.height) continue;
+      const copy = svg.cloneNode(true), src = [svg, ...svg.querySelectorAll("*")], dst = [copy, ...copy.querySelectorAll("*")];
+      src.forEach((el, i) => {
+        const cs = getComputedStyle(el);
+        dst[i].setAttribute("style", PDF_PROPS.map((k) => `${k}:${cs.getPropertyValue(k)}`).join(";"));
+      });
+      copy.setAttribute("width", r.width); copy.setAttribute("height", r.height);
+      copy.setAttribute("xmlns", "http://www.w3.org/2000/svg");
+      const url = "data:image/svg+xml;charset=utf-8," + encodeURIComponent(new XMLSerializer().serializeToString(copy));
+      const png = await toPNG(url, r.width * 1.5, r.height * 1.5);
+      if (!png) continue;
+      const img = document.createElement("img");
+      img.src = png; img.style.cssText = `width:${r.width}px;height:${r.height}px;display:block;margin:0 auto`;
+      await new Promise((ok) => { img.onload = img.onerror = ok; });
+      svg.replaceWith(img);
+    }
+  }
+  async function saveFile(blob, name) {
+    const dl = window.claude && window.claude.use ? await window.claude.use("downloads").catch(() => null) : null;
+    if (dl) return dl.save({ filename: name, data: blob });   // داخل معاينة claude.ai
+    const u = URL.createObjectURL(blob), a = document.createElement("a");
+    a.href = u; a.download = name;
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(u), 60000);
+  }
+  /* مشاركة التقرير على واتساب: على الموبايل بيفتح قايمة المشاركة بملف الـ PDF نفسه،
+     وعلى الكمبيوتر بينزّل الملف ويفتح واتساب برسالة عشان المستخدم يرفق الملف. */
+  let sharedPDF = null;   // ملف جاهز للمشاركة: لو المتصفح طلب ضغطة تانية مانعيدش التجهيز
+  const pdfKey = () => reportSlot + JSON.stringify(versionData(reportSlot)) + I18N.lang();
+  $("skShareReport").onclick = async () => {
+    const btn = $("skShareReport"), label = reportSlot === "current" ? "الاختيارات الحالية" : SLOTS[reportSlot];
+    const name = `SakanGroup-${reportNumber(reportSlot)}.pdf`, text = `${I18N.t("تقرير اختيارات الخزائن")} · ${project.name}`;
+    btn.disabled = true;
+    try {
+      if (!sharedPDF || sharedPDF.key !== pdfKey()) {
+        say("skReportMsg", "جارٍ تجهيز ملف PDF…");
+        sharedPDF = { key: pdfKey(), blob: await reportPDF() };
+      }
+      const file = new File([sharedPDF.blob], name, { type: "application/pdf" });
+      if (navigator.canShare && navigator.canShare({ files: [file] })) {
+        try {
+          await navigator.share({ files: [file], title: text, text });
+          await log("مشاركة التقرير", label);
+          say("skReportMsg", "تمت مشاركة التقرير.");
+          return;
+        } catch (e) {
+          if (e && e.name === "AbortError") return say("skReportMsg", "تم إلغاء المشاركة.");
+          if (e && e.name === "NotAllowedError") return say("skReportMsg", "ملف PDF جاهز. اضغط «مشاركة واتساب» مرة أخرى للإرسال.");
+        }
+      }
+      await saveFile(sharedPDF.blob, name);
+      window.open("https://wa.me/?text=" + encodeURIComponent(text), "_blank", "noopener");
+      await log("مشاركة التقرير", label);
+      say("skReportMsg", "تم تنزيل ملف PDF وفتح واتساب. أرفق الملف من التنزيلات داخل المحادثة.");
+    } catch (err) {
+      say("skReportMsg", "تعذّر تجهيز ملف PDF. جرّب زر «طباعة» واختر «حفظ بصيغة PDF».", true);
+    } finally { btn.disabled = false; }
+  };
+
+  $("skDownloadReport").onclick = async () => {
+    const btn = $("skDownloadReport"), label = reportSlot === "current" ? "الاختيارات الحالية" : SLOTS[reportSlot];
+    btn.disabled = true;
+    say("skReportMsg", "جارٍ تجهيز ملف PDF…");
+    try {
+      const blob = await reportPDF();
+      await saveFile(blob, `SakanGroup-${reportNumber(reportSlot)}.pdf`);   // اسم إنجليزي: بعض المتصفحات بتتجاهل الأسماء العربي
+      await log("حفظ تقرير PDF", label);
+      say("skReportMsg", "تم تجهيز ملف PDF.");
+    } catch (err) {
+      say("skReportMsg", err && err.code === "declined" ? "تم إلغاء التنزيل." : "تعذّر تجهيز ملف PDF. جرّب زر «طباعة» واختر «حفظ بصيغة PDF».", true);
+    } finally { btn.disabled = false; }
+  };
+
   $("skPrintReport").onclick = async () => {
-    buildReport(reportSlot, $("printArea"));
+    const btn = $("skPrintReport");
+    btn.disabled = true;
+    try { await buildReport(reportSlot, $("printArea")); } finally { btn.disabled = false; }
     document.body.classList.add("sk-printing");
     const label = reportSlot === "current" ? "الاختيارات الحالية" : SLOTS[reportSlot];
     const oldTitle = document.title;
     document.title = `SakanGroup-${project.name}-${I18N.t(label)}`.replace(/[<>:"/\\|?*]/g, "");   // اسم ملف الـ PDF
-    await log("حفظ تقرير PDF", label);
+    await log("طباعة التقرير", label);
     window.print();
     document.title = oldTitle;
   };

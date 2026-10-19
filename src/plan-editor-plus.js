@@ -12,9 +12,9 @@
   const UI = window.INDESIGN_PROJECTS_UI, ED = UI && UI.editor, P = window.PlanProjects;
   if (!ED || !P) return;
   const $ = (id) => document.getElementById(id);
-  const MODES = { manual: "رسم يدوي", auto: "رسم تلقائي" };
+  const MODES = { manual: "رسم يدوي", auto: "رسم تلقائي", number: "ترقيم البوكسات" };
   // «بالمقاسات» جوه الرسم اليدوي، و«سحب» و«بالنقاط» القدام بقوا الرسم اليدوي
-  const modeOf = (m) => (m === "auto" || m === "wall" ? m : "manual");
+  const modeOf = (m) => (m === "auto" || m === "wall" || m === "number" ? m : "manual");
   let mode = "manual";
   try { mode = modeOf(localStorage.getItem("sakan:drawMode")); } catch (e) {}
 
@@ -73,6 +73,14 @@
     UI.updateEditor();
   }
 
+  // رقم بوكس جديد: النقطة مكان الضغطة، والبطاقة جنبها (يمين، ولو مفيش مكان فشمال)
+  function addMark(q) {
+    const right = q[0] + 30 + 150 <= 1000, tag = [right ? q[0] + 30 : Math.max(0, q[0] - 30 - 150), clamp(q[1] - 18, 0, H() - 36)];
+    const b = newBox(clamp(q[0] - 4, 0, 992), clamp(q[1] - 4, 0, H() - 8), 8, 8, { mark: true, tag });
+    if (!["straight", "corner", "lcorner"].includes(b.kind)) b.kind = "straight";
+    addBoxes([b]);
+  }
+
   /* ---------------- اللزق في حواف البوكسات التانية ---------------- */
   function edges(skip) {
     const xs = [0, 1000], ys = [0, H()];
@@ -103,6 +111,7 @@
   function paintBox(b) {
     const g = svgEl() && svgEl().querySelector(`[data-editor-box="${CSS.escape(b.id)}"]`);
     if (!g) return;
+    if (b.mark) { g.innerHTML = P.markSVG(b, ""); return; }
     const cx = b.x + b.w / 2, cy = b.y + b.h / 2;
     g.querySelector("polygon").setAttribute("points", P.polygon(b, draft()).map((q) => q.join(",")).join(" "));
     const r = g.querySelector("rect"), t = g.querySelector("text");
@@ -120,7 +129,7 @@
     const s = svgEl(); if (!s) return;
     s.querySelectorAll(".sk-handles").forEach((el) => el.remove());
     const b = draft().boxes.find((q) => q.id === ED.selected);
-    if (!b) return;
+    if (!b || b.mark) return;
     // مربعات صغيرة (حوالي 7 بكسل) ومايزيدوش عن جزء صغير من البوكس، عشان مايغطوش عليه.
     // مكان المسك أوسع شوية من المربع نفسه وشفاف، عشان يتمسك بالصباع
     const upp = unitPerPx(), side = Math.min(b.w, b.h);
@@ -181,6 +190,7 @@
     s.querySelectorAll(".sk-faces").forEach((el) => el.remove());
     const all = make("g", {}, "sk-faces"), upp = unitPerPx();
     for (const b of draft().boxes) {
+      if (b.mark) continue;
       const [cx, cy] = center(b), [dx, dy] = faceDir(b), n = Math.hypot(dx, dy), ux = dx / n, uy = dy / n;
       const k = isCorner(b) ? 0.5 : 1, gap = 5 * upp, sx = cx + dx * (b.w / 2) * k + ux * gap, sy = cy + dy * (b.h / 2) * k + uy * gap;
       const L = 24 * upp, hw = 6 * upp, ex = sx + ux * L, ey = sy + uy * L;
@@ -243,7 +253,7 @@
     if (e.target.closest("[data-cand]")) return; // الضغط على مستطيل مقترح بيضيفه (في click)
     const q = toSvg(e), handle = e.target.closest("[data-handle]"), boxEl = e.target.closest("[data-editor-box]");
     const box = (id) => draft().boxes.find((b) => b.id === id), wallPt = e.target.closest("[data-wall-pt]"), polyPt = e.target.closest("[data-poly-pt]");
-    const faceEl = e.target.closest("[data-face]"), vertexEl = e.target.closest("[data-vertex]");
+    const faceEl = e.target.closest("[data-face]"), vertexEl = e.target.closest("[data-vertex]"), tagEl = e.target.closest(".sk-tag");
     if (polyPt) {
       drag = { kind: "polypt", i: Number(polyPt.dataset.polyPt), start: q };
     } else if (faceEl && box(faceEl.dataset.face) && !(mode === "manual" && poly.length)) {
@@ -252,6 +262,11 @@
       drag = { kind: "points", start: q }; // وإحنا بنرسم، الضغط فوق بوكس تاني بيحط نقطة برضه
     } else if (wallPt) {
       drag = { kind: "wallpt", which: wallPt.dataset.wallPt, start: q };
+    } else if (tagEl && boxEl && box(boxEl.dataset.editorBox) && !(mode === "manual" && poly.length)) {
+      const b = box(boxEl.dataset.editorBox), [ax, ay] = center(b);
+      drag = { kind: "tag", b, o: (b.tag || [ax + 30, ay - 18]).slice(), start: q, select: true };
+      const d = drag, px = [e.clientX, e.clientY];
+      drag.lp = setTimeout(() => { if (drag !== d || d.moved) return; drag = null; suppressClick = true; boxMenu(b.id, px[0], px[1]); }, 550);
     } else if (vertexEl && box(ED.selected)) {
       const b = box(ED.selected);
       drag = { kind: "vertex", i: Number(vertexEl.dataset.vertex), b, pts0: P.polygon(b, draft()), c0: center(b), start: q };
@@ -266,6 +281,8 @@
       drag.lp = setTimeout(() => { if (drag !== d || d.moved) return; drag = null; suppressClick = true; boxMenu(b.id, px[0], px[1]); }, 550);
     } else if (mode === "wall" && wall.b) {
       return; // الحائط متحددة: اللمس في مكان فاضي مايحرّكهاش، والتظبيط بمسك النقطة نفسها
+    } else if (mode === "number") {
+      drag = { kind: "mark", start: q }; // ضغطة على الخزانة = رقم جديد
     } else if (mode === "manual") {
       drag = { kind: "manual", start: snapPoint(q), raw: q }; // ضغطة ورفع = نقطة، سحب = بوكس
     } else if (mode === "wall") {
@@ -306,6 +323,19 @@
       const other = drag.which === "a" ? wall.b : wall.a;
       wall[drag.which] = other ? magnet(other, q, e) : q;
       paintWall(); renderPanel();
+    } else if (drag.kind === "tag") {
+      // بتلزق على محاذاة بطاقات الأرقام التانية (اليمين أو الشمال أو النص، فوق أو تحت أو النص)، ويظهر خط المحاذاة
+      const { b, o } = drag, TW = 150, TH = 36;
+      let x = clamp(o[0] + q[0] - drag.start[0], 0, 1000 - TW), y = clamp(o[1] + q[1] - drag.start[1], 0, H() - TH);
+      const others = draft().boxes.filter((m) => m.mark && m !== b && Array.isArray(m.tag));
+      const fit = (v, size, list) => { let best = null; for (const k of [0, size / 2, size]) for (const c of list) { const dlt = c - (v + k); if (Math.abs(dlt) <= tol && (best == null || Math.abs(dlt) < Math.abs(best.d))) best = { d: dlt, c }; } return best; };
+      const fx = fit(x, TW, others.flatMap((m) => [m.tag[0], m.tag[0] + TW / 2, m.tag[0] + TW]));
+      const fy = fit(y, TH, others.flatMap((m) => [m.tag[1], m.tag[1] + TH / 2, m.tag[1] + TH]));
+      if (fx) x = clamp(x + fx.d, 0, 1000 - TW);
+      if (fy) y = clamp(y + fy.d, 0, H() - TH);
+      b.tag = [x, y];
+      paintBox(b);
+      guides(fx ? [fx.c] : [], fy ? [fy.c] : []);
     } else if (drag.kind === "vertex") {
       drag.free = e.shiftKey;
       cornerVertex(drag, e.shiftKey ? q : snapPoint(q, drag.b));
@@ -362,6 +392,11 @@
       if (!d.moved) d.b.face = nextFace(d.b);
       ED.selected = d.b.id; ED.tool = "select";
       UI.updateEditor();
+      return;
+    }
+    if (d.kind === "mark") {
+      suppressClick = true;
+      if (!d.moved) addMark(d.start);
       return;
     }
     if (d.kind === "manual") { // ضغطة من غير سحب: أول نقطة في شكل الخزانة
@@ -699,6 +734,9 @@
             <button type="button" class="text-button" id="skWallReset">ارسم الحائط من جديد</button>
           </div>
           <button type="button" class="text-button" id="skWallBack">رجوع إلى الرسم اليدوي</button></div>
+        <div data-for="number"><b>ترقيم البوكسات</b>
+          <p>ارفع المخطط (صورة أو PDF)، ثم اضغط على كل خزانة لوضع رقمها. يظهر الرقم وبجانبه علامة +، ويضغط العميل عليها لاختيار التقسيمة.</p>
+          <p>اسحب بطاقة الرقم لتحريكها، واسحب النقطة لتغيير مكانها على الخزانة. واختر نوع الخزانة من «شكل الوحدة» لتظهر التقسيمات المناسبة لها.</p></div>
         <div data-for="auto"><b>رسم تلقائي</b>
           <p>«ابحث عن الخزائن» يحدد المستطيلات التي تشبه الخزائن، واضغط على أيٍّ منها لإضافته. أو ارسم تقريبيًا حول الخزانة، وسيضبط البرنامج البوكس على خطوط المخطط.</p>
           <div class="sk-auto-actions">
@@ -798,9 +836,10 @@
   function helpText() {
     if (!draft().image || ED.busy || ED.tool === "scale" || ED.first) return;
     const t = mode === "manual" && poly.length ? "اضغط على أركان الخزانة بالترتيب، وأغلق الشكل عند نقطة 1."
-      : draft().boxes.some((b) => b.id === ED.selected && isCorner(b)) ? "اسحب أي نقطة من نقاط بوكس الزاوية لتحريكها وحدها، فيتغير الضلعان المتصلان بها فقط."
+      : draft().boxes.some((b) => b.id === ED.selected && isCorner(b) && !b.mark) ? "اسحب أي نقطة من نقاط بوكس الزاوية لتحريكها وحدها، فيتغير الضلعان المتصلان بها فقط."
       : mode === "wall" ? "حدد الحيطة، واكتب عروض الخزائن بالسنتيمتر."
       : mode === "auto" ? "ابحث عن الخزائن، أو ارسم تقريبيًا حول كل خزانة."
+      : mode === "number" ? "اضغط على الخزانة لوضع رقمها، واسحب البطاقة لتحريكها."
       : "اسحب لرسم بوكس، أو اضغط على أركان الخزانة نقطة نقطة.";
     $("editorHelp").textContent = t;
   }
@@ -845,6 +884,11 @@
   /* ---------------- تكرار وكيبورد ---------------- */
   function duplicate() {
     const b = draft().boxes.find((q) => q.id === ED.selected); if (!b) return;
+    if (b.mark) { // الرقم المكرر بيتحط تحت الأصلي بنفس النوع
+      const [cx, cy] = center(b), t = b.tag || [cx + 30, cy - 18], dy = cy + 50 <= H() ? 50 : -50;
+      addBoxes([Object.assign({}, b, { x: b.x, y: b.y + dy, tag: [t[0], clamp(t[1] + dy, 0, H() - 36)] })]);
+      return;
+    }
     const free = (x, y) => x >= 0 && y >= 0 && x + b.w <= 1000.1 && y + b.h <= H() + 0.1 && !draft().boxes.some((q) => x < q.x + q.w - 0.5 && x + b.w > q.x + 0.5 && y < q.y + q.h - 0.5 && y + b.h > q.y + 0.5);
     if (b.angle) { // البوكس المايل: النسخة بتتحط جنبه على نفس الحائط
       const [ux, uy] = rotate([b.w, 0], rad(b)), c = { ...b, x: b.x + ux, y: b.y + uy };

@@ -81,6 +81,29 @@ sub("let dep=p.scale?b.depth/100/p.scale.metersPerUnit:Math.min(w,h)*.6,", "let 
 #     فالتحريك والتكرار والميل بيمشوا عليها. عدد النقط لازم يناسب النوع (5 للمشطوف و6 لحرف L)، غير كده بيترسم الشكل المنتظم
 sub("function polygon0(b,p){let {x,y,w,h}=b;", "function polygon0(b,p){let {x,y,w,h}=b;if((b.kind==='corner'||b.kind==='lcorner')&&Array.isArray(b.pts)&&b.pts.length===(b.kind==='lcorner'?6:5))return b.pts.map(([u,v])=>[x+u*w,y+v*h]);")
 
+# 2ي) طريقة «ترقيم البوكسات»: المهندس بيحط رقم البوكس على المخطط (صورة أو PDF) من غير ما يرسم الخزانة.
+#     البوكس المرقّم mark:true، ومكانه نقطة صغيرة على الخزانة، وtag:[x,y] مكان بطاقة الرقم (رقم البوكس وجنبه + أو اسم التقسيمة)
+sub("function svg(p,selections={},active=''){",
+    "const TAG_W=150,TAG_H=36,TAG_ID=56;"
+    "function markSVG(b,label){let ax=b.x+b.w/2,ay=b.y+b.h/2,[tx,ty]=Array.isArray(b.tag)?b.tag:[ax+30,ay-TAG_H/2],"
+    "px=Math.max(tx,Math.min(ax,tx+TAG_W)),py=Math.max(ty,Math.min(ay,ty+TAG_H)),lab=String(label||'');if(lab.length>12)lab=lab.slice(0,11)+'…';"
+    "return `<line class=\"sk-mark-line\" x1=\"${ax}\" y1=\"${ay}\" x2=\"${px}\" y2=\"${py}\"/><circle class=\"sk-mark-dot\" cx=\"${ax}\" cy=\"${ay}\" r=\"5\"/>"
+    "<g class=\"sk-tag\"><rect class=\"sk-tag-box\" x=\"${tx}\" y=\"${ty}\" width=\"${TAG_W}\" height=\"${TAG_H}\" rx=\"6\"/>"
+    "<path class=\"sk-tag-id\" d=\"M${tx+TAG_ID} ${ty}H${tx+6}a6 6 0 0 0 -6 6V${ty+TAG_H-6}a6 6 0 0 0 6 6H${tx+TAG_ID}Z\"/>"
+    "<text class=\"sk-tag-code\" x=\"${tx+TAG_ID/2}\" y=\"${ty+TAG_H/2}\">${esc(b.id)}</text>"
+    "<text class=\"sk-tag-${lab?'label':'plus'}\" x=\"${tx+TAG_ID+(TAG_W-TAG_ID)/2}\" y=\"${ty+TAG_H/2}\">${lab?esc(lab):'+'}</text></g>`}"
+    "function svg(p,selections={},active=''){")
+sub("${p.boxes.map(b=>{let t=T.get(selections[b.id]),",
+    "${p.boxes.map(b=>{if(b.mark){let t=T.get(selections[b.id]);return `<g class=\"unit upload-unit sk-mark-unit ${b.id===active?'active':''} ${t?'chosen':''}\" data-box=\"${esc(b.id)}\" role=\"button\" tabindex=\"0\" aria-label=\"${esc(b.id)} ${t?esc(t.name):'اختر تقسيمة'}\">${markSVG(b,t&&t.label)}</g>`}let t=T.get(selections[b.id]),")
+sub("root.PlanProjects={schema:SCHEMA,", "root.PlanProjects={schema:SCHEMA,markSVG,")
+# البوكسات المرقّمة مالهاش شكل حقيقي: مابتدخلش في الـ360° ولا في المقاسات
+sub("if(p.builtin)return null;if(!p.scale)return null;", "if(p.builtin)return null;if(!p.scale||!p.boxes.some(b=>!b.mark))return null;p={...p,boxes:p.boxes.filter(b=>!b.mark)};")
+sub("legA:s?b.w*s*100:null,legB:s?b.h*s*100:null,cornerDepth:b.depth,width:s?(vertical?b.h:b.w)*s*100:null,depth:s?(vertical?b.w:b.h)*s*100:null",
+    "legA:s&&!b.mark?b.w*s*100:null,legB:s&&!b.mark?b.h*s*100:null,cornerDepth:b.depth,width:s&&!b.mark?(vertical?b.h:b.w)*s*100:null,depth:s&&!b.mark?(vertical?b.w:b.h)*s*100:null")
+# في المحرر: البوكس المرقّم بيترسم ببطاقة الرقم نفسها
+sub("p.boxes.map(b=>{let pts=P.polygon(b,p)",
+    "p.boxes.map(b=>{if(b.mark)return `<g data-editor-box=\"${E(b.id)}\" class=\"edit-region sk-mark-ed ${selected===b.id?'selected-region':''}\">${P.markSVG(b,'')}</g>`;let pts=P.polygon(b,p)")
+
 # 3) التنسيق والنوافذ والسكريبتات
 import re
 sys.path.insert(0, pdir)
@@ -98,6 +121,7 @@ cfg_path = os.environ.get('SAKAN_CONFIG') or pdir + '/config.json'
 cfg = json.load(open(cfg_path)) if os.path.exists(cfg_path) else {}
 js = "window.SAKAN_CONFIG = " + json.dumps(cfg) + ";\n" + "\n".join(open(pdir + '/' + f).read() for f in ('i18n.js', 'portal-api.js', 'portal-api-remote.js', 'portal.js', 'plan-editor-plus.js'))
 i = h.rindex("</body>")
-h = h[:i] + html + "\n<script>\n" + js + "</script>\n" + h[i:]
+js0 = open(pdir + '/vendor/html2canvas.min.js').read()   # لتحويل صفحات التقرير لصور جوه ملف PDF
+h = h[:i] + html + "\n<script>\n" + js0 + "\n</script>\n<script>\n" + js + "</script>\n" + h[i:]
 open(out, 'w').write(h)
 print("ok", len(h))
