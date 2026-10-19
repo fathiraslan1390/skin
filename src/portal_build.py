@@ -106,6 +106,8 @@ sub("p.boxes.map(b=>{let pts=P.polygon(b,p)",
 
 # 3) التنسيق والنوافذ والسكريبتات
 import re
+h = h.replace("ضبط المقياس للـ360°", "ضبط المقياس", 1)   # المنظور 360° اتشال
+h = h.replace('id="editPlan" hidden>تعديل البوكسات والمقياس<', 'id="editPlan" hidden>تعديل المخطط<', 1)
 sys.path.insert(0, pdir)
 import dark_theme
 css = open(pdir + '/portal.css').read()

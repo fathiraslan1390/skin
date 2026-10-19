@@ -536,3 +536,42 @@ svg .sk-mark-ed .sk-mark-dot { r: 7; cursor: move; }
 .sk-pdf-stage .sk-paper { box-shadow: none; zoom: 1 !important; margin: 0; }
 .sk-wa-btn { background: #1f8f4e; border-color: #1f8f4e; color: #fff; }
 .sk-wa-btn:hover { background: #18773f; }
+
+/* عناصر اتشالت بطلب العميل: المنظور 360°، شريط المراجعة، تحميل ملف المشروع، التعليقات، المقترحات، سطر حالة المسودة */
+.room-invite, .bottom-bar, .sk-finish, #viewRoom, #roomDialog:not([open]), #exportProject, #skCommentsBtn, #skProposalsBtn,
+.sk-workbar-title, #skWorkStatus, #skWorkInfo[hidden] { display: none !important; }
+/* «المخططات والملفات» و«إرسال التقرير PDF واتساب» أزرار بدل تبويبات */
+.sk-strip-tabs { border-top: 0; gap: 10px; padding: 12px 0 2px; overflow: visible; flex-wrap: wrap; }
+.sk-strip-tabs button { flex: 1 1 180px; background: #fff; border: 1px solid #d6d8cf; border-radius: 12px; padding: 12px 14px; font-size: 14px; color: var(--ink); text-align: center; white-space: normal; }
+.sk-strip-tabs button:hover { border-color: var(--ink); border-bottom-color: var(--ink); }
+.sk-strip-tabs #skReportBtn { background: #1f8f4e; border-color: #1f8f4e; color: #fff; }
+.sk-strip-tabs #skReportBtn:hover { background: #18773f; }
+.sk-strip-tabs button { flex: 1 1 0; min-width: 0; }
+@media (min-width: 741px) { .sk-strip-tabs button { flex: 0 0 auto; padding: 9px 16px; font-size: 13px; } }
+@media (max-width: 740px) { .sk-strip-tabs button { font-size: 12.5px; padding: 12px 8px; } }
+
+/* أزرار كارت المشروع: كلها نفس الحجم واللون في شبكة واحدة (عمودين على الموبايل، ٣ على الكمبيوتر)،
+   ما عدا «حفظ نهائي للتصنيع» أزرق هادي و«إرسال التقرير PDF واتساب» أخضر */
+.project-strip { display: grid !important; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; align-items: stretch; }
+@media (min-width: 741px) { .project-strip { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+.project-strip > div:first-child, #skWorkInfo { grid-column: 1 / -1; }
+.project-strip > .project-actions, .project-strip > .sk-strip-tabs, .project-strip > .sk-workbar:not([hidden]), .sk-workbar-actions { display: contents !important; }
+.project-strip .project-actions button:not([hidden]), .sk-strip-tabs button, .sk-workbar-actions .sk-btn:not([hidden]) {
+  display: flex !important; align-items: center; justify-content: center; text-align: center; white-space: normal;
+  width: 100% !important; min-height: 48px; height: 100%; margin: 0 !important; padding: 10px 12px !important; box-sizing: border-box;
+  font: inherit; font-size: 13.5px !important; font-weight: 500; line-height: 1.4; border-radius: 12px !important;
+  background: #fff !important; border: 1px solid #d6d8cf !important; color: #1d2b2a !important; box-shadow: none !important; cursor: pointer; }
+.project-strip .project-actions button:not([hidden]):hover, .sk-strip-tabs button:hover, .sk-workbar-actions .sk-btn:not([hidden]):hover { border-color: #1d2b2a !important; }
+.sk-workbar-actions #skApprove { background: #5b7fa3 !important; border-color: #5b7fa3 !important; color: #fff !important; }
+.sk-workbar-actions #skApprove:hover { background: #4d6f92 !important; }
+.sk-strip-tabs #skReportBtn { background: #2e8b57 !important; border-color: #2e8b57 !important; color: #fff !important; }
+.sk-strip-tabs #skReportBtn:hover { background: #267447 !important; }
+.sk-workbar-actions .sk-btn:disabled { opacity: .55; cursor: default; }
+/* أزرار أصغر: سطر واحد على الكمبيوتر (٦)، وعمودين على الموبايل */
+.project-strip { gap: 8px; }
+@media (min-width: 741px) { .project-strip { grid-template-columns: repeat(6, minmax(0, 1fr)); } }
+.project-strip .project-actions button:not([hidden]), .sk-strip-tabs button, .sk-workbar-actions .sk-btn:not([hidden]) {
+  min-height: 38px; padding: 6px 8px !important; font-size: 12.5px !important; border-radius: 10px !important; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+/* الأزرار العادية رمادي */
+.project-strip .project-actions button:not([hidden]), .sk-strip-tabs button, .sk-workbar-actions .sk-btn:not([hidden]) { background: #e6e6e3 !important; border-color: #e6e6e3 !important; }
+.project-strip .project-actions button:not([hidden]):hover, .sk-strip-tabs button:hover, .sk-workbar-actions .sk-btn:not([hidden]):hover { background: #d9d9d5 !important; border-color: #d9d9d5 !important; }

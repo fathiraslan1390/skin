@@ -173,16 +173,7 @@
     label.className = "sk-project-label";
     strip.appendChild(label);
 
-    // شريط صغير تحت المخطط: عرض 360° ومراجعة الاختيارات في سطر واحد
-    const invite = document.querySelector(".room-invite"), bottom = document.querySelector(".bottom-bar");
-    if (invite && bottom) {
-      const finish = document.createElement("div");
-      finish.className = "sk-finish";
-      invite.before(finish);
-      finish.append(invite, bottom);
-      $("viewRoom").innerHTML = "عرض 360° <span>↗</span>";
-      $("summaryBottom").innerHTML = "مراجعة <span>←</span>";
-    }
+    // المنظور 360° وشريط «مراجعة» اتشالوا بطلب العميل (الإخفاء في portal.css)
     // تبويبات المشروع تحت هيدر المخطط
     const stripBox = document.querySelector(".project-strip");
     stripBox.insertAdjacentHTML("beforeend",
@@ -190,7 +181,7 @@
         <button id="skCommentsBtn">التعليقات <span id="skCommentsCount" class="sk-count" hidden></span></button>
         <button id="skFilesBtn">المخططات والملفات</button>
         <button id="skProposalsBtn">المقترحات</button>
-        <button id="skReportBtn">تقرير PDF</button>
+        <button id="skReportBtn">إرسال واتساب</button>
       </nav>`);
     $("skProposalsBtn").onclick = openProposals;
     $("skReportBtn").onclick = () => openReport("current");
@@ -204,8 +195,8 @@
         <span class="sk-status" id="skWorkStatus"></span>
         <span class="sk-muted" id="skWorkInfo"></span>
         <span class="sk-workbar-actions">
-          <button class="sk-btn sk-btn-blue" id="skSaveWork">حفظ مسودة</button>
-          <button class="sk-btn sk-btn-green" id="skApprove">تم الاعتماد - ابدأ التصنيع</button>
+          <button class="sk-btn sk-btn-blue" id="skSaveWork">حفظ كمسودة</button>
+          <button class="sk-btn sk-btn-green" id="skApprove">حفظ نهائي للتصنيع</button>
           <button class="sk-btn" id="skReopen">فتح للتعديل</button>
           <button class="sk-btn" id="skRequestEdit">طلب السماح بالتعديل</button>
           <button class="sk-btn sk-btn-dark" id="skAllowEdit">السماح بالتعديل</button>
@@ -292,6 +283,7 @@
     $("skApprove").hidden = approved() || !canApprove() || !canEdit();
     $("skApprove").classList.toggle("sk-btn-dark", !dirty);
     $("skReopen").hidden = !approved() || !isAdmin() || pending;
+    $("skWorkInfo").hidden = !approved() && !pending;   // سطر «آخر حفظ» اتشال؛ بيظهر بس بعد الحفظ النهائي أو لو فيه طلب تعديل
   }
 
   /* ---------------- الدخول والخروج ---------------- */
@@ -476,14 +468,14 @@
 
   async function approveWork() {
     if (!project) return;
-    if (!confirm("تم الاعتماد - ابدأ التصنيع؟ بعد ذلك لن يمكن تعديل الاختيارات إلا إذا سمح مدير النظام بالتعديل.")) return;
+    if (!confirm("حفظ نهائي للتصنيع؟ بعد ذلك لن يمكن تعديل الاختيارات إلا إذا سمح مدير النظام بالتعديل.")) return;
     if (dirty && !(await saveWork())) return;
     try {
       project = await API.approveWork(project.id, by());
       // الاعتماد بيتحفظ كمان كمقترح نهائي
       project = await API.saveProposal(project.id, "final", { selections: saved.selections, notes: saved.notes, by: by() });
     } catch (e) { alert(e.message); return; }
-    await log("تم الاعتماد - ابدأ التصنيع", `${count(saved.selections)} من ${APP.boxes().length} اختيارات`);
+    await log("حفظ نهائي للتصنيع", `${count(saved.selections)} من ${APP.boxes().length} اختيارات`);
     updateWorkbar();
     notice("تم اعتماد الاختيارات.");
   }
@@ -956,7 +948,7 @@
     muted = false;
     checkDirty();
     await log("استرجاع " + SLOTS[slot], `${count(pr.selections)} اختيارات`);
-    say("skPropMsg", `تم استرجاع اختيارات «${SLOTS[slot]}». اضغط «حفظ مسودة» لحفظها.`);
+    say("skPropMsg", `تم استرجاع اختيارات «${SLOTS[slot]}». اضغط «حفظ كمسودة» لحفظها.`);
   }
 
   /* ---------------- تقرير PDF ---------------- */
@@ -1477,7 +1469,7 @@
   });
 
   /* ---------------- الإشعارات ---------------- */
-  const NOTIFY = { comment: "تعليق جديد", report: "تقرير مُرسل", approved: "تم الاعتماد - ابدأ التصنيع", editRequest: "طلب السماح بالتعديل", editAllowed: "مدير النظام سمح بالتعديل", editRejected: "مدير النظام رفض طلب التعديل" };
+  const NOTIFY = { comment: "تعليق جديد", report: "تقرير مُرسل", approved: "حفظ نهائي للتصنيع", editRequest: "طلب السماح بالتعديل", editAllowed: "مدير النظام سمح بالتعديل", editRejected: "مدير النظام رفض طلب التعديل" };
   let notifications = [];
   async function refreshNotifications() {
     if (!user) return;
