@@ -114,12 +114,12 @@ begin
   if s.kind = 'staff' then
     select doc into d from sakan_staff where ukey = s.ukey;
     if d is null then return null; end if;
-    return jsonb_build_object('role', d->>'role', 'username', d->>'username', 'name', coalesce(nullif(d->>'name',''), d->>'username'),
+    return jsonb_build_object('role', d->>'role', 'username', d->>'username', 'name', coalesce(nullif(d->>'name',''), d->>'username'), 'avatar', coalesce(d->>'avatar',''),
       'perms', case when d->>'role' = 'admin' then '{}'::jsonb else sakan_perms(sakan_engineer_perms(), d->'perms') end);
   end if;
   select doc into d from sakan_owners where ukey = s.ukey;
   if d is null then return null; end if;
-  return jsonb_build_object('role', 'client', 'username', d->>'username', 'name', d->>'name', 'ownerId', d->>'id',
+  return jsonb_build_object('role', 'client', 'username', d->>'username', 'name', d->>'name', 'avatar', coalesce(d->>'avatar',''), 'ownerId', d->>'id',
     'perms', sakan_perms(sakan_client_perms(), d->'perms'));
 end $$;
 
@@ -144,6 +144,7 @@ create or replace function sakan_public_owner(o sakan_owners) returns jsonb lang
   select jsonb_build_object('id', o.id, 'name', o.doc->>'name', 'username', o.doc->>'username',
     'perms', sakan_perms(sakan_client_perms(), o.doc->'perms'), 'engineer', coalesce(o.doc->>'engineer',''),
     'engineerName', sakan_staff_name(o.doc->>'engineer'), 'createdAt', o.doc->'createdAt',
+    'region', coalesce(o.doc->>'region',''), 'avatar', coalesce(o.doc->>'avatar',''), 'archived', coalesce((o.doc->>'archived')::boolean, false),
     'projects', (select count(*) from sakan_projects where owner_id = o.id))
 $$;
 
@@ -208,6 +209,18 @@ begin
   update sakan_sessions set expires = now() + interval '30 days' where sakan_sessions.token = sakan_api.token and expires < now() + interval '29 days';
 
   if op = 'whoami' then return me; end if;
+
+  -- الصورة الشخصية: كل مستخدم بيغيّر صورته هو بس
+  if op = 'setAvatar' then
+    v := coalesce(args->>'avatar','');
+    if v <> '' and (v !~ '^data:image/(jpeg|png|webp);base64,' or length(v) > 200000) then perform sakan_err('الصورة غير مناسبة. اختر صورة أصغر.'); end if;
+    if me->>'role' = 'client' then
+      update sakan_owners set doc = doc || jsonb_build_object('avatar', v) where ukey = lower(me->>'username');
+    else
+      update sakan_staff set doc = doc || jsonb_build_object('avatar', v) where ukey = lower(me->>'username');
+    end if;
+    return sakan_me(token);
+  end if;
   if op = 'logout' then delete from sakan_sessions where sakan_sessions.token = sakan_api.token; return null; end if;
 
   -- ---------- الملّاك ----------
@@ -231,6 +244,7 @@ begin
       o.doc := jsonb_build_object('id', o.id, 'createdAt', sakan_now(), 'createdBy', sakan_by(me), 'perms', sakan_client_perms());
     end if;
     o.doc := o.doc || jsonb_build_object('name', v, 'username', v2, 'updatedAt', sakan_now());
+    if d ? 'region' and jsonb_typeof(d->'region') = 'string' then o.doc := o.doc || jsonb_build_object('region', left(trim(d->>'region'), 80)); end if;
     -- المدير بس اللي بيحدد الصلاحيات والمهندس المسؤول
     if me->>'role' = 'admin' and d ? 'perms' and jsonb_typeof(d->'perms') = 'object' then o.doc := o.doc || jsonb_build_object('perms', sakan_perms(sakan_client_perms(), d->'perms')); end if;
     if me->>'role' = 'admin' and d ? 'engineer' and jsonb_typeof(d->'engineer') <> 'null' then o.doc := o.doc || jsonb_build_object('engineer', coalesce(d->>'engineer','')); end if;
@@ -239,6 +253,16 @@ begin
       on conflict (id) do update set ukey = excluded.ukey, doc = excluded.doc, pass = excluded.pass;
     if o.ukey is not null and o.ukey <> lower(v2) then delete from sakan_sessions where ukey = o.ukey and kind = 'owner'; end if;
     select * into o from sakan_owners where id = o.id;
+    return sakan_public_owner(o);
+  end if;
+
+  -- أرشفة العميل أو إرجاعه من الأرشيف
+  if op = 'archiveOwner' then
+    if not sakan_can(me, 'manageOwners') then perform sakan_err('غير مسموح لك بتعديل الملّاك.'); end if;
+    select * into o from sakan_owners where id = args->>'id';
+    if not found then perform sakan_err('العميل غير موجود.'); end if;
+    o.doc := o.doc || jsonb_build_object('archived', coalesce((args->>'archived')::boolean, false), 'updatedAt', sakan_now());
+    update sakan_owners set doc = o.doc where id = o.id;
     return sakan_public_owner(o);
   end if;
 
@@ -260,7 +284,7 @@ begin
   end if;
 
   -- كل العمليات اللي على مشروع واحد
-  if op in ('getProject','deleteProject','saveWork','approveWork','requestEdit','resolveEdit','reopenWork','addComment','markSeen','saveProposal','sendReport','listFiles','addFile') then
+  if op in ('getProject','deleteProject','saveWork','approveWork','requestEdit','resolveEdit','reopenWork','addComment','markSeen','saveProposal','sendReport','listFiles','addFile','setProjectMeta') then
     select * into p from sakan_projects where id = coalesce(args->>'id', args->>'projectId');
     if not found or not sakan_sees(me, p) then
       if op = 'getProject' then return null; end if;
@@ -289,6 +313,20 @@ begin
     p.doc := p.doc || jsonb_build_object('name', v, 'ownerId', p.owner_id, 'planId', d->>'planId', 'planTitle', coalesce(d->>'planTitle',''), 'updatedAt', sakan_now());
     if me->>'role' = 'admin' and d ? 'engineer' and jsonb_typeof(d->'engineer') <> 'null' then p.doc := p.doc || jsonb_build_object('engineer', coalesce(d->>'engineer','')); end if;
     insert into sakan_projects values (p.id, p.owner_id, p.doc) on conflict (id) do update set owner_id = excluded.owner_id, doc = excluded.doc;
+    return sakan_public_project(p);
+  end if;
+
+  -- حالة المشروع (study / approved / progress / done) والأرشفة، والمهندس هو اللي بيحددها
+  if op = 'setProjectMeta' then
+    if not sakan_can(me, 'manageProjects') then perform sakan_err('غير مسموح لك بتعديل المشاريع.'); end if;
+    d := coalesce(args->'meta', '{}'::jsonb);
+    if d ? 'stage' then
+      if coalesce(d->>'stage','') not in ('study','approved','progress','done') then perform sakan_err('حالة المشروع غير صحيحة.'); end if;
+      p.doc := p.doc || jsonb_build_object('stage', d->>'stage');
+    end if;
+    if d ? 'archived' then p.doc := p.doc || jsonb_build_object('archived', coalesce((d->>'archived')::boolean, false)); end if;
+    p.doc := p.doc || jsonb_build_object('updatedAt', sakan_now());
+    update sakan_projects set doc = p.doc where id = p.id;
     return sakan_public_project(p);
   end if;
 

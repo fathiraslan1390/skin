@@ -83,16 +83,19 @@
       if (!token) return null;
       try { return await call("whoami"); } catch (e) { return null; }
     },
+    setAvatar: (me, avatar) => call("setAvatar", { avatar: avatar || "" }),
     async logout() { try { await call("logout"); } finally { setToken(null); } },
 
     listOwners: () => call("listOwners"),
     saveOwner: (data) => call("saveOwner", { data }),
     deleteOwner: (id) => call("deleteOwner", { id }),
+    archiveOwner: (id, archived) => call("archiveOwner", { id, archived: !!archived }),
 
     listProjects: (ownerId) => call("listProjects", { ownerId: ownerId || "" }),
     getProject: (id) => call("getProject", { id }),
     saveProject: (data) => call("saveProject", { data }),
     deleteProject: (id) => call("deleteProject", { id }),
+    setProjectMeta: (id, meta) => call("setProjectMeta", { id, meta }),
     saveWork: (id, work) => call("saveWork", { id, work }),
     approveWork: (id) => call("approveWork", { id }),
     requestEdit: (id, reason) => call("requestEdit", { id, reason }),

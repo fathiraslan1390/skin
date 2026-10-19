@@ -587,3 +587,113 @@ svg .sk-mark-ed .sk-mark-dot { r: 7; cursor: move; }
 .sk-report-bar .sk-actions [hidden] { display: none !important; }
 .sk-report-bar .sk-actions { max-width: 460px; }
 .sk-report-bar .sk-actions .sk-btn:not([hidden]) { min-height: 34px; padding: 4px 8px; font-size: 12.5px; border-radius: 9px; }
+
+/* التبويبات (المشاريع، العملاء، المستخدمين، الإعدادات…) بتفتح صفحة كاملة تحت الشريط الأسود، مش مربع فوق الشاشة */
+dialog.sk-panel:not(#skNotify) { top: 52px; bottom: 0; inset-inline: 0; width: 100%; max-width: none; height: auto; max-height: none; margin: 0; border: 0; border-radius: 0; box-shadow: none; overflow-y: auto; z-index: 45; padding: 30px max(16px, calc((100% - 1100px) / 2)) 48px; background: #ffffff; }
+#skSettings.sk-panel { padding-inline: max(16px, calc((100% - 560px) / 2)); }
+body:has(dialog.sk-panel:not(#skNotify)[open]) { overflow: hidden; }
+body:has(dialog.sk-panel:not(#skNotify)[open]) .sk-scrim { display: none !important; }
+
+/* شاشة العملاء: جدول العملاء، وصفحة العميل بجدول مشاريعه */
+.sk-filter-row { display: flex; gap: 10px; align-items: center; margin-bottom: 10px; }
+.sk-filter-row .sk-search { margin: 0; flex: 1; }
+.sk-filter-row[hidden] { display: none; }
+.sk-seg { display: inline-flex; border: 1px solid #d6d8cf; border-radius: 10px; padding: 3px; background: #fff; flex: none; }
+.sk-seg button { border: 0; background: none; font: inherit; font-size: 12.5px; padding: 7px 14px; border-radius: 8px; color: var(--muted); cursor: pointer; }
+.sk-seg button[aria-checked="true"] { background: #e6e6e3; color: var(--ink); font-weight: 600; }
+.sk-table-wrap { border: 1px solid var(--line); border-radius: 12px; overflow-x: auto; background: #fff; }
+.sk-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+.sk-table th { background: #f4f4f2; color: var(--muted); font-weight: 600; font-size: 12px; text-align: start; padding: 10px 14px; white-space: nowrap; }
+.sk-table td { padding: 11px 14px; border-top: 1px solid var(--line); vertical-align: middle; }
+.sk-table td small { display: block; font-size: 11px; }
+.sk-table .sk-num { font-variant-numeric: tabular-nums; font-weight: 600; }
+.sk-clients-table tbody tr { cursor: pointer; }
+.sk-clients-table tbody tr:hover, .sk-clients-table tbody tr:focus-visible { background: #f6f6f4; outline: none; }
+.sk-projects-table tr.current td { background: #f8fbf8; }
+.sk-projects-table td:last-child { width: 1%; }
+.sk-link { border: 0; background: none; padding: 0; font: inherit; font-weight: 600; color: var(--ink); cursor: pointer; text-align: start; }
+.sk-link:hover { text-decoration: underline; }
+.sk-stage-pick { border: 1px solid #d6d8cf; border-radius: 8px; padding: 6px 8px; font: inherit; font-size: 12.5px; background: #fff; color: var(--ink); }
+.sk-stage { display: inline-block; font-size: 11.5px; border-radius: 999px; padding: 2px 10px; background: #efefee; color: var(--muted); }
+.sk-stage-approved { background: #e3ebf3; color: #3f6488; }
+.sk-stage-progress { background: #f6eedf; color: #8a6a2e; }
+.sk-stage-done { background: #e1ece4; color: var(--teal); }
+.sk-stage-row { display: block; margin-bottom: 2px; }
+.sk-row-actions { display: flex; gap: 6px; align-items: center; justify-content: flex-end; white-space: nowrap; }
+.sk-row-actions .sk-btn { min-height: 32px; padding: 5px 12px; font-size: 12px; }
+.sk-more { position: relative; }
+.sk-more > summary { list-style: none; cursor: pointer; }
+.sk-more > summary::-webkit-details-marker { display: none; }
+.sk-more > div { position: absolute; inset-inline-end: 0; top: calc(100% + 4px); z-index: 5; display: grid; gap: 4px; min-width: 150px; padding: 6px; background: #fff; border: 1px solid var(--line); border-radius: 10px; box-shadow: 0 10px 30px #0002; }
+.sk-more > div .sk-btn { width: 100%; justify-content: flex-start; }
+.sk-client-card { border: 1px solid var(--line); border-radius: 14px; padding: 16px 18px; margin: 10px 0 18px; background: #fff; }
+.sk-client-card header { display: flex; justify-content: space-between; gap: 16px; flex-wrap: wrap; align-items: flex-start; }
+.sk-client-card h3 { margin: 0 0 10px; font-size: 18px; }
+.sk-client-facts { display: flex; flex-wrap: wrap; gap: 8px 28px; margin: 0; }
+.sk-client-facts dt { font-size: 11px; color: var(--muted); }
+.sk-client-facts dd { margin: 0; font-weight: 600; font-size: 13px; }
+.sk-section-title { font-size: 14px; margin: 0 0 8px; }
+.sk-archived { margin-top: 16px; }
+.sk-archived > summary { cursor: pointer; color: var(--muted); font-size: 13px; margin-bottom: 8px; }
+@media (max-width: 640px) {
+  .sk-filter-row { flex-direction: column; align-items: stretch; }
+  .sk-table th, .sk-table td { padding: 9px 10px; }
+  .sk-clients-table th { white-space: normal; }
+}
+.sk-table-wrap:has(.sk-projects-table) { overflow: visible; }
+.sk-projects-table thead th:first-child { border-start-start-radius: 12px; }
+.sk-projects-table thead th:last-child { border-start-end-radius: 12px; }
+.sk-dialog .sk-stage-pick { width: auto; min-width: 140px; padding: 6px 8px; }
+.sk-client-card + .sk-section-title { margin-top: -4px; }
+
+/* جدول مشاريع العميل بنفس شكل جدول العملاء */
+.sk-dialog .sk-stage-pick { width: auto; min-width: 0; border: 0; border-radius: 999px; padding: 3px 10px; padding-inline-end: 24px; font-size: 12px; background-color: #efefee; color: var(--muted); cursor: pointer; }
+.sk-dialog .sk-stage-pick.sk-stage-approved { background-color: #e3ebf3; color: #3f6488; }
+.sk-dialog .sk-stage-pick.sk-stage-progress { background-color: #f6eedf; color: #8a6a2e; }
+.sk-dialog .sk-stage-pick.sk-stage-done { background-color: #e1ece4; color: var(--teal); }
+.sk-more-cell { width: 1%; text-align: end; }
+.sk-more > summary { width: 32px; height: 28px; display: grid; place-items: center; border-radius: 8px; color: var(--muted); font-size: 18px; line-height: 1; }
+.sk-more > summary:hover, .sk-more[open] > summary { background: #e6e6e3; color: var(--ink); }
+
+/* حالة المشروع بدائرة ملونة: أزرق تحت الدراسة، أخضر معتمد، برتقالي جاري التنفيذ، رمادي منتهي */
+.sk-dot { display: inline-block; width: 9px; height: 9px; border-radius: 50%; margin-inline-end: 6px; vertical-align: middle; background: currentColor; flex: none; }
+.sk-stage, .sk-stage-pick-wrap { display: inline-flex; align-items: center; border-radius: 999px; padding: 3px 10px; font-size: 12px; background: #f1f1ef; color: var(--ink); }
+.sk-stage-study .sk-dot { background: #2f6fb3; }
+.sk-stage-approved .sk-dot { background: #2e8b57; }
+.sk-stage-progress .sk-dot { background: #e08a1e; }
+.sk-stage-done .sk-dot { background: #8c8f8a; }
+.sk-stage.sk-stage-approved, .sk-stage.sk-stage-progress, .sk-stage.sk-stage-done { background: #f1f1ef; color: var(--ink); }
+.sk-stage-pick-wrap { padding: 0 10px 0 0; }
+html[dir=ltr] .sk-stage-pick-wrap { padding: 0 0 0 10px; }
+.sk-dialog .sk-stage-pick, .sk-dialog .sk-stage-pick.sk-stage-approved, .sk-dialog .sk-stage-pick.sk-stage-progress, .sk-dialog .sk-stage-pick.sk-stage-done { background-color: transparent; color: var(--ink); border: 0; padding: 4px 0; padding-inline-end: 22px; min-width: 0; width: auto; font-size: 12px; }
+
+/* نصيحة قلب الموبايل للمالك */
+.sk-rotate-tip { position: fixed; inset: 0; z-index: 200; background: rgba(15, 17, 16, .55); display: grid; place-items: center; padding: 24px; }
+.sk-rotate-card { background: #fff; border-radius: 18px; padding: 24px 22px 20px; max-width: 320px; text-align: center; display: grid; gap: 10px; justify-items: center; box-shadow: 0 20px 60px #0004; }
+.sk-rotate-card b { font-size: 16px; }
+.sk-rotate-card p { margin: 0; font-size: 13px; color: var(--muted); line-height: 1.8; }
+.sk-rotate-card .sk-btn { min-width: 120px; margin-top: 4px; }
+.sk-rotate-icon { width: 64px; height: 64px; fill: none; stroke: #2e8b57; stroke-width: 3; stroke-linecap: round; stroke-linejoin: round; animation: sk-rotate 2.4s ease-in-out infinite; }
+@keyframes sk-rotate { 0%, 25% { transform: rotate(0); } 55%, 80% { transform: rotate(-90deg); } 100% { transform: rotate(0); } }
+@media (prefers-reduced-motion: reduce) { .sk-rotate-icon { animation: none; } }
+
+/* «مشاريع المالك» للمالك بس، والمهندس والمدير بيوصلوا للمشاريع من «العملاء» */
+body:not(.sk-role-client) #skTabOwner { display: none !important; }
+
+/* الصورة الشخصية: دائرة فيها الصورة أو أول حرف من الاسم */
+.sk-avatar { display: inline-grid; place-items: center; flex: none; border-radius: 50%; overflow: hidden; background: #e6e6e3; color: #3a3d3a; font-weight: 700; line-height: 1; }
+.sk-avatar img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.sk-avatar-sm { width: 28px; height: 28px; font-size: 13px; }
+.sk-avatar-lg { width: 64px; height: 64px; font-size: 26px; }
+.sk-avatar-xl { width: 112px; height: 112px; font-size: 44px; }
+.sk-me { display: inline-flex; align-items: center; gap: 8px; border: 0; background: none; color: #fff; font: inherit; font-size: 12.5px; padding: 3px 4px; border-radius: 999px; cursor: pointer; max-width: 190px; }
+.sk-me:hover { background: #ffffff1f; }
+.sk-me .sk-avatar { background: #3a3a3a; color: #fff; }
+.sk-me .sk-user-name { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+@media (max-width: 720px) { .sk-topnav .sk-me .sk-user-name { display: inline; max-width: 92px; } .sk-me { max-width: 130px; } }
+.sk-profile { display: grid; justify-items: center; gap: 10px; text-align: center; padding: 6px 0 4px; }
+.sk-profile .sk-actions { justify-content: center; }
+.sk-file-btn { cursor: pointer; }
+.sk-client-id { display: flex; align-items: center; gap: 14px; margin-bottom: 12px; }
+.sk-client-card .sk-client-id h3 { margin: 0; font-size: 24px; font-weight: 700; }
+.sk-name-cell { display: inline-flex; align-items: center; gap: 9px; }

@@ -32,6 +32,12 @@
 
   const API = window.SakanPortalAPI, APP = window.INDESIGN_APP, UI = window.INDESIGN_PROJECTS_UI, P = window.PlanProjects, I18N = window.SakanI18n;
   const $ = (id) => document.getElementById(id);
+  // الصورة الشخصية: صورة صغيرة data:image، ولو مفيش بيظهر أول حرف من الاسم
+  const okAvatar = (a) => /^data:image\/(jpeg|png|webp);base64,[A-Za-z0-9+/=]+$/.test(String(a || ""));
+  const avatarHTML = (u, cls, id) => {
+    const letter = String((u && u.name) || "?").replace(/^(أ|م|د|ا|م\.|د\.)\.\s*/, "").trim().charAt(0) || "?";
+    return `<span class="sk-avatar ${cls || ""}"${id ? ` id="${id}"` : ""}>${u && okAvatar(u.avatar) ? `<img src="${u.avatar}" alt="">` : esc(letter)}</span>`;
+  };
   const esc = (s) => String(s == null ? "" : s).replace(/[&<>"']/g, (m) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[m]));
   const SESSION = "sakan:session", PREFS = "sakan:prefs";
 
@@ -49,7 +55,6 @@
   let returnTo = null;    // النافذة اللي نرجعلها بعد حفظ فورم
   const FILE_CATS = { plans: "مخططات", designs: "تصاميم", minutes: "محاضر اجتماعات" };
   let fileCat = "plans";
-  const lastKey = () => "sakan:last:" + user.username.toLowerCase();
 
   /* ---------------- أدوات صغيرة ---------------- */
   const locale = () => (I18N.lang() === "en" ? "en-GB" : "ar-EG");
@@ -148,7 +153,7 @@
       closeAll();
       if (wasOpen) return;
       if (id === "skOwner") openOwner();
-      else if (id === "skProjects") { clientView = ""; $("skSearch").value = ""; openProjects(); }
+      else if (id === "skProjects") { clientView = ""; archiveView = false; $("skSearch").value = ""; openProjects(); }
       else if (id === "skUsers") openUsers();
       else if (id === "skNotify") openNotify();
       else if (id === "skSettings") {
@@ -160,6 +165,7 @@
       else open(id);
     }));
     $("skLogout").onclick = logout;
+    $("skMe").onclick = openProfile;
     $("skScrim").onclick = closeAll;
     document.addEventListener("keydown", (e) => { if (e.key === "Escape" && !document.querySelector("dialog[open]:modal")) closeAll(); });
 
@@ -209,7 +215,7 @@
     $("skRequestEdit").onclick = requestEdit;
     $("skAllowEdit").onclick = () => resolveEdit(true);
     $("skRejectEdit").onclick = () => resolveEdit(false);
-    $("skEmptyOpen") && ($("skEmptyOpen").onclick = () => openOwner());
+    $("skEmptyOpen") && ($("skEmptyOpen").onclick = () => (isEng() ? openProjects() : openOwner()));
   }
 
   function markTab() {
@@ -229,11 +235,11 @@
     $("skTopnav").hidden = !user;
     if (!user) { $("skProjectLabel").textContent = ""; updateWorkbar(); return; }
     $("skUserName").textContent = user.name;
-    $("skUserRole").textContent = ROLE[user.role];
-    $("skUserRole").className = "sk-role sk-badge-" + user.role;
+    $("skMe").title = `${user.name} · ${ROLE[user.role]}`;
+    $("skMeAvatar").outerHTML = avatarHTML(user, "sk-avatar-sm", "skMeAvatar");
     $("skProjectLabel").textContent = project
       ? `مشروع: ${project.name} · المالك: ${project.ownerName}`
-      : (isEng() ? "لا يوجد مشروع مفتوح. افتح مشروعًا من «العملاء» أو «مشاريع المالك»." : "لم يضف المهندس أي مشاريع لك بعد.");
+      : (isEng() ? "لا يوجد مشروع مفتوح. افتح مشروعًا من «العملاء»." : "لم يضف المهندس أي مشاريع لك بعد.");
     if (project) document.title = "سكن جروب | " + project.name;
     updateWorkbar();
   }
@@ -310,18 +316,55 @@
     project = null;
     updateChrome();
     if (fresh) await log("تسجيل دخول", ROLE[user.role]);
-    // مفيش قوايم بتتفتح في وشك: بنفتح آخر مشروع اشتغلت عليه، أو أحدث مشروع،
-    // والمشاريع التانية في تبويب «مشاريع المالك» و«المشاريع».
+    // بعد تسجيل الدخول بتظهر قائمة المشاريع وهو يختار. فتح الصفحة من جديد (الجلسة محفوظة) بيرجع لنفس المشروع
     const list = (await API.listProjects(user.role === "client" ? user.ownerId : undefined)).filter(mineProject);
-    let last = projectId;
-    try { last = last || localStorage.getItem(lastKey()); } catch (e) {}
-    const target = list.find((p) => p.id === last) || list[0];
+    const target = projectId && list.find((p) => p.id === projectId);
     if (target) await openProject(target.id);
     else APP.loadProject(P.builtin);
     updateChrome();
+    if (!target) await (isEng() ? openProjects() : openOwner()); // المهندس والمدير على «العملاء»، والمالك على مشاريعه
     saveSession();
     refreshNotifications();
   }
+
+  /* ---------------- الصورة الشخصية ---------------- */
+  function openProfile() {
+    $("skProfileTitle").textContent = user.name;
+    $("skProfileRole").textContent = ROLE[user.role];
+    $("skProfileAvatar").outerHTML = avatarHTML(user, "sk-avatar-xl", "skProfileAvatar");
+    $("skAvatarRemove").hidden = !user.avatar;
+    say("skProfileError", "");
+    closeAll();
+    open("skProfile");
+  }
+  // بنصغّر الصورة لمربع 192 بكسل قبل الحفظ، عشان تبقى خفيفة
+  async function squareImage(file) {
+    const url = URL.createObjectURL(file);
+    try {
+      const im = new Image(); im.src = url; await im.decode();
+      const side = Math.min(im.width, im.height), c = document.createElement("canvas");
+      c.width = c.height = 192;
+      c.getContext("2d").drawImage(im, (im.width - side) / 2, (im.height - side) / 2, side, side, 0, 0, 192, 192);
+      return c.toDataURL("image/jpeg", 0.85);
+    } finally { URL.revokeObjectURL(url); }
+  }
+  async function saveAvatar(avatar) {
+    try {
+      const u = await API.setAvatar(user, avatar);
+      user.avatar = (u && u.avatar) || "";
+      updateChrome();
+      openProfile();
+      notice(avatar ? "تم حفظ صورتك." : "تم حذف صورتك.");
+    } catch (err) { say("skProfileError", err.message || "تعذّر حفظ الصورة.", true); }
+  }
+  $("skAvatarFile").onchange = async () => {
+    const f = $("skAvatarFile").files[0]; $("skAvatarFile").value = "";
+    if (!f) return;
+    let data;
+    try { data = await squareImage(f); } catch (e) { return say("skProfileError", "تعذّرت قراءة الصورة. اختر صورة بصيغة JPG أو PNG.", true); }
+    saveAvatar(data);
+  };
+  $("skAvatarRemove").onclick = () => saveAvatar("");
 
   async function logout() {
     if (!(await leaveProject())) return;
@@ -372,11 +415,32 @@
     saved = { selections: APP.getSelections(), notes: $("clientNotes").value, custom: custom.length };
     dirty = false;
     muted = false;
-    try { localStorage.setItem(lastKey(), p.id); } catch (e) {}
     closeAll();
     updateChrome();
     saveSession();
     refreshNotifications();
+    rotateTip();
+  }
+
+  // المالك على الموبايل وهو ماسكه بالطول: نصيحة مرة واحدة إنه يقلبه بالعرض. لو قلبه بتختفي، ولو قفلها مابترجعش
+  const portrait = () => matchMedia("(orientation: portrait) and (max-width: 820px) and (pointer: coarse)").matches;
+  function rotateTip() {
+    const key = "sakan:rotateTip:" + user.username.toLowerCase();
+    let seen = false;
+    try { seen = !!localStorage.getItem(key); } catch (e) {}
+    if (user.role !== "client" || seen || !portrait() || $("skRotateTip")) return;
+    try { localStorage.setItem(key, "1"); } catch (e) {}
+    document.body.insertAdjacentHTML("beforeend", `<div class="sk-rotate-tip" id="skRotateTip" role="dialog" aria-live="polite" aria-labelledby="skRotateTitle">
+      <div class="sk-rotate-card">
+        <svg class="sk-rotate-icon" viewBox="0 0 64 64" aria-hidden="true"><rect x="22" y="8" width="20" height="36" rx="4"/><path d="M14 40a20 20 0 0 0 30 14"/><path d="M40 50l4 4-5 3"/></svg>
+        <b id="skRotateTitle">من فضلك اقلب الموبايل بالعرض</b>
+        <p>اختيار التقسيمات أسهل وأوضح والموبايل بالعرض. ويمكنك المتابعة بالطول إذا أردت.</p>
+        <button class="sk-btn sk-btn-dark" id="skRotateOk">حسنًا</button>
+      </div></div>`);
+    const tip = $("skRotateTip"), done = () => { tip.remove(); removeEventListener("resize", check); };
+    const check = () => { if (!portrait()) done(); };
+    $("skRotateOk").onclick = done;
+    addEventListener("resize", check);
   }
 
   // لو المهندس فتح مخطط تاني من المكتبة الأصلية، المشروع مايبقاش مربوط بيه
@@ -512,12 +576,16 @@
       return `<span class="sk-chip ${pr ? "on" : ""}">${SLOTS[k]} ${pr ? "✓" : "—"}</span>`;
     }).join("");
   }
+  // حالة المشروع يحددها المهندس. المشروع اللي مالوش حالة: «معتمد» لو اتحفظ نهائي، وإلا «تحت الدراسة»
+  const STAGES = { study: "تحت الدراسة", approved: "معتمد", progress: "جاري التنفيذ", done: "منتهي" }, STAGE_KEYS = Object.keys(STAGES);
+  const stageOf = (p) => (STAGES[p.stage] ? p.stage : p.work && p.work.status === "approved" ? "approved" : "study");
+  const stageChip = (p) => `<span class="sk-stage sk-stage-${stageOf(p)}"><i class="sk-dot" aria-hidden="true"></i>${STAGES[stageOf(p)]}</span>`;
   function projectFacts(p) {
     const last = p.work && p.work.updatedAt
       ? `آخر تعديل ${fmtDate(p.work.updatedAt)} · ${esc(p.work.updatedBy.name)} (${ROLE[p.work.updatedBy.role]})`
       : "لم يعدّل أحد بعد";
     const rep = (p.reports || []).slice(-1)[0];
-    return `<span class="sk-muted">المخطط: ${esc(p.planTitle || "—")} · ${count(p.work && p.work.selections)} اختيارات</span>
+    return `<span class="sk-stage-row">${stageChip(p)}</span><span class="sk-muted">المخطط: ${esc(p.planTitle || "—")} · ${count(p.work && p.work.selections)} اختيارات</span>
       ${isEng() ? `<span class="sk-muted">${engineerLine(p)}</span>` : ""}
       <span class="sk-muted">${last}</span>
       <span class="sk-chips">${slotChips(p)}</span>
@@ -561,7 +629,7 @@
       ownerName = o ? o.name : "";
     }
     $("skOwnerEyebrow").textContent = ownerName;
-    const list = ownerId ? (await API.listProjects(ownerId)).filter(mineProject) : [];
+    const list = ownerId ? (await API.listProjects(ownerId)).filter((p) => mineProject(p) && !p.archived) : [];
     const el = $("skOwnerList");
     if (!list.length) {
       el.innerHTML = `<div class="sk-empty"><b>لا توجد مشاريع بعد</b><p>${isEng() ? "أضف مشروعًا لهذا العميل من تبويب «العملاء»." : "لم يضف المهندس أي مشاريع لك بعد."}</p></div>`;
@@ -585,81 +653,142 @@
 
   async function openProjects() {
     if (!isEng()) return;
-    $("skNewProject").hidden = !can("manageProjects");
+    $("skNewProject").hidden = true; // إضافة المشروع من صفحة العميل
     $("skNewOwner").hidden = !can("manageOwners");
     open("skProjects");
     await renderProjects();
   }
 
   // تبويب «العملاء»: قايمة العملاء مرتبة بالاسم، وبالضغط على عميل تظهر مشاريعه
-  let clientView = "";
+  let clientView = "", archiveView = false;
   const byName = (a, b) => String(a.name).localeCompare(String(b.name), "ar");
 
   async function renderProjects() {
-    const list = (await API.listProjects()).filter(mineProject);
-    const owners = (await API.listOwners()).filter((o) => mineOwner(o, list)).sort(byName);
+    const all = (await API.listProjects()).filter(mineProject);
+    const owners = (await API.listOwners()).filter((o) => mineOwner(o, all)).sort(byName);
     const el = $("skProjectList");
     if (clientView && !owners.some((o) => o.id === clientView)) clientView = "";
-    $("skSearch").hidden = !!clientView;
+    $("skClientFilter").hidden = !!clientView;
+    $("skClientsToolbar").hidden = !!clientView || !can("manageOwners");
     $("skSearchCount").hidden = true;
+    document.querySelectorAll("[data-archive-view]").forEach((b) => b.setAttribute("aria-checked", b.dataset.archiveView === (archiveView ? "1" : "")));
     if (!owners.length) {
       el.innerHTML = `<div class="sk-empty"><b>لا يوجد عملاء بعد</b><p>${can("manageOwners") ? "ابدأ بـ «عميل جديد» وأنشئ له اسم مستخدم وكلمة مرور، ثم أضف له مشروعًا أو أكثر." : "اطلب من مدير النظام إضافة حسابات العملاء."}</p></div>`;
       return;
     }
     const canOwners = can("manageOwners"), canProjects = can("manageProjects"), canDel = can("deleteItems"), canLog = can("viewLog");
 
+    // جدول العملاء: اسم العميل، المنطقة، المشاريع تحت الدراسة، المشاريع المعتمدة
     if (!clientView) {
       const q = $("skSearch").value.trim().toLowerCase();
       const hit = (...texts) => texts.some((t) => String(t || "").toLowerCase().includes(q));
-      const rows = owners.map((o) => {
-        const projects = list.filter((p) => p.ownerId === o.id);
-        const matched = q && !hit(o.name, o.username, o.engineerName) ? projects.filter((p) => hit(p.name, p.planTitle, p.responsibleName)) : [];
+      const rows = owners.filter((o) => !!o.archived === archiveView).map((o) => {
+        const projects = all.filter((p) => p.ownerId === o.id && !p.archived);
+        const matched = q && !hit(o.name, o.username, o.region, o.engineerName) ? all.filter((p) => p.ownerId === o.id && hit(p.name, p.planTitle, p.responsibleName)) : [];
         return { o, projects, matched };
-      }).filter((r) => !q || hit(r.o.name, r.o.username, r.o.engineerName) || r.matched.length);
+      }).filter((r) => !q || hit(r.o.name, r.o.username, r.o.region, r.o.engineerName) || r.matched.length);
       $("skSearchCount").hidden = !q;
       $("skSearchCount").textContent = `${rows.length} عملاء`;
-      if (!rows.length) { el.innerHTML = `<div class="sk-empty"><b>لا توجد نتائج</b><p>جرّب اسمًا آخر للعميل أو المشروع.</p></div>`; return; }
-      el.innerHTML = `<ol class="sk-client-list">${rows.map(({ o, projects, matched }) => `
-        <li><button class="sk-client" data-client="${o.id}">
-          <span class="sk-client-avatar">${esc(String(o.name).replace(/^(أ|م|د|ا)\.\s*/, "").charAt(0))}</span>
-          <span class="sk-client-main"><b>${esc(o.name)}</b>
-            <small>اسم المستخدم: <span dir="ltr">${esc(o.username)}</span> · المهندس المسؤول: ${o.engineerName ? esc(o.engineerName) : "أي مهندس"}</small>
-            ${matched.length ? `<small class="sk-client-hit">${matched.map((p) => esc(p.name)).join("، ")}</small>` : ""}</span>
-          <span class="sk-chip">${projects.length} مشاريع</span>
-          <span class="sk-client-go" aria-hidden="true">‹</span>
-        </button></li>`).join("")}</ol>`;
-      el.querySelectorAll("[data-client]").forEach((b) => (b.onclick = () => { clientView = b.dataset.client; renderProjects(); }));
+      if (!rows.length) {
+        el.innerHTML = q ? `<div class="sk-empty"><b>لا توجد نتائج</b><p>جرّب اسمًا آخر للعميل أو المشروع.</p></div>`
+          : `<div class="sk-empty"><b>${archiveView ? "لا يوجد عملاء في الأرشيف" : "كل العملاء في الأرشيف"}</b></div>`;
+        return;
+      }
+      const n = (list, st) => list.filter((p) => stageOf(p) === st).length;
+      el.innerHTML = `<div class="sk-table-wrap"><table class="sk-table sk-clients-table">
+        <thead><tr><th>اسم العميل</th><th>المنطقة</th><th>المشاريع تحت الدراسة</th><th>المشاريع المعتمدة</th></tr></thead>
+        <tbody>${rows.map(({ o, projects, matched }) => `<tr data-client="${o.id}" tabindex="0">
+          <td><span class="sk-name-cell">${avatarHTML(o, "sk-avatar-sm")}<b>${esc(o.name)}</b></span>${matched.length ? `<small class="sk-client-hit">${matched.map((p) => esc(p.name)).join("، ")}</small>` : ""}</td>
+          <td>${o.region ? esc(o.region) : `<span class="sk-muted">—</span>`}</td>
+          <td class="sk-num">${n(projects, "study")}</td>
+          <td class="sk-num">${n(projects, "approved")}</td>
+        </tr>`).join("")}</tbody></table></div>`;
+      el.querySelectorAll("tr[data-client]").forEach((tr) => {
+        tr.onclick = () => { clientView = tr.dataset.client; renderProjects(); };
+        tr.onkeydown = (e) => { if (e.key === "Enter") tr.onclick(); };
+      });
       return;
     }
 
+    // صفحة العميل: تفاصيله، وتحتها جدول مشاريعه (اسم المشروع وحالته)
     const o = owners.find((x) => x.id === clientView);
-    const mine = list.filter((p) => p.ownerId === o.id);
+    const mine = all.filter((p) => p.ownerId === o.id), live = mine.filter((p) => !p.archived), old = mine.filter((p) => p.archived);
+    // نفس شكل جدول العملاء: الضغط على الصف بيفتح المشروع، والحالة بتتغير من الخانة بتاعتها، والباقي تحت «⋯»
+    const row = (p) => `<tr class="${project && project.id === p.id ? "current" : ""}" data-row-open="${p.id}" tabindex="0">
+        <td><b>${esc(p.name)}</b></td>
+        <td>${canProjects && !p.archived ? `<span class="sk-stage-pick-wrap sk-stage-${stageOf(p)}"><i class="sk-dot" aria-hidden="true"></i><select class="sk-stage-pick" data-stage="${p.id}" aria-label="حالة المشروع">${STAGE_KEYS.map((k) => `<option value="${k}" ${stageOf(p) === k ? "selected" : ""}>${STAGES[k]}</option>`).join("")}</select></span>` : stageChip(p)}</td>
+        <td>${p.work && p.work.updatedAt ? new Date(p.work.updatedAt).toLocaleDateString(locale(), { year: "numeric", month: "short", day: "numeric" }) : `<span class="sk-muted">—</span>`}</td>
+        <td class="sk-more-cell"><details class="sk-more"><summary aria-label="المزيد">⋯</summary><div>
+            <button class="sk-btn" data-open="${p.id}">فتح المشروع</button>
+            ${reportButton(p)}
+            ${canProjects && !p.archived ? `<button class="sk-btn" data-edit="${p.id}">تعديل</button>` : ""}
+            ${canLog ? `<button class="sk-btn" data-log="${p.id}">السجل</button>` : ""}
+            ${canProjects ? `<button class="sk-btn" data-archive="${p.id}" data-on="${p.archived ? "" : "1"}">${p.archived ? "إرجاع من الأرشيف" : "أرشفة"}</button>` : ""}
+            ${canDel ? `<button class="sk-btn sk-danger" data-del="${p.id}">حذف</button>` : ""}
+          </div></details></td>
+      </tr>`;
+    const table = (list) => `<div class="sk-table-wrap"><table class="sk-table sk-clients-table sk-projects-table">
+        <thead><tr><th>اسم المشروع</th><th>حالة المشروع</th><th>آخر تعديل</th><th></th></tr></thead>
+        <tbody>${list.map(row).join("")}</tbody></table></div>`;
     el.innerHTML = `<button class="sk-btn sk-back" id="skClientsBack">› كل العملاء</button>
-      <section class="sk-owner-group">
+      <section class="sk-client-card">
         <header>
-          <div><b>${esc(o.name)}</b> <span class="sk-muted">اسم المستخدم: <span dir="ltr">${esc(o.username)}</span> · ${mine.length} مشاريع · المهندس المسؤول: ${o.engineerName ? esc(o.engineerName) : "أي مهندس"}</span></div>
+          <div><div class="sk-client-id">${avatarHTML(o, "sk-avatar-lg")}<h3>${esc(o.name)}${o.archived ? ` <span class="sk-chip">في الأرشيف</span>` : ""}</h3></div>
+            <dl class="sk-client-facts">
+              <div><dt>المنطقة</dt><dd>${o.region ? esc(o.region) : "—"}</dd></div>
+              <div><dt>اسم المستخدم</dt><dd dir="ltr">${esc(o.username)}</dd></div>
+              <div><dt>المهندس المسؤول</dt><dd>${o.engineerName ? esc(o.engineerName) : "أي مهندس"}</dd></div>
+              <div><dt>المشاريع</dt><dd>${live.length}</dd></div>
+            </dl></div>
           <div class="sk-actions">
-            ${canProjects ? `<button class="sk-btn sk-btn-dark" data-add-for="${o.id}">+ مشروع لهذا العميل</button>` : ""}
+            ${canProjects && !o.archived ? `<button class="sk-btn sk-btn-dark" data-add-for="${o.id}">+ مشروع لهذا العميل</button>` : ""}
             ${canOwners ? `<button class="sk-btn" data-owner-edit="${o.id}">تعديل الحساب</button>` : ""}
+            ${canOwners ? `<button class="sk-btn" data-owner-archive="${o.id}">${o.archived ? "إرجاع من الأرشيف" : "أرشفة العميل"}</button>` : ""}
             ${canDel ? `<button class="sk-btn sk-danger" data-owner-del="${o.id}">حذف الحساب</button>` : ""}
           </div>
         </header>
-        ${mine.map((p) => `<article class="sk-project ${project && project.id === p.id ? "current" : ""}">
-          <div class="sk-project-main"><b>${esc(p.name)}</b>${projectFacts(p)}</div>
-          <div class="sk-project-actions">
-            <button class="sk-btn sk-btn-dark" data-open="${p.id}">فتح المشروع</button>
-            ${reportButton(p)}
-            ${canProjects ? `<button class="sk-btn" data-edit="${p.id}">تعديل</button>` : ""}
-            ${canLog ? `<button class="sk-btn" data-log="${p.id}">السجل</button>` : ""}
-            ${canDel ? `<button class="sk-btn sk-danger" data-del="${p.id}">حذف</button>` : ""}
-          </div>
-        </article>`).join("") || `<p class="sk-muted sk-owner-empty">لا توجد مشاريع لهذا العميل.</p>`}
-      </section>`;
+      </section>
+      <h3 class="sk-section-title">المشاريع</h3>
+      ${live.length ? table(live) : `<p class="sk-muted sk-owner-empty">لا توجد مشاريع حالية لهذا العميل.</p>`}
+      ${old.length ? `<details class="sk-archived"><summary>المشاريع المؤرشفة (${old.length})</summary>${table(old)}</details>` : ""}`;
     $("skClientsBack").onclick = () => { clientView = ""; renderProjects(); };
-    const ownersById = new Map(owners.map((o) => [o.id, o]));
-    wireProjectButtons(el, new Map(list.map((p) => [p.id, p])));
+    const ownersById = new Map(owners.map((o) => [o.id, o])), byId = new Map(all.map((p) => [p.id, p]));
+    wireProjectButtons(el, byId);
+    el.querySelectorAll("tr[data-row-open]").forEach((tr) => {
+      tr.onclick = (e) => { if (!e.target.closest("select, details")) openProject(tr.dataset.rowOpen); };
+      tr.onkeydown = (e) => { if (e.key === "Enter" && e.target === tr) openProject(tr.dataset.rowOpen); };
+    });
+    el.querySelectorAll("[data-stage]").forEach((sel) => (sel.onchange = async () => {
+      const p = byId.get(sel.dataset.stage);
+      try {
+        await API.setProjectMeta(p.id, { stage: sel.value });
+        await log("تغيير حالة المشروع", `${p.name} · ${STAGES[sel.value]}`, p.id);
+        if (project && project.id === p.id) project.stage = sel.value;
+        notice(`حالة «${p.name}»: ${STAGES[sel.value]}`);
+      } catch (err) { alert(err.message); }
+      renderProjects();
+    }));
+    el.querySelectorAll("[data-archive]").forEach((b) => (b.onclick = async () => {
+      const p = byId.get(b.dataset.archive), on = !!b.dataset.on;
+      if (on && !confirm(`أرشفة مشروع «${p.name}»؟ سيختفي من القوائم، ويمكنك إرجاعه من «المشاريع المؤرشفة».`)) return;
+      try {
+        await API.setProjectMeta(p.id, { archived: on });
+        await log(on ? "أرشفة مشروع" : "إرجاع مشروع من الأرشيف", p.name, p.id);
+      } catch (err) { alert(err.message); }
+      renderProjects();
+    }));
     el.querySelectorAll("[data-add-for]").forEach((b) => (b.onclick = () => openProjectForm({ ownerId: b.dataset.addFor })));
     el.querySelectorAll("[data-owner-edit]").forEach((b) => (b.onclick = () => openOwnerForm(ownersById.get(b.dataset.ownerEdit))));
+    el.querySelectorAll("[data-owner-archive]").forEach((b) => (b.onclick = async () => {
+      const o = ownersById.get(b.dataset.ownerArchive), on = !o.archived;
+      if (on && !confirm(`أرشفة العميل «${o.name}»؟ سيختفي من جدول العملاء، ويمكنك إرجاعه من «الأرشيف».`)) return;
+      try {
+        await API.archiveOwner(o.id, on);
+        await log(on ? "أرشفة عميل" : "إرجاع عميل من الأرشيف", `${o.name} · ${o.username}`, null);
+      } catch (err) { return alert(err.message); }
+      clientView = ""; archiveView = false;
+      renderProjects();
+    }));
     el.querySelectorAll("[data-owner-del]").forEach((b) => (b.onclick = async () => {
       const o = ownersById.get(b.dataset.ownerDel);
       if (!confirm(`حذف حساب «${o.name}»؟ لن يتمكن المالك من الدخول مرة أخرى، وستُحذف مشاريعه (${o.projects}).`)) return;
@@ -671,6 +800,7 @@
       renderProjects();
     }));
   }
+  document.querySelectorAll("[data-archive-view]").forEach((b) => (b.onclick = () => { archiveView = !!b.dataset.archiveView; renderProjects(); }));
 
   /* ---------------- فورم المالك ---------------- */
   async function openOwnerForm(o) {
@@ -679,6 +809,7 @@
     $("skOFTitle").textContent = o ? "تعديل حساب المالك" : "مالك جديد";
     $("skOName").value = o ? o.name : "";
     $("skOUser").value = o ? o.username : "";
+    $("skORegion").value = (o && o.region) || "";
     $("skOPass").value = "";
     $("skOPass").required = !o;
     $("skOPassHint").textContent = o ? "اتركها فارغة إذا لم تكن ستغيّرها." : "";
@@ -697,7 +828,7 @@
     try {
       const perms = isAdmin() ? Object.fromEntries([...document.querySelectorAll("[data-operm]")].map((c) => [c.dataset.operm, c.checked])) : undefined;
       const engineer = isAdmin() ? $("skOEngineer").value : undefined;
-      const o = await API.saveOwner({ id, name: $("skOName").value, username: $("skOUser").value, password, perms, engineer }, by());
+      const o = await API.saveOwner({ id, name: $("skOName").value, username: $("skOUser").value, region: $("skORegion").value, password, perms, engineer }, by());
       await log(id ? "تعديل مالك" : "إضافة مالك", `${o.name} · ${o.username}${o.engineerName ? " · المهندس المسؤول " + o.engineerName : ""}${password && id ? " · كلمة مرور جديدة" : ""}`, null);
       if (project && project.ownerId === o.id) project.ownerName = o.name;
       updateChrome();
@@ -890,8 +1021,8 @@
   /* ---------------- المقترحات ---------------- */
   function needProject() {
     if (project) return true;
-    notice("افتح مشروعًا أولًا من «مشاريع المالك».");
-    openOwner();
+    notice(isEng() ? "افتح مشروعًا أولًا من «العملاء»." : "افتح مشروعًا أولًا من «مشاريع المالك».");
+    isEng() ? openProjects() : openOwner();
     return false;
   }
 

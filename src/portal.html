@@ -14,8 +14,7 @@
     </div>
     <div class="sk-topnav-user">
       <button class="sk-tab sk-bell" id="skBell" data-tab="skNotify" aria-label="الإشعارات">🔔<span id="skBellCount" class="sk-bell-count" hidden></span></button>
-      <span class="sk-user-name" id="skUserName"></span>
-      <span class="sk-role" id="skUserRole"></span>
+      <button class="sk-me" id="skMe" type="button" aria-label="الصورة الشخصية"><span class="sk-avatar sk-avatar-sm" id="skMeAvatar"></span><span class="sk-user-name" id="skUserName"></span></button>
       <button class="sk-tab sk-logout" id="skLogout">خروج</button>
     </div>
   </div>
@@ -52,14 +51,20 @@
 <!-- المشاريع (للمهندس بس) -->
 <dialog id="skProjects" class="sk-dialog sk-panel sk-wide" aria-labelledby="skProjectsTitle">
   <div class="sk-head-row">
-    <div><span class="eyebrow">لوحة المهندس</span><h2 id="skProjectsTitle">العملاء</h2></div>
+    <div><h2 id="skProjectsTitle">العملاء</h2></div>
     <button class="icon-button" data-sk-close aria-label="إغلاق">×</button>
   </div>
-  <div class="sk-toolbar">
-    <button class="sk-btn sk-btn-dark" id="skNewProject">+ مشروع جديد</button>
-    <button class="sk-btn" id="skNewOwner">+ عميل جديد</button>
+  <div class="sk-toolbar" id="skClientsToolbar">
+    <button class="sk-btn sk-btn-dark" id="skNewOwner">+ عميل جديد</button>
+    <button class="sk-btn" id="skNewProject" hidden>+ مشروع جديد</button>
   </div>
-  <input type="search" id="skSearch" class="sk-search" placeholder="ابحث باسم العميل أو المشروع أو اسم المستخدم أو المهندس…" aria-label="بحث عن مشروع أو عميل">
+  <div class="sk-filter-row" id="skClientFilter">
+    <input type="search" id="skSearch" class="sk-search" placeholder="ابحث باسم العميل أو المشروع أو المنطقة…" aria-label="بحث عن مشروع أو عميل">
+    <div class="sk-seg" role="radiogroup" aria-label="عرض العملاء">
+      <button type="button" role="radio" data-archive-view="" aria-checked="true">الحاليون</button>
+      <button type="button" role="radio" data-archive-view="1" aria-checked="false">الأرشيف</button>
+    </div>
+  </div>
   <p id="skSearchCount" class="sk-muted" hidden></p>
   <div id="skProjectList" class="sk-owner-groups"></div>
 </dialog>
@@ -76,6 +81,7 @@
       <label>اسم المالك<input id="skOName" maxlength="100" required></label>
       <label>اسم المستخدم<input id="skOUser" dir="ltr" maxlength="30" autocomplete="off" placeholder="client01" required></label>
       <label>كلمة المرور<input id="skOPass" dir="ltr" maxlength="60" autocomplete="new-password"><small id="skOPassHint" class="sk-muted"></small></label>
+      <label>المنطقة<input id="skORegion" maxlength="80" placeholder="مثال: الشيخ زايد"></label>
     </div>
     <label class="sk-full sk-admin-only">المهندس المسؤول عن المالك<select id="skOEngineer"></select></label>
     <fieldset class="sk-perms sk-admin-only"><legend>صلاحيات المالك</legend>
@@ -106,6 +112,23 @@
     <p id="skFormError" class="sk-error" role="alert" hidden></p>
     <div class="sk-actions"><button type="button" class="sk-btn" data-sk-close>إلغاء</button><button class="sk-btn sk-btn-dark" type="submit">حفظ المشروع</button></div>
   </form>
+</dialog>
+
+<!-- الصورة الشخصية: كل مستخدم بيغيّر صورته -->
+<dialog id="skProfile" class="sk-dialog sk-narrow" aria-labelledby="skProfileTitle">
+  <div class="sk-head-row">
+    <div><span class="eyebrow" id="skProfileRole"></span><h2 id="skProfileTitle"></h2></div>
+    <button type="button" class="icon-button" data-sk-close aria-label="إغلاق">×</button>
+  </div>
+  <div class="sk-profile">
+    <span class="sk-avatar sk-avatar-xl" id="skProfileAvatar"></span>
+    <p class="sk-muted">تظهر صورتك بجانب اسمك في البرنامج.</p>
+    <div class="sk-actions">
+      <label class="sk-btn sk-btn-dark sk-file-btn">اختيار صورة<input type="file" id="skAvatarFile" accept="image/jpeg,image/png,image/webp" hidden></label>
+      <button type="button" class="sk-btn" id="skAvatarRemove">حذف الصورة</button>
+    </div>
+    <p id="skProfileError" class="sk-error" role="alert" hidden></p>
+  </div>
 </dialog>
 
 <!-- بيانات دخول المالك بعد الحفظ -->

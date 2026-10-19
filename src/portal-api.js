@@ -137,16 +137,17 @@ window.SakanPortalAPI = (function () {
      { role: "admin", username, name, perms: {} }        (المدير يقدر يعمل كل حاجة)
      { role: "engineer", username, name, perms: { manageOwners, manageProjects, deleteItems, viewLog } }
      { role: "client", username, name, ownerId, perms: { edit, final, send } } */
-  const asEngineer = (e) => ({ role: e.role, username: e.username, name: e.name || e.username, perms: e.role === "admin" ? {} : perms(ENGINEER_PERMS, e.perms) });
-  const asClient = (o) => ({ role: "client", username: o.username, name: o.name, ownerId: o.id, perms: perms(CLIENT_PERMS, o.perms) });
+  const asEngineer = (e) => ({ role: e.role, username: e.username, name: e.name || e.username, avatar: e.avatar || "", perms: e.role === "admin" ? {} : perms(ENGINEER_PERMS, e.perms) });
+  const asClient = (o) => ({ role: "client", username: o.username, name: o.name, avatar: o.avatar || "", ownerId: o.id, perms: perms(CLIENT_PERMS, o.perms) });
   const staffName = (db, username) => { const e = username && db.engineers.find((x) => same(x.username, username)); return e ? e.name : ""; };
-  const publicOwner = (o, db) => ({ id: o.id, name: o.name, username: o.username, perms: perms(CLIENT_PERMS, o.perms), engineer: o.engineer || "", engineerName: staffName(db, o.engineer), createdAt: o.createdAt, projects: db.projects.filter((p) => p.ownerId === o.id).length });
+  const publicOwner = (o, db) => ({ id: o.id, name: o.name, username: o.username, perms: perms(CLIENT_PERMS, o.perms), engineer: o.engineer || "", engineerName: staffName(db, o.engineer), region: o.region || "", archived: !!o.archived, avatar: o.avatar || "", createdAt: o.createdAt, projects: db.projects.filter((p) => p.ownerId === o.id).length });
   const publicProject = (p, db) => {
     const o = db.owners.find((x) => x.id === p.ownerId);
     // المهندس المسؤول: بتاع المشروع لو متحدد، وإلا بتاع المالك
     const responsible = p.engineer || (o && o.engineer) || "";
     return Object.assign(clone(p), { ownerName: o ? o.name : "", ownerUsername: o ? o.username : "", engineer: p.engineer || "", responsible, responsibleName: staffName(db, responsible) });
   };
+  const STAGES = ["study", "approved", "progress", "done"];
   const byDate = (a, b) => String(b.updatedAt).localeCompare(String(a.updatedAt));
   function markSeenIn(db, username, projectId) {
     const k = String(username).toLowerCase();
@@ -177,6 +178,18 @@ window.SakanPortalAPI = (function () {
       return o ? asClient(o) : null;
     },
 
+    /* PUT /auth/me/avatar — الصورة الشخصية للمستخدم نفسه (صورة صغيرة data:image، أو "" للحذف) */
+    async setAvatar(me, avatar) {
+      avatar = String(avatar || "");
+      if (avatar && (!/^data:image\/(jpeg|png|webp);base64,/.test(avatar) || avatar.length > 200000)) throw Error("الصورة غير مناسبة. اختر صورة أصغر.");
+      const db = load();
+      const u = me.role === "client" ? db.owners.find((x) => same(x.username, me.username)) : db.engineers.find((x) => same(x.username, me.username));
+      if (!u) throw Error("الحساب غير موجود.");
+      u.avatar = avatar;
+      store(db);
+      return me.role === "client" ? asClient(u) : asEngineer(u);
+    },
+
     /* ---------- الملّاك (حسابات العملاء) ---------- */
 
     /* GET /owners (للمهندس بس) */
@@ -197,9 +210,19 @@ window.SakanPortalAPI = (function () {
       if (o && !same(o.username, username) && !data.password) throw Error("عند تغيير اسم المستخدم اكتب كلمة مرور جديدة أيضًا.");
       if (!o) { o = { id: uid("own"), createdAt: now(), createdBy: by, perms: perms(CLIENT_PERMS) }; db.owners.push(o); }
       Object.assign(o, { name, username, updatedAt: now() });
+      if (data.region !== undefined) o.region = String(data.region || "").trim().slice(0, 80);
       if (data.perms) o.perms = perms(CLIENT_PERMS, data.perms);
       if (data.engineer !== undefined) o.engineer = data.engineer || "";
       if (data.password) o.passwordHash = await hash(username, data.password);
+      store(db);
+      return publicOwner(o, db);
+    },
+
+    /* PUT /owners/:id/archive — أرشفة العميل أو إرجاعه */
+    async archiveOwner(id, archived) {
+      const db = load(), o = db.owners.find((x) => x.id === id);
+      if (!o) throw Error("العميل غير موجود.");
+      o.archived = !!archived; o.updatedAt = now();
       store(db);
       return publicOwner(o, db);
     },
@@ -241,6 +264,17 @@ window.SakanPortalAPI = (function () {
       }
       Object.assign(p, { name, ownerId: data.ownerId, planId: data.planId, planTitle: data.planTitle || "", updatedAt: now() });
       if (data.engineer !== undefined) p.engineer = data.engineer || "";
+      store(db);
+      return publicProject(p, db);
+    },
+
+    /* PUT /projects/:id/meta — حالة المشروع (تحت الدراسة / معتمد / جاري التنفيذ / منتهي) والأرشفة */
+    async setProjectMeta(id, meta) {
+      const db = load(), p = db.projects.find((x) => x.id === id);
+      if (!p) throw Error("المشروع غير موجود.");
+      if (meta.stage !== undefined) { if (!STAGES.includes(meta.stage)) throw Error("حالة المشروع غير صحيحة."); p.stage = meta.stage; }
+      if (meta.archived !== undefined) p.archived = !!meta.archived;
+      p.updatedAt = now();
       store(db);
       return publicProject(p, db);
     },
