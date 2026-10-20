@@ -72,6 +72,36 @@ window.SakanPortalAPI = (function () {
       },
     };
   })();
+  /* معرض الأعمال (IndexedDB): الأقسام والصور. الأقسام الرئيسية بتتعمل أول مرة بس */
+  const GALLERY_SEED = ["أبواب", "خزائن ملابس", "ديكورات حوائط", "مفروشات", "درج وسلالم"];
+  const gallery = (function () {
+    let dbp;
+    const openDB = () => dbp || (dbp = new Promise((resolve, reject) => {
+      const r = indexedDB.open("sakan-gallery", 1);
+      r.onupgradeneeded = () => { r.result.createObjectStore("cats", { keyPath: "id" }); r.result.createObjectStore("items", { keyPath: "id" }); };
+      r.onsuccess = () => resolve(r.result);
+      r.onerror = () => reject(r.error);
+    }));
+    const call = async (store, mode, fn) => {
+      const db = await openDB();
+      return new Promise((resolve, reject) => {
+        const t = db.transaction(store, mode), req = fn(t.objectStore(store));
+        let result;
+        if (req) req.onsuccess = () => (result = req.result);
+        t.oncomplete = () => resolve(result);
+        t.onerror = t.onabort = () => reject(t.error || Error("تعذّر حفظ الصورة على الجهاز."));
+      });
+    };
+    return {
+      all: async (store) => (await call(store, "readonly", (s) => s.getAll())) || [],
+      get: (store, id) => call(store, "readonly", (s) => s.get(id)),
+      put: (store, row) => call(store, "readwrite", (s) => s.put(row)),
+      remove: (store, id) => call(store, "readwrite", (s) => s.delete(id)),
+      seeded(set) {
+        try { if (set) localStorage.setItem("sakan:gallery:seeded", "1"); return !!localStorage.getItem("sakan:gallery:seeded"); } catch (e) { return !!set; }
+      },
+    };
+  })();
   const uid = (p) => p + "-" + (crypto.randomUUID ? crypto.randomUUID() : Date.now().toString(36) + Math.random().toString(36).slice(2, 9));
   const same = (a, b) => String(a).trim().toLowerCase() === String(b).trim().toLowerCase();
   const clone = (x) => JSON.parse(JSON.stringify(x));
@@ -505,6 +535,70 @@ window.SakanPortalAPI = (function () {
     async listLog(projectId) {
       const log = load().log;
       return (projectId ? log.filter((x) => x.projectId === projectId) : log).slice().reverse();
+    },
+
+    /* ---------- معرض الأعمال ----------
+       الأقسام رئيسية وفرعية (parent = "" للرئيسي)، وكل صورة ليها صورة صغيرة (thumb)
+       للشبكة وصورة كبيرة بتتحمّل لما تتفتح. الزائر يتفرج من غير دخول، والمدير بس يعدّل. */
+
+    /* GET /gallery → { cats: [{ id, name, parent, sort }], items: [{ id, categoryId, title, thumb, createdAt }] } */
+    async listGallery() {
+      const cats = await gallery.all("cats");
+      if (!cats.length && !gallery.seeded()) {
+        GALLERY_SEED.forEach((name, i) => cats.push({ id: uid("gcat"), name, parent: "", sort: i + 1, createdAt: now() }));
+        for (const c of cats) await gallery.put("cats", c);
+        gallery.seeded(true);
+      }
+      const items = (await gallery.all("items")).map((x) => { const o = Object.assign({}, x); delete o.image; return o; });
+      return { cats: cats.sort((a, b) => (a.sort || 0) - (b.sort || 0)), items: items.sort((a, b) => b.createdAt.localeCompare(a.createdAt)) };
+    },
+    /* GET /gallery/:id/image → الصورة الكبيرة (data:image) */
+    galleryImage: async (item) => { const r = await gallery.get("items", item.id); return r ? r.image : ""; },
+
+    /* POST/PUT /gallery/cats  data: { id?, name, parent? } — الاسم بس اللي بيتعدّل بعد الإنشاء */
+    async saveGalleryCat(me, data) {
+      if (!me || me.role !== "admin") throw Error("هذا متاح لمدير النظام فقط.");
+      const name = String(data.name || "").trim().slice(0, 60);
+      if (!name) throw Error("اكتب اسم القسم.");
+      const cats = await gallery.all("cats");
+      const old = data.id && cats.find((c) => c.id === data.id);
+      if (old) { old.name = name; await gallery.put("cats", old); return old; }
+      const parent = data.parent || "";
+      if (parent && !cats.some((c) => c.id === parent && !c.parent)) throw Error("القسم الرئيسي غير موجود.");
+      const c = { id: uid("gcat"), name, parent, sort: cats.reduce((m, x) => Math.max(m, x.sort || 0), 0) + 1, createdAt: now() };
+      await gallery.put("cats", c);
+      return c;
+    },
+    /* DELETE /gallery/cats/:id — بيحذف الأقسام الفرعية والصور اللي تحته */
+    async deleteGalleryCat(me, id) {
+      if (!me || me.role !== "admin") throw Error("هذا متاح لمدير النظام فقط.");
+      const ids = (await gallery.all("cats")).filter((c) => c.id === id || c.parent === id).map((c) => c.id);
+      for (const it of await gallery.all("items")) if (ids.includes(it.categoryId)) await gallery.remove("items", it.id);
+      for (const c of ids) await gallery.remove("cats", c);
+    },
+    /* POST /gallery  meta: { categoryId, title, thumb }, image: data:image */
+    async addGalleryItem(me, meta, image) {
+      if (!me || me.role !== "admin") throw Error("هذا متاح لمدير النظام فقط.");
+      if (!(await gallery.all("cats")).some((c) => c.id === meta.categoryId)) throw Error("اختر القسم.");
+      const it = { id: uid("gal"), categoryId: meta.categoryId, title: String(meta.title || "").trim().slice(0, 120), thumb: meta.thumb, createdAt: now(), createdBy: { username: me.username, name: me.name, role: me.role } };
+      await gallery.put("items", Object.assign({ image }, it));
+      return it;
+    },
+    /* PUT /gallery/:id  data: { title?, categoryId? } */
+    async saveGalleryItem(me, id, data) {
+      if (!me || me.role !== "admin") throw Error("هذا متاح لمدير النظام فقط.");
+      const it = await gallery.get("items", id);
+      if (!it) throw Error("الصورة غير موجودة.");
+      if (data.categoryId && !(await gallery.all("cats")).some((c) => c.id === data.categoryId)) throw Error("اختر القسم.");
+      if ("title" in data) it.title = String(data.title || "").trim().slice(0, 120);
+      if (data.categoryId) it.categoryId = data.categoryId;
+      await gallery.put("items", it);
+      const o = Object.assign({}, it); delete o.image; return o;
+    },
+    /* DELETE /gallery/:id */
+    async deleteGalleryItem(me, id) {
+      if (!me || me.role !== "admin") throw Error("هذا متاح لمدير النظام فقط.");
+      await gallery.remove("items", id);
     },
   };
 })();

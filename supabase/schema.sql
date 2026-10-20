@@ -72,9 +72,20 @@ create table if not exists sakan_login_fail (
   count int not null default 0,
   until timestamptz
 );
+-- معرض الأعمال: أقسام رئيسية وفرعية (doc.parent = '' للرئيسي) وصور المنتجات.
+-- الصورة الصغيرة جوه doc.thumb، والكبيرة في sakan_chunks (kind = 'gal')
+create table if not exists sakan_gallery_cats (
+  id text primary key,
+  doc jsonb not null                   -- {id, name, parent, sort, createdAt}
+);
+create table if not exists sakan_gallery_items (
+  id text primary key,
+  cat_id text not null references sakan_gallery_cats(id) on delete cascade,
+  doc jsonb not null                   -- {id, categoryId, title, thumb, createdAt, createdBy}
+);
 
 do $$ declare t text; begin
-  foreach t in array array['sakan_staff','sakan_owners','sakan_projects','sakan_plans','sakan_files','sakan_chunks','sakan_log','sakan_seen','sakan_sessions','sakan_login_fail'] loop
+  foreach t in array array['sakan_staff','sakan_owners','sakan_projects','sakan_plans','sakan_files','sakan_chunks','sakan_log','sakan_seen','sakan_sessions','sakan_login_fail','sakan_gallery_cats','sakan_gallery_items'] loop
     execute format('alter table %I enable row level security', t);
     execute format('revoke all on %I from public, anon, authenticated', t);
   end loop;
@@ -201,6 +212,17 @@ begin
     tok := encode(extensions.gen_random_bytes(32), 'hex');
     insert into sakan_sessions values (tok, v2, v, now() + interval '30 days');
     return jsonb_build_object('token', tok, 'user', sakan_me(tok));
+  end if;
+
+  -- معرض الأعمال للزائر: القايمة والصور الكبيرة من غير جلسة
+  if op = 'galleryList' then
+    return jsonb_build_object(
+      'cats', coalesce((select jsonb_agg(doc order by coalesce((doc->>'sort')::int, 0), doc->>'name') from sakan_gallery_cats), '[]'::jsonb),
+      'items', coalesce((select jsonb_agg(i.doc || jsonb_build_object('chunks', (select count(*) from sakan_chunks c where c.kind = 'gal' and c.ref = i.id)) order by i.doc->>'createdAt' desc)
+        from sakan_gallery_items i), '[]'::jsonb));
+  end if;
+  if op = 'galleryImage' then
+    return to_jsonb((select data from sakan_chunks where kind = 'gal' and ref = args->>'id' and seq = coalesce((args->>'seq')::int, 0)));
   end if;
 
   me := sakan_me(token);
@@ -554,6 +576,60 @@ begin
     return null;
   end if;
 
+  -- ---------- معرض الأعمال (مدير النظام بس) ----------
+  if op in ('gallerySaveCat','galleryDeleteCat','galleryAddItem','gallerySaveItem','galleryDeleteItem') and me->>'role' <> 'admin' then
+    perform sakan_err('هذا متاح لمدير النظام فقط.');
+  end if;
+  if op = 'gallerySaveCat' then
+    d := args->'data';
+    v := left(trim(coalesce(d->>'name','')), 60);
+    if v = '' then perform sakan_err('اكتب اسم القسم.'); end if;
+    -- بعد الإنشاء الاسم بس اللي بيتعدّل
+    if exists (select 1 from sakan_gallery_cats where id = d->>'id') then
+      update sakan_gallery_cats set doc = doc || jsonb_build_object('name', v) where id = d->>'id';
+      return (select doc from sakan_gallery_cats where id = d->>'id');
+    end if;
+    v2 := coalesce(d->>'parent','');
+    if v2 <> '' and not exists (select 1 from sakan_gallery_cats where id = v2 and coalesce(doc->>'parent','') = '') then perform sakan_err('القسم الرئيسي غير موجود.'); end if;
+    tok := sakan_uid('gcat');
+    insert into sakan_gallery_cats values (tok, jsonb_build_object('id', tok, 'name', v, 'parent', v2, 'createdAt', sakan_now(),
+      'sort', (select coalesce(max((doc->>'sort')::int), 0) + 1 from sakan_gallery_cats)));
+    return (select doc from sakan_gallery_cats where id = tok);
+  end if;
+  if op = 'galleryDeleteCat' then
+    delete from sakan_chunks where kind = 'gal' and ref in (select i.id from sakan_gallery_items i join sakan_gallery_cats c on c.id = i.cat_id
+      where c.id = args->>'id' or c.doc->>'parent' = args->>'id');
+    delete from sakan_gallery_cats where id = args->>'id' or doc->>'parent' = args->>'id';
+    return null;
+  end if;
+  if op = 'galleryAddItem' then
+    d := args->'meta';
+    if not exists (select 1 from sakan_gallery_cats where id = d->>'categoryId') then perform sakan_err('اختر القسم.'); end if;
+    if coalesce(d->>'thumb','') !~ '^data:image/(jpeg|png|webp);base64,' or length(d->>'thumb') > 200000 then perform sakan_err('الصورة غير مناسبة. اختر صورة أخرى.'); end if;
+    v := sakan_uid('gal');
+    v2 := (args->>'upload') || ':' || lower(me->>'username');
+    if not exists (select 1 from sakan_chunks where kind = 'up' and ref = v2) then perform sakan_err('لم تُرفع الصورة بالكامل. حاول مرة أخرى.'); end if;
+    update sakan_chunks set kind = 'gal', ref = v where kind = 'up' and ref = v2;
+    d := jsonb_build_object('id', v, 'categoryId', d->>'categoryId', 'title', left(trim(coalesce(d->>'title','')), 120), 'thumb', d->>'thumb',
+      'createdAt', sakan_now(), 'createdBy', sakan_by(me));
+    insert into sakan_gallery_items values (v, d->>'categoryId', d);
+    return d || jsonb_build_object('chunks', (select count(*) from sakan_chunks where kind = 'gal' and ref = v));
+  end if;
+  if op = 'gallerySaveItem' then
+    select doc into d from sakan_gallery_items where id = args->>'id';
+    if d is null then perform sakan_err('الصورة غير موجودة.'); end if;
+    v := coalesce(nullif(args->'data'->>'categoryId',''), d->>'categoryId');
+    if not exists (select 1 from sakan_gallery_cats where id = v) then perform sakan_err('اختر القسم.'); end if;
+    d := d || jsonb_build_object('categoryId', v, 'title', left(trim(coalesce(args->'data'->>'title', d->>'title', '')), 120));
+    update sakan_gallery_items set doc = d, cat_id = v where id = args->>'id';
+    return d || jsonb_build_object('chunks', (select count(*) from sakan_chunks where kind = 'gal' and ref = args->>'id'));
+  end if;
+  if op = 'galleryDeleteItem' then
+    delete from sakan_chunks where kind = 'gal' and ref = args->>'id';
+    delete from sakan_gallery_items where id = args->>'id';
+    return null;
+  end if;
+
   -- ---------- سجل التعديلات ----------
   if op = 'addLog' then
     d := args->'entry';
@@ -582,6 +658,12 @@ end $$;
 
 revoke all on function sakan_api(text, text, jsonb) from public;
 grant execute on function sakan_api(text, text, jsonb) to anon, authenticated;
+
+-- أقسام المعرض الرئيسية (مرة واحدة بس، لو مفيش أي قسم)
+insert into sakan_gallery_cats (id, doc)
+select 'gcat-' || k, jsonb_build_object('id', 'gcat-' || k, 'name', n, 'parent', '', 'sort', s, 'createdAt', sakan_now())
+from (values ('doors', 'أبواب', 1), ('wardrobes', 'خزائن ملابس', 2), ('walls', 'ديكورات حوائط', 3), ('furniture', 'مفروشات', 4), ('stairs', 'درج وسلالم', 5)) x(k, n, s)
+where not exists (select 1 from sakan_gallery_cats);
 
 -- مدير النظام الأول (مرة واحدة بس، لو مفيش أي حساب)
 insert into sakan_staff (ukey, doc, pass)

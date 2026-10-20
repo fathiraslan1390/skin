@@ -5,7 +5,7 @@
 import re, colorsys
 
 NAMED = {'white': '#ffffff', 'black': '#000000'}
-SKIP_SEL = ('sk-paper', 'printArea', 'sk-topnav', '#sakan-intro', 'sk-tab', '.sk-btn-dark', '.primary', '.text-button', '.secondary', '.sk-btn-blue', '.sk-btn-green', 'sk-seg-btn[aria-checked', 'sk-chip-btn[aria-checked', '.sk-role', '.sk-badge', '.sk-count', '.sk-bell-count')
+SKIP_SEL = ('sk-paper', 'printArea', 'sk-topnav', '#sakan-intro', 'sk-tab', '.sk-btn-dark', '.primary', '.text-button', '.secondary', '.sk-btn-blue', '.sk-btn-green', 'sk-seg-btn[aria-checked', 'sk-chip-btn[aria-checked', '.sk-role', '.sk-badge', '.sk-count', '.sk-bell-count', 'sk-lightbox', '.sk-lb-', '.sk-gal-fav', '.sk-gal-edit')
 SKIP_PROPS = ('box-shadow', 'text-shadow', 'filter')
 COLOR_PROPS = ('color', 'background', 'border', 'fill', 'stroke', 'outline')
 COLOR = re.compile(r'#[0-9a-fA-F]{8}\b|#[0-9a-fA-F]{6}\b|#[0-9a-fA-F]{3,4}\b|rgba?\([^)]*\)|\b(?:white|black)\b')

@@ -7,6 +7,7 @@
   <div class="sk-topnav-in">
     <img class="sk-topnav-logo" data-sk-logo alt="سكن جروب">
     <div class="sk-tabs" role="tablist">
+      <button class="sk-tab" id="skTabGallery" data-tab="skGallery">معرض الأعمال</button>
       <button class="sk-tab" id="skTabOwner" data-tab="skOwner">مشاريع المالك</button>
       <button class="sk-tab sk-eng-only" id="skTabProjects" data-tab="skProjects">العملاء</button>
       <button class="sk-tab sk-admin-only" id="skTabUsers" data-tab="skUsers">المستخدمين والصلاحيات</button>
@@ -30,11 +31,14 @@
   <form id="skLoginForm" class="sk-login-card" autocomplete="on">
     <img class="sk-login-logo" data-sk-logo alt="سكن جروب">
     <h1 id="skLoginTitle">تسجيل الدخول</h1>
-    <p class="sk-muted">يدخل المالك باسم المستخدم وكلمة المرور اللذين أرسلهما له المهندس.</p>
+    <p class="sk-muted">سجّل الدخول لمتابعة أعمال تقسيمات الخزائن.</p>
     <label>اسم المستخدم<input id="skLoginUser" name="username" autocomplete="username" dir="ltr" required></label>
     <label>كلمة المرور<input id="skLoginPass" name="password" type="password" autocomplete="current-password" dir="ltr" required></label>
     <p id="skLoginError" class="sk-error" role="alert" hidden></p>
     <button class="sk-btn sk-btn-dark" type="submit">دخول</button>
+    <div class="sk-login-or"><span>أو</span></div>
+    <button class="sk-btn sk-guest-btn" type="button" id="skGuest">دخول كزائر</button>
+    <small class="sk-muted sk-guest-hint">ادخل كزائر لاستعراض أعمالنا الخشبية.</small>
   </form>
 </dialog>
 
@@ -296,4 +300,85 @@
 <dialog id="skNotify" class="sk-dialog sk-panel" aria-labelledby="skNotifyTitle">
   <div class="sk-head-row"><h2 id="skNotifyTitle">الإشعارات</h2><button class="icon-button" data-sk-close aria-label="إغلاق">×</button></div>
   <div id="skNotifyList" class="sk-notify-list"></div>
+</dialog>
+
+<!-- معرض الأعمال: الزائر يتفرج، ومدير النظام يضيف الأقسام والصور -->
+<dialog id="skGallery" class="sk-dialog sk-panel sk-wide" aria-labelledby="skGalleryTitle">
+  <div class="sk-head-row">
+    <div><span class="eyebrow">سكن جروب</span><h2 id="skGalleryTitle">معرض أعمالنا</h2></div>
+    <button class="icon-button sk-gal-close" data-sk-close aria-label="إغلاق">×</button>
+  </div>
+  <p class="sk-muted sk-gal-intro">نماذج من أعمالنا المنفذة. اختر القسم، واضغط على أي صورة لتكبيرها، وعلى ♥ لحفظها في المفضلة.</p>
+  <div class="sk-toolbar sk-admin-only">
+    <button class="sk-btn sk-btn-dark" id="skGalAdd">+ إضافة صور</button>
+    <button class="sk-btn" id="skGalManage">إدارة الأقسام</button>
+    <input type="file" id="skGalFiles" accept="image/jpeg,image/png,image/webp" multiple hidden>
+  </div>
+  <nav class="sk-gal-cats" id="skGalMain" aria-label="الأقسام الرئيسية"></nav>
+  <nav class="sk-gal-cats sk-gal-subs" id="skGalSubs" aria-label="الأقسام الفرعية" hidden></nav>
+  <p id="skGalMsg" class="sk-note" role="status" hidden></p>
+  <div id="skGalGrid" class="sk-gal-grid"></div>
+</dialog>
+
+<!-- إدارة أقسام المعرض (مدير النظام) -->
+<dialog id="skGalCats" class="sk-dialog" aria-labelledby="skGalCatsTitle">
+  <div class="sk-head-row">
+    <div><span class="eyebrow">معرض الأعمال</span><h2 id="skGalCatsTitle">إدارة الأقسام</h2></div>
+    <button type="button" class="icon-button" data-sk-close aria-label="إغلاق">×</button>
+  </div>
+  <p class="sk-muted">تظهر الأقسام الرئيسية أعلى المعرض، ويمكنك إضافة أقسام فرعية تحت كل قسم رئيسي.</p>
+  <form id="skGalCatForm" class="sk-gal-cat-form">
+    <input id="skGalCatName" maxlength="60" placeholder="اسم القسم الجديد" aria-label="اسم القسم الجديد" required>
+    <select id="skGalCatParent" aria-label="مكان القسم"></select>
+    <button class="sk-btn sk-btn-dark" type="submit">إضافة</button>
+  </form>
+  <p id="skGalCatsError" class="sk-error" role="alert" hidden></p>
+  <div id="skGalCatList" class="sk-gal-cat-list"></div>
+</dialog>
+
+<!-- رفع صور للمعرض -->
+<dialog id="skGalUpload" class="sk-dialog sk-narrow" aria-labelledby="skGalUpTitle">
+  <form id="skGalUpForm">
+    <div class="sk-head-row">
+      <div><span class="eyebrow">معرض الأعمال</span><h2 id="skGalUpTitle">إضافة صور</h2></div>
+      <button type="button" class="icon-button" data-sk-close aria-label="إغلاق">×</button>
+    </div>
+    <p class="sk-muted" id="skGalUpInfo"></p>
+    <label>القسم<select id="skGalUpCat" required></select></label>
+    <label>وصف الصور (اختياري)<input id="skGalUpText" maxlength="120" placeholder="مثال: باب خشب زان بتجليد كلاسيك"></label>
+    <p id="skGalUpError" class="sk-error" role="alert" hidden></p>
+    <div class="sk-actions"><button type="button" class="sk-btn" data-sk-close>إلغاء</button><button class="sk-btn sk-btn-dark" type="submit" id="skGalUpGo">رفع الصور</button></div>
+  </form>
+</dialog>
+
+<!-- تعديل صورة في المعرض -->
+<dialog id="skGalItem" class="sk-dialog sk-narrow" aria-labelledby="skGalItemTitle">
+  <form id="skGalItemForm">
+    <div class="sk-head-row">
+      <div><span class="eyebrow">معرض الأعمال</span><h2 id="skGalItemTitle">تعديل الصورة</h2></div>
+      <button type="button" class="icon-button" data-sk-close aria-label="إغلاق">×</button>
+    </div>
+    <img id="skGalItemImg" class="sk-gal-item-img" alt="">
+    <label>الوصف<input id="skGalItemText" maxlength="120"></label>
+    <label>القسم<select id="skGalItemCat" required></select></label>
+    <p id="skGalItemError" class="sk-error" role="alert" hidden></p>
+    <div class="sk-actions"><button type="button" class="sk-btn sk-danger" id="skGalItemDel">حذف الصورة</button><button class="sk-btn sk-btn-dark" type="submit">حفظ</button></div>
+  </form>
+</dialog>
+
+<!-- عرض الصورة كبيرة: تكبير وتحريك وتقليب ومفضلة -->
+<dialog id="skLightbox" class="sk-lightbox" aria-label="عرض الصورة">
+  <div class="sk-lb-top">
+    <span class="sk-lb-count" id="skLbCount"></span>
+    <span class="sk-lb-tools">
+      <button type="button" class="sk-lb-btn sk-lb-fav" id="skLbFav" aria-pressed="false" aria-label="إضافة إلى المفضلة">♥</button>
+      <button type="button" class="sk-lb-btn" id="skLbZoomOut" aria-label="تصغير">−</button>
+      <button type="button" class="sk-lb-btn" id="skLbZoomIn" aria-label="تكبير">+</button>
+      <button type="button" class="sk-lb-btn" id="skLbClose" aria-label="إغلاق">×</button>
+    </span>
+  </div>
+  <div class="sk-lb-stage" id="skLbStage"><img id="skLbImg" alt="" draggable="false"></div>
+  <button type="button" class="sk-lb-nav sk-lb-prev" id="skLbPrev" aria-label="الصورة السابقة">›</button>
+  <button type="button" class="sk-lb-nav sk-lb-next" id="skLbNext" aria-label="الصورة التالية">‹</button>
+  <div class="sk-lb-cap" id="skLbCap"></div>
 </dialog>

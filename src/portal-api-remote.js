@@ -127,7 +127,27 @@
 
     addLog: (entry) => call("addLog", { entry }),
     listLog: (projectId) => call("listLog", { projectId: projectId || "" }),
+
+    /* معرض الأعمال: القايمة والصور الكبيرة مفتوحين للزائر من غير دخول، والتعديل للمدير بس */
+    listGallery: () => call("galleryList"),
+    async galleryImage(item) {
+      if (gallery.has(item.id)) return gallery.get(item.id);
+      const parts = [];
+      for (let seq = 0; seq < (item.chunks || 0); seq++) parts.push(await call("galleryImage", { id: item.id, seq }));
+      const img = parts.join("");
+      gallery.set(item.id, img);
+      return img;
+    },
+    saveGalleryCat: (me, data) => call("gallerySaveCat", { data }),
+    deleteGalleryCat: (me, id) => call("galleryDeleteCat", { id }),
+    async addGalleryItem(me, meta, image) {
+      const up = await upload(image);
+      return call("galleryAddItem", { upload: up, meta });
+    },
+    saveGalleryItem: (me, id, data) => call("gallerySaveItem", { id, data }),
+    async deleteGalleryItem(me, id) { await call("galleryDeleteItem", { id }); gallery.delete(id); },
   };
+  const gallery = new Map(); // id → الصورة الكبيرة بعد ما تتنزل مرة
 
   /* المخططات: PlanProjects.list/put/remove بيعدّوا من هنا (portal_build.py).
      الصورة بتتنزل مرة واحدة وتفضل في الذاكرة لحد ما المخطط يتعدّل. */

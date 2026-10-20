@@ -42,7 +42,7 @@
   const SESSION = "sakan:session", PREFS = "sakan:prefs";
 
   const SLOTS = { p1: "مقترح ١", p2: "مقترح ٢", final: "المقترح النهائي" };
-  const ROLE = { admin: "مدير النظام", engineer: "مهندس", client: "مالك" };
+  const ROLE = { admin: "مدير النظام", engineer: "مهندس", client: "مالك", guest: "زائر" };
 
   let user = null;        // المستخدم الداخل دلوقتي
   let project = null;     // المشروع المفتوح دلوقتي (أو null)
@@ -67,6 +67,7 @@
   const typeLabel = (id) => { const t = APP.typeOf(id); return t ? t.label : "؟"; };
   const isEng = () => !!user && (user.role === "engineer" || user.role === "admin");   // مهندس أو مدير
   const isAdmin = () => !!user && user.role === "admin";
+  const isGuest = () => !!user && user.role === "guest";   // الزائر بيتفرج على معرض الأعمال بس، من غير حساب
   /* الصلاحيات: المدير يقدر كل حاجة، والباقي حسب اللي المدير حدده */
   const can = (perm) => isAdmin() || (!!user && !!user.perms && !!user.perms[perm]);
   /* المهندس المسؤول: المهندس بيشوف مشاريعه واللي مالهاش مهندس محدد */
@@ -91,9 +92,11 @@
     markTab();
   }
   function close(id) { const d = $(id); if (d.open) d.close(); }
-  function closeAll() { document.querySelectorAll("dialog.sk-dialog[open]").forEach((d) => d.close()); }
+  // الزائر مالوش غير المعرض، فمابيتقفلش
+  function closeAll() { document.querySelectorAll("dialog.sk-dialog[open]").forEach((d) => { if (!(isGuest() && d.id === "skGallery")) d.close(); }); }
 
   function log(action, details, p = project) {
+    if (!user || isGuest()) return Promise.resolve();
     return API.addLog({
       username: user.username, name: user.name, role: user.role,
       projectId: p ? p.id : null, projectName: p ? p.name : "",
@@ -136,6 +139,7 @@
     if ($("skLog").open) renderLog();
     if ($("skProposals").open) renderProposals();
     if ($("skReport").open) renderReport();
+    if ($("skGallery").open) renderGallery();
   }
 
   /* ---------------- شريط الأدوات الأسود ---------------- */
@@ -152,7 +156,8 @@
       const id = b.dataset.tab, wasOpen = $(id).open;
       closeAll();
       if (wasOpen) return;
-      if (id === "skOwner") openOwner();
+      if (id === "skGallery") openGallery();
+      else if (id === "skOwner") openOwner();
       else if (id === "skProjects") { clientView = ""; archiveView = false; $("skSearch").value = ""; openProjects(); }
       else if (id === "skUsers") openUsers();
       else if (id === "skNotify") openNotify();
@@ -165,7 +170,7 @@
       else open(id);
     }));
     $("skLogout").onclick = logout;
-    $("skMe").onclick = openProfile;
+    $("skMe").onclick = () => { if (!isGuest()) openProfile(); };
     $("skScrim").onclick = closeAll;
     document.addEventListener("keydown", (e) => { if (e.key === "Escape" && !document.querySelector("dialog[open]:modal")) closeAll(); });
 
@@ -227,6 +232,7 @@
     document.body.classList.toggle("sk-role-engineer", isEng());
     document.body.classList.toggle("sk-role-client", !!user && user.role === "client");
     document.body.classList.toggle("sk-role-admin", isAdmin());
+    document.body.classList.toggle("sk-role-guest", isGuest());
     // المالك اللي مالوش صلاحية تعديل بيتفرج بس
     document.body.classList.toggle("sk-readonly", !!user && user.role === "client" && !can("edit"));
     document.body.classList.toggle("sk-can-log", can("viewLog"));
@@ -237,6 +243,8 @@
     $("skUserName").textContent = user.name;
     $("skMe").title = `${user.name} · ${ROLE[user.role]}`;
     $("skMeAvatar").outerHTML = avatarHTML(user, "sk-avatar-sm", "skMeAvatar");
+    $("skLogout").textContent = isGuest() ? "تسجيل الدخول" : "خروج";
+    if (isGuest()) { $("skProjectLabel").textContent = ""; document.title = "سكن جروب | معرض أعمالنا"; updateWorkbar(); return; }
     $("skProjectLabel").textContent = project
       ? `مشروع: ${project.name} · المالك: ${project.ownerName}`
       : (isEng() ? "لا يوجد مشروع مفتوح. افتح مشروعًا من «العملاء»." : "لم يضف المهندس أي مشاريع لك بعد.");
@@ -312,6 +320,18 @@
     await enter(null, true);
   });
 
+  // الزائر: من غير حساب، وبيفتح على معرض الأعمال على طول
+  $("skGuest").onclick = () => enterGuest();
+  function enterGuest() {
+    user = { role: "guest", username: "", name: "زائر", avatar: "", perms: {} };
+    project = null;
+    close("skLogin");
+    APP.loadProject(P.builtin);
+    updateChrome();
+    saveSession();
+    openGallery();
+  }
+
   async function enter(projectId, fresh) {
     project = null;
     updateChrome();
@@ -370,8 +390,10 @@
     if (!(await leaveProject())) return;
     await log("تسجيل خروج");
     closeAll();
-    if (API.logout) API.logout().catch(() => {});
+    if (API.logout && !isGuest()) API.logout().catch(() => {});
     user = null; project = null; dirty = false; ownerView = "";
+    closeAll();
+    close("skLightbox");
     saveSession();
     APP.loadProject(P.builtin);
     updateChrome();
@@ -1603,7 +1625,7 @@
   const NOTIFY = { comment: "تعليق جديد", report: "تقرير مُرسل", approved: "حفظ نهائي للتصنيع", editRequest: "طلب السماح بالتعديل", editAllowed: "مدير النظام سمح بالتعديل", editRejected: "مدير النظام رفض طلب التعديل" };
   let notifications = [];
   async function refreshNotifications() {
-    if (!user) return;
+    if (!user || isGuest()) return;
     notifications = await API.listNotifications(user);
     $("skBellCount").textContent = notifications.length > 9 ? "9+" : notifications.length;
     $("skBellCount").hidden = !notifications.length;
@@ -1639,14 +1661,328 @@
   window.addEventListener("focus", refreshNotifications);
   window.addEventListener("storage", (e) => e.key === "sakan:portal:v1" && refreshNotifications());
 
+  /* ---------------- معرض الأعمال ----------------
+     أقسام رئيسية وتحتها فرعية، وصور المنتجات في شبكة. الضغط على صورة بيفتحها كبيرة
+     (تكبير بالعجلة أو بصباعين أو بالضغط مرتين، وتحريك وهي مكبّرة، وتقليب بالأسهم أو بالسحب).
+     المفضلة متخزنة على الجهاز نفسه. مدير النظام بس اللي بيضيف الأقسام والصور. */
+  const GAL_FAV = "sakan:gallery:favs";
+  const okImg = (a) => /^data:image\/(jpeg|png|webp);base64,[A-Za-z0-9+/=]+$/.test(String(a || ""));
+  let gal = { cats: [], items: [] }, galMain = "", galSub = "", galShown = [];
+  const galFavs = () => { try { return new Set(JSON.parse(localStorage.getItem(GAL_FAV) || "[]")); } catch (e) { return new Set(); } };
+  function galToggleFav(id) {
+    const f = galFavs();
+    f.has(id) ? f.delete(id) : f.add(id);
+    try { localStorage.setItem(GAL_FAV, JSON.stringify([...f])); } catch (e) {}
+    return f.has(id);
+  }
+  const galCat = (id) => gal.cats.find((c) => c.id === id);
+  const galMains = () => gal.cats.filter((c) => !c.parent);
+  const galSubs = (id) => gal.cats.filter((c) => c.parent === id);
+  const galMainOf = (item) => { const c = galCat(item.categoryId); return c ? (c.parent || c.id) : ""; };
+  function galPath(item) {
+    const c = galCat(item.categoryId);
+    if (!c) return "";
+    const m = c.parent && galCat(c.parent);
+    return m ? `${m.name} › ${c.name}` : c.name;
+  }
+  function galCatOptions(selected) {
+    return galMains().map((m) => `<option value="${esc(m.id)}"${m.id === selected ? " selected" : ""}>${esc(m.name)}</option>` +
+      galSubs(m.id).map((c) => `<option value="${esc(c.id)}"${c.id === selected ? " selected" : ""}>— ${esc(c.name)}</option>`).join("")).join("");
+  }
+
+  async function openGallery() {
+    closeAll();
+    open("skGallery");
+    say("skGalMsg", gal.cats.length ? "" : "جارٍ تحميل المعرض…");
+    try { gal = await API.listGallery(); say("skGalMsg", ""); }
+    catch (e) { say("skGalMsg", e.message || "تعذّر تحميل المعرض. حاول مرة أخرى.", true); }
+    if (galMain && galMain !== "fav" && !galCat(galMain)) galMain = "";
+    if (galSub && !galCat(galSub)) galSub = "";
+    renderGallery();
+  }
+
+  function renderGallery() {
+    const favs = galFavs(), items = gal.items.filter((x) => okImg(x.thumb));
+    const inMain = (id) => items.filter((x) => galMainOf(x) === id);
+    const chip = (key, label, n, on, attr) => `<button type="button" ${attr}="${esc(key)}" aria-pressed="${on}"><span>${label}</span> <small>${n}</small></button>`;
+    $("skGalMain").innerHTML = chip("", "الكل", items.length, galMain === "", "data-gal-main") +
+      galMains().map((m) => chip(m.id, esc(m.name), inMain(m.id).length, galMain === m.id, "data-gal-main")).join("") +
+      chip("fav", "♥ المفضلة", items.filter((x) => favs.has(x.id)).length, galMain === "fav", "data-gal-main");
+    const subs = galMain && galMain !== "fav" ? galSubs(galMain) : [];
+    $("skGalSubs").hidden = !subs.length;
+    $("skGalSubs").innerHTML = subs.length ? chip("", "كل " + esc(galCat(galMain).name), inMain(galMain).length, galSub === "", "data-gal-sub") +
+      subs.map((c) => chip(c.id, esc(c.name), items.filter((x) => x.categoryId === c.id).length, galSub === c.id, "data-gal-sub")).join("") : "";
+    galShown = galMain === "fav" ? items.filter((x) => favs.has(x.id))
+      : galSub ? items.filter((x) => x.categoryId === galSub)
+      : galMain ? inMain(galMain) : items;
+    const grid = $("skGalGrid");
+    if (!galShown.length) {
+      grid.innerHTML = `<div class="sk-gal-empty"><b>${galMain === "fav" ? "لا توجد صور في المفضلة بعد" : "لا توجد صور في هذا القسم بعد"}</b>
+        <p class="sk-muted">${galMain === "fav" ? "اضغط على ♥ فوق أي صورة لتظهر هنا." : isAdmin() ? "أضف صورًا من «+ إضافة صور»." : "ترقّب أعمالنا الجديدة قريبًا."}</p></div>`;
+      return;
+    }
+    grid.innerHTML = galShown.map((x, i) => `<figure class="sk-gal-card" data-gal-open="${i}" tabindex="0" role="button" aria-label="${esc(x.title || galPath(x))}">
+        <img src="${x.thumb}" alt="${esc(x.title || galPath(x))}" loading="lazy">
+        <figcaption>${x.title ? `<b>${esc(x.title)}</b>` : ""}<small>${esc(galPath(x))}</small></figcaption>
+        <button type="button" class="sk-gal-fav${favs.has(x.id) ? " on" : ""}" data-gal-fav="${esc(x.id)}" aria-pressed="${favs.has(x.id)}" aria-label="${favs.has(x.id) ? "إزالة من المفضلة" : "إضافة إلى المفضلة"}">♥</button>
+        ${isAdmin() ? `<button type="button" class="sk-gal-edit" data-gal-edit="${esc(x.id)}" aria-label="تعديل الصورة">✎</button>` : ""}
+      </figure>`).join("");
+  }
+
+  $("skGalMain").onclick = (e) => { const b = e.target.closest("[data-gal-main]"); if (!b) return; galMain = b.dataset.galMain; galSub = ""; renderGallery(); };
+  $("skGalSubs").onclick = (e) => { const b = e.target.closest("[data-gal-sub]"); if (!b) return; galSub = b.dataset.galSub; renderGallery(); };
+  $("skGalGrid").onclick = (e) => {
+    const fav = e.target.closest("[data-gal-fav]"), edit = e.target.closest("[data-gal-edit]"), card = e.target.closest("[data-gal-open]");
+    if (fav) { galToggleFav(fav.dataset.galFav); renderGallery(); return; }
+    if (edit) { openGalItem(edit.dataset.galEdit); return; }
+    if (card) lightbox(+card.dataset.galOpen);
+  };
+  $("skGalGrid").onkeydown = (e) => {
+    const card = e.target.closest && e.target.closest("[data-gal-open]");
+    if (card && e.target === card && (e.key === "Enter" || e.key === " ")) { e.preventDefault(); lightbox(+card.dataset.galOpen); }
+  };
+
+  /* ---- رفع الصور (المدير) ---- */
+  // بنصغّر الصورة قبل الرفع: نسخة كبيرة للعرض ونسخة صغيرة للشبكة
+  async function shrinkImage(file, max, quality) {
+    const url = URL.createObjectURL(file);
+    try {
+      const im = new Image(); im.src = url; await im.decode();
+      const k = Math.min(1, max / Math.max(im.width, im.height)), c = document.createElement("canvas");
+      c.width = Math.round(im.width * k); c.height = Math.round(im.height * k);
+      const g = c.getContext("2d");
+      g.fillStyle = "#fff"; g.fillRect(0, 0, c.width, c.height);   // الشفاف (PNG) بيبقى أبيض
+      g.drawImage(im, 0, 0, c.width, c.height);
+      return c.toDataURL("image/jpeg", quality);
+    } finally { URL.revokeObjectURL(url); }
+  }
+  let galFiles = [];
+  $("skGalAdd").onclick = () => {
+    if (!gal.cats.length) return say("skGalMsg", "أضف قسمًا أولًا من «إدارة الأقسام».", true);
+    $("skGalFiles").click();
+  };
+  $("skGalFiles").onchange = () => {
+    galFiles = [...$("skGalFiles").files].filter((f) => /^image\/(jpeg|png|webp)$/.test(f.type));
+    $("skGalFiles").value = "";
+    if (!galFiles.length) return say("skGalMsg", "اختر صورًا بصيغة JPG أو PNG أو WEBP.", true);
+    $("skGalUpCat").innerHTML = galCatOptions(galSub || (galMain !== "fav" && galMain) || "");
+    $("skGalUpText").value = "";
+    $("skGalUpInfo").textContent = galFiles.length === 1 ? "صورة واحدة مختارة." : `${galFiles.length} صور مختارة.`;
+    say("skGalUpError", "");
+    $("skGalUpGo").disabled = false;
+    open("skGalUpload");
+  };
+  $("skGalUpForm").onsubmit = async (e) => {
+    e.preventDefault();
+    const categoryId = $("skGalUpCat").value, title = $("skGalUpText").value.trim();
+    $("skGalUpGo").disabled = true;
+    let done = 0;
+    try {
+      for (const f of galFiles) {
+        $("skGalUpInfo").textContent = `جارٍ رفع الصورة ${done + 1} من ${galFiles.length}…`;
+        const [image, thumb] = [await shrinkImage(f, 1800, 0.85), await shrinkImage(f, 560, 0.74)];
+        gal.items.unshift(await API.addGalleryItem(user, { categoryId, title, thumb }, image));
+        done++;
+      }
+    } catch (err) {
+      $("skGalUpGo").disabled = false;
+      renderGallery();
+      return say("skGalUpError", (done ? `تم رفع ${done} من ${galFiles.length}. ` : "") + (err.message || "تعذّر رفع الصورة. حاول مرة أخرى."), true);
+    }
+    close("skGalUpload");
+    log("إضافة صور للمعرض", `${done} · ${galPath({ categoryId })}`, null);
+    const c = galCat(categoryId);
+    galMain = c ? (c.parent || c.id) : ""; galSub = c && c.parent ? c.id : "";
+    renderGallery();
+    notice(done === 1 ? "تمت إضافة الصورة إلى المعرض." : `تمت إضافة ${done} صور إلى المعرض.`);
+  };
+
+  /* ---- تعديل صورة (المدير) ---- */
+  let galEditing = null;
+  function openGalItem(id) {
+    galEditing = gal.items.find((x) => x.id === id);
+    if (!galEditing) return;
+    $("skGalItemImg").src = galEditing.thumb;
+    $("skGalItemText").value = galEditing.title || "";
+    $("skGalItemCat").innerHTML = galCatOptions(galEditing.categoryId);
+    say("skGalItemError", "");
+    open("skGalItem");
+  }
+  $("skGalItemForm").onsubmit = async (e) => {
+    e.preventDefault();
+    try {
+      const it = await API.saveGalleryItem(user, galEditing.id, { title: $("skGalItemText").value, categoryId: $("skGalItemCat").value });
+      Object.assign(galEditing, it);
+    } catch (err) { return say("skGalItemError", err.message || "تعذّر الحفظ.", true); }
+    close("skGalItem");
+    renderGallery();
+    notice("تم حفظ الصورة.");
+  };
+  $("skGalItemDel").onclick = async () => {
+    if (!confirm("حذف هذه الصورة من المعرض؟")) return;
+    try { await API.deleteGalleryItem(user, galEditing.id); }
+    catch (err) { return say("skGalItemError", err.message || "تعذّر الحذف.", true); }
+    gal.items = gal.items.filter((x) => x !== galEditing);
+    close("skGalItem");
+    log("حذف صورة من المعرض", galPath(galEditing), null);
+    renderGallery();
+  };
+
+  /* ---- إدارة الأقسام (المدير) ---- */
+  function renderGalCats() {
+    $("skGalCatParent").innerHTML = `<option value="">قسم رئيسي</option>` + galMains().map((m) => `<option value="${esc(m.id)}">قسم فرعي تحت «${esc(m.name)}»</option>`).join("");
+    const count = (id) => gal.items.filter((x) => x.categoryId === id).length;
+    const row = (c, sub) => `<div class="sk-gal-cat-row${sub ? " sub" : ""}">
+        <span><b>${esc(c.name)}</b> <small class="sk-muted">${count(c.id)} صورة</small></span>
+        <span class="sk-gal-cat-actions"><button type="button" class="sk-btn" data-cat-rename="${esc(c.id)}">تعديل الاسم</button><button type="button" class="sk-btn sk-danger" data-cat-del="${esc(c.id)}">حذف</button></span>
+      </div>`;
+    $("skGalCatList").innerHTML = galMains().length
+      ? galMains().map((m) => `<section class="sk-gal-cat-group">${row(m)}${galSubs(m.id).map((c) => row(c, true)).join("")}</section>`).join("")
+      : `<p class="sk-muted">لا توجد أقسام بعد.</p>`;
+  }
+  $("skGalManage").onclick = () => { say("skGalCatsError", ""); $("skGalCatName").value = ""; renderGalCats(); open("skGalCats"); };
+  $("skGalCatForm").onsubmit = async (e) => {
+    e.preventDefault();
+    try { gal.cats.push(await API.saveGalleryCat(user, { name: $("skGalCatName").value, parent: $("skGalCatParent").value })); }
+    catch (err) { return say("skGalCatsError", err.message || "تعذّر الحفظ.", true); }
+    say("skGalCatsError", "");
+    const parent = $("skGalCatParent").value;
+    $("skGalCatName").value = "";
+    renderGalCats();
+    $("skGalCatParent").value = parent;
+    renderGallery();
+  };
+  $("skGalCatList").onclick = async (e) => {
+    const ren = e.target.closest("[data-cat-rename]"), del = e.target.closest("[data-cat-del]");
+    const c = (ren || del) && galCat(ren ? ren.dataset.catRename : del.dataset.catDel);
+    if (!c) return;
+    try {
+      if (ren) {
+        const name = prompt("الاسم الجديد للقسم", c.name);
+        if (name == null || !name.trim() || name.trim() === c.name) return;
+        Object.assign(c, await API.saveGalleryCat(user, { id: c.id, name }));
+      } else {
+        const subs = galSubs(c.id), ids = [c.id, ...subs.map((x) => x.id)], n = gal.items.filter((x) => ids.includes(x.categoryId)).length;
+        if (!confirm(`حذف قسم «${c.name}»${subs.length ? " وأقسامه الفرعية" : ""}${n ? ` و${n} صورة فيه` : ""}؟ لا يمكن التراجع عن الحذف.`)) return;
+        await API.deleteGalleryCat(user, c.id);
+        gal.cats = gal.cats.filter((x) => !ids.includes(x.id));
+        gal.items = gal.items.filter((x) => !ids.includes(x.categoryId));
+        if (ids.includes(galMain)) galMain = "";
+        if (ids.includes(galSub)) galSub = "";
+        log("حذف قسم من المعرض", c.name, null);
+      }
+    } catch (err) { return say("skGalCatsError", err.message || "تعذّر الحفظ.", true); }
+    renderGalCats();
+    renderGallery();
+  };
+
+  /* ---- عرض الصورة كبيرة ---- */
+  let lbIndex = 0, lbZ = 1, lbX = 0, lbY = 0;
+  const lbImg = $("skLbImg"), lbStage = $("skLbStage");
+  const rtl = () => document.documentElement.dir !== "ltr";
+  function lbApply(animate) {
+    lbImg.style.transition = animate ? "transform .2s ease" : "none";
+    if (lbZ <= 1) { lbZ = 1; lbX = lbY = 0; }
+    // مايخرجش برا الشاشة وهو مكبّر
+    const mx = (lbImg.offsetWidth * (lbZ - 1)) / 2, my = (lbImg.offsetHeight * (lbZ - 1)) / 2;
+    lbX = Math.max(-mx, Math.min(mx, lbX)); lbY = Math.max(-my, Math.min(my, lbY));
+    lbImg.style.transform = `translate(${lbX}px, ${lbY}px) scale(${lbZ})`;
+    lbStage.classList.toggle("zoomed", lbZ > 1);
+  }
+  const lbZoom = (z, animate) => { lbZ = Math.max(1, Math.min(5, z)); lbApply(animate); };
+  function lbFav() {
+    const on = galShown[lbIndex] && galFavs().has(galShown[lbIndex].id);
+    $("skLbFav").classList.toggle("on", !!on);
+    $("skLbFav").setAttribute("aria-pressed", String(!!on));
+    $("skLbFav").setAttribute("aria-label", on ? "إزالة من المفضلة" : "إضافة إلى المفضلة");
+  }
+  async function lightbox(i) {
+    if (!galShown.length) return;
+    lbIndex = (i + galShown.length) % galShown.length;
+    const it = galShown[lbIndex];
+    lbZ = 1; lbApply(false);
+    lbImg.src = it.thumb;                   // الصغيرة الأول لحد ما الكبيرة تتحمّل
+    lbImg.alt = it.title || galPath(it);
+    lbStage.classList.add("loading");
+    $("skLbCount").textContent = `${lbIndex + 1} / ${galShown.length}`;
+    $("skLbCap").innerHTML = `${it.title ? `<b>${esc(it.title)}</b>` : ""}<small>${esc(galPath(it))}</small>`;
+    $("skLbPrev").hidden = $("skLbNext").hidden = galShown.length < 2;
+    lbFav();
+    if (!$("skLightbox").open) $("skLightbox").showModal();
+    try {
+      const big = await API.galleryImage(it);
+      if (galShown[lbIndex] === it && okImg(big)) lbImg.src = big;
+    } catch (e) { console.error(e); }
+    if (galShown[lbIndex] === it) lbStage.classList.remove("loading");
+  }
+  const lbStep = (d) => lightbox(lbIndex + d);
+  $("skLbNext").onclick = () => lbStep(1);
+  $("skLbPrev").onclick = () => lbStep(-1);
+  $("skLbClose").onclick = () => $("skLightbox").close();
+  $("skLbZoomIn").onclick = () => lbZoom(lbZ * 1.6, true);
+  $("skLbZoomOut").onclick = () => lbZoom(lbZ / 1.6, true);
+  $("skLbFav").onclick = () => { galToggleFav(galShown[lbIndex].id); lbFav(); renderGallery(); };
+  $("skLightbox").addEventListener("close", () => { lbImg.removeAttribute("src"); });
+  $("skLightbox").addEventListener("click", (e) => { if (e.target === $("skLightbox") || e.target === lbStage) $("skLightbox").close(); });
+  $("skLightbox").addEventListener("keydown", (e) => {
+    if (e.key === "ArrowLeft") lbStep(rtl() ? 1 : -1);
+    else if (e.key === "ArrowRight") lbStep(rtl() ? -1 : 1);
+    else if (e.key === "+" || e.key === "=") lbZoom(lbZ * 1.6, true);
+    else if (e.key === "-") lbZoom(lbZ / 1.6, true);
+  });
+  let lbPointer = "mouse";
+  lbImg.addEventListener("dblclick", () => { if (lbPointer !== "touch") lbZoom(lbZ > 1 ? 1 : 2.5, true); });
+  lbStage.addEventListener("wheel", (e) => { e.preventDefault(); lbZoom(lbZ * (e.deltaY < 0 ? 1.15 : 1 / 1.15), false); }, { passive: false });
+  // السحب: وهي مكبّرة بيحرّكها، ومن غير تكبير السحب للجنب بيقلّب. وبصباعين تكبير وتصغير
+  (function lbGestures() {
+    const pts = new Map();
+    let start = null, pinch = null, lastTap = 0;
+    lbImg.addEventListener("pointerdown", (e) => {
+      lbPointer = e.pointerType;
+      lbImg.setPointerCapture(e.pointerId);
+      pts.set(e.pointerId, { x: e.clientX, y: e.clientY });
+      if (pts.size === 2) {
+        const [a, b] = [...pts.values()];
+        pinch = { d: Math.hypot(a.x - b.x, a.y - b.y) || 1, z: lbZ };
+        start = null;
+      } else start = { x: e.clientX, y: e.clientY, ox: lbX, oy: lbY, t: Date.now() };
+    });
+    lbImg.addEventListener("pointermove", (e) => {
+      if (!pts.has(e.pointerId)) return;
+      pts.set(e.pointerId, { x: e.clientX, y: e.clientY });
+      if (pinch && pts.size === 2) {
+        const [a, b] = [...pts.values()];
+        lbZoom(pinch.z * (Math.hypot(a.x - b.x, a.y - b.y) / pinch.d), false);
+      } else if (start && lbZ > 1) {
+        lbX = start.ox + e.clientX - start.x; lbY = start.oy + e.clientY - start.y; lbApply(false);
+      }
+    });
+    const end = (e) => {
+      if (!pts.has(e.pointerId)) return;
+      pts.delete(e.pointerId);
+      if (pinch) { if (pts.size < 2) pinch = null; start = null; return; }
+      if (!start) return;
+      const dx = e.clientX - start.x, dy = e.clientY - start.y;
+      if (lbZ === 1 && Math.abs(dx) > 50 && Math.abs(dx) > Math.abs(dy) * 1.5) lbStep((dx > 0) === rtl() ? 1 : -1);
+      else if (e.pointerType === "touch" && Math.abs(dx) < 8 && Math.abs(dy) < 8) {
+        // الضغط مرتين بالصباع يكبّر ويصغّر
+        if (Date.now() - lastTap < 300) { lbZoom(lbZ > 1 ? 1 : 2.5, true); lastTap = 0; } else lastTap = Date.now();
+      }
+      start = null;
+    };
+    lbImg.addEventListener("pointerup", end);
+    lbImg.addEventListener("pointercancel", end);
+  })();
+
   /* ---------------- البداية ---------------- */
   async function start() {
     injectChrome();
     applyPrefs(readPrefs());
     await API.ready();
     const s = readSession();
-    const u = s && (await API.whoami(s));
-    if (u) { user = u; await enter(s.projectId, false); }
+    const u = s && s.role !== "guest" && (await API.whoami(s));
+    if (s && s.role === "guest") enterGuest();
+    else if (u) { user = u; await enter(s.projectId, false); }
     else showLogin();
   }
 
